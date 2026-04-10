@@ -24,7 +24,7 @@ agent-only:
 # ── Database ──────────────────────────────────────────────
 
 seed:
-	docker compose exec supabase-db psql -h localhost -U supabase_admin -d postgres -f /docker-entrypoint-initdb.d/seed.sql
+	cat supabase/seed.sql | docker compose exec -T supabase-db psql -h localhost -U supabase_admin -d postgres
 
 migrate:
 	@for f in supabase/migrations/*.sql; do \

@@ -1,6 +1,15 @@
 -- 007_rls_policies.sql
 -- Row Level Security on all tables
 
+-- Create auth schema and uid() stub if not exists (Supabase GoTrue creates these normally)
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+  SELECT COALESCE(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
+$$ LANGUAGE sql STABLE;
+
 -- Enable RLS on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_config ENABLE ROW LEVEL SECURITY;
