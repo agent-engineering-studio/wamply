@@ -24,17 +24,17 @@ agent-only:
 # ── Database ──────────────────────────────────────────────
 
 seed:
-	docker compose exec supabase-db psql -U postgres -d postgres -f /docker-entrypoint-initdb.d/seed.sql
+	docker compose exec supabase-db psql -h localhost -U supabase_admin -d postgres -f /docker-entrypoint-initdb.d/seed.sql
 
 migrate:
 	@for f in supabase/migrations/*.sql; do \
 		echo "Running $$f..."; \
-		docker compose exec -T supabase-db psql -U postgres -d postgres -f /docker-entrypoint-initdb.d/$$(basename $$f); \
+		docker compose exec -T supabase-db psql -h localhost -U supabase_admin -d postgres -f /docker-entrypoint-initdb.d/$$(basename $$f); \
 	done
 
 db-studio:
 	@echo "Supabase Studio is not included in self-hosted. Use pgAdmin or connect directly:"
-	@echo "  psql postgresql://postgres:postgres@localhost:5432/postgres"
+	@echo "  psql postgresql://supabase_admin@localhost:5432/postgres"
 
 # ── Testing ───────────────────────────────────────────────
 

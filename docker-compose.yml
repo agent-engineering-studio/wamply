@@ -42,7 +42,7 @@ services:
       - ./agent:/app
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@supabase-db:5432/postgres}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://supabase_admin@supabase-db:5432/postgres}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - SUPABASE_URL=${SUPABASE_URL:-http://supabase-rest:3001}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -71,7 +71,7 @@ services:
       - supabase-data:/var/lib/postgresql/data
       - ./supabase/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U supabase_admin"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -88,7 +88,7 @@ services:
       GOTRUE_API_PORT: 9999
       API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:9999}
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres?search_path=auth
+      GOTRUE_DB_DATABASE_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres?search_path=auth
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
       GOTRUE_DISABLE_SIGNUP: "false"
@@ -119,7 +119,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      PGRST_DB_URI: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      PGRST_DB_URI: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
       PGRST_DB_SCHEMAS: public,storage
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
@@ -139,7 +139,7 @@ services:
       PORT: 4000
       DB_HOST: supabase-db
       DB_PORT: 5432
-      DB_USER: postgres
+      DB_USER: supabase_admin
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DB_NAME: postgres
       DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
@@ -167,7 +167,7 @@ services:
       SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       POSTGREST_URL: http://supabase-rest:3000
       PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      DATABASE_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
