@@ -1,0 +1,27 @@
+services:
+  agent:
+    ports:
+      - "5678:5678"
+    environment:
+      - MOCK_LLM=true
+      - DEBUGPY_PORT=5678
+    command: >
+      sh -c "pip install debugpy &&
+             python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - wcm-network
