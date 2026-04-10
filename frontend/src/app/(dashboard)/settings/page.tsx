@@ -42,7 +42,7 @@ export default function SettingsPage() {
             href={s.href}
             className="group rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md"
           >
-            <h2 className="font-medium text-slate-900 group-hover:text-brand-teal">
+            <h2 className="font-medium text-slate-900 group-hover:text-brand-green-dark">
               {s.title}
             </h2>
             <p className="mt-1 text-sm text-slate-500">{s.description}</p>

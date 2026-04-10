@@ -98,7 +98,7 @@ export function WhatsAppConfigForm() {
             value={phoneNumberId}
             onChange={(e) => setPhoneNumberId(e.target.value)}
             placeholder="123456789012345"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             required
           />
         </div>
@@ -109,7 +109,7 @@ export function WhatsAppConfigForm() {
             value={wabaId}
             onChange={(e) => setWabaId(e.target.value)}
             placeholder="100200300400500"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             required
           />
         </div>
@@ -124,7 +124,7 @@ export function WhatsAppConfigForm() {
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder={data?.token_set ? "Lascia vuoto per mantenere il token attuale" : "Inserisci il token"}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
         />
       </div>
 
@@ -136,7 +136,7 @@ export function WhatsAppConfigForm() {
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="La Mia Azienda"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
         </div>
         <div>
@@ -144,7 +144,7 @@ export function WhatsAppConfigForm() {
           <select
             value={defaultLanguage}
             onChange={(e) => setDefaultLanguage(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           >
             <option value="it">Italiano</option>
             <option value="en">English</option>
@@ -170,7 +170,7 @@ export function WhatsAppConfigForm() {
       <button
         type="submit"
         disabled={saving}
-        className="rounded-pill bg-brand-teal px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-teal/90 disabled:opacity-50"
+        className="rounded-pill bg-brand-green px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-green/90 disabled:opacity-50"
       >
         {saving ? "Salvataggio..." : "Salva Configurazione"}
       </button>

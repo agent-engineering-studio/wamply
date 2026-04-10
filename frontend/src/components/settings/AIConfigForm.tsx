@@ -102,7 +102,7 @@ export function AIConfigForm() {
               onClick={() => setMode("shared")}
               className={`rounded-lg border px-4 py-2 text-sm ${
                 mode === "shared"
-                  ? "border-brand-teal bg-brand-teal/10 text-brand-teal"
+                  ? "border-brand-green bg-brand-green/10 text-brand-green"
                   : "border-slate-200 text-slate-600 hover:border-slate-300"
               }`}
             >
@@ -125,7 +125,7 @@ export function AIConfigForm() {
                 onClick={() => setMode("byok")}
                 className={`rounded-lg border px-4 py-2 text-sm ${
                   mode === "byok"
-                    ? "border-brand-teal bg-brand-teal/10 text-brand-teal"
+                    ? "border-brand-green bg-brand-green/10 text-brand-green"
                     : "border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >
@@ -146,7 +146,7 @@ export function AIConfigForm() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={data?.api_key_set ? "Lascia vuoto per mantenere la chiave" : "sk-ant-..."}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
         )}
@@ -156,7 +156,7 @@ export function AIConfigForm() {
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           >
             {MODELS.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -176,7 +176,7 @@ export function AIConfigForm() {
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(Number(e.target.value))}
-              className="w-full accent-brand-teal"
+              className="w-full accent-brand-green"
             />
             <div className="mt-1 flex justify-between text-xs text-slate-400">
               <span>Preciso</span>
@@ -191,7 +191,7 @@ export function AIConfigForm() {
               max={4096}
               value={maxTokens}
               onChange={(e) => setMaxTokens(Number(e.target.value))}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
         </div>
@@ -199,7 +199,7 @@ export function AIConfigForm() {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-pill bg-brand-teal px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-teal/90 disabled:opacity-50"
+          className="rounded-pill bg-brand-green px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-green/90 disabled:opacity-50"
         >
           {saving ? "Salvataggio..." : "Salva Configurazione"}
         </button>
