@@ -1,0 +1,122 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ── Python Backend (FastAPI) ──────────────────────────
+    {
+      "name": "Backend: FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.main:app", "--reload", "--host", "0.0.0.0", "--port", "8200"],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "DATABASE_URL": "postgresql://supabase_admin:postgres@localhost:5432/postgres",
+        "REDIS_URL": "redis://localhost:6379",
+        "JWT_SECRET": "super-secret-jwt-token-with-at-least-32-characters-long",
+        "AGENT_SECRET": "dev-agent-secret-change-in-production",
+        "ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+        "STRIPE_SECRET_KEY": "sk_test_xxxxx",
+        "STRIPE_WEBHOOK_SECRET": "whsec_xxxxx"
+      },
+      "python": "${workspaceFolder}/backend/.venv/Scripts/python",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+
+    // ── Python Agent (FastAPI) ────────────────────────────
+    {
+      "name": "Agent: FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"],
+      "cwd": "${workspaceFolder}/agent",
+      "env": {
+        "DATABASE_URL": "postgresql://supabase_admin:postgres@localhost:5432/postgres",
+        "REDIS_URL": "redis://localhost:6379",
+        "AGENT_SECRET": "dev-agent-secret-change-in-production",
+        "ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
+        "ANTHROPIC_API_KEY": "sk-ant-xxxxx",
+        "CLAUDE_MODEL": "claude-sonnet-4-20250514",
+        "WHATSAPP_API_URL": "http://localhost:9090",
+        "MOCK_LLM": "true",
+        "BACKEND_INTERNAL_URL": "http://localhost:8200"
+      },
+      "python": "${workspaceFolder}/agent/.venv/Scripts/python",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+
+    // ── Agent: Attach to Docker container (debugpy) ───────
+    {
+      "name": "Agent: Attach to Docker",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/agent",
+          "remoteRoot": "/app"
+        }
+      ],
+      "justMyCode": true
+    },
+
+    // ── Next.js Frontend (server-side) ────────────────────
+    {
+      "name": "Frontend: Next.js Server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "http://localhost:8100",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+        "NEXT_PUBLIC_ENABLE_GOOGLE_AUTH": "false",
+        "SUPABASE_INTERNAL_URL": "http://localhost:8100"
+      },
+      "console": "integratedTerminal",
+      "serverReadyAction": {
+        "pattern": "- Local:.+(https?://.+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    },
+
+    // ── Next.js Frontend (client-side Chrome) ─────────────
+    {
+      "name": "Frontend: Chrome Debug",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/frontend/src"
+    }
+  ],
+
+  "compounds": [
+    // ── Full Stack: all 3 services ────────────────────────
+    {
+      "name": "Full Stack (Backend + Agent + Frontend)",
+      "configurations": [
+        "Backend: FastAPI",
+        "Agent: FastAPI",
+        "Frontend: Next.js Server"
+      ],
+      "stopAll": true
+    },
+    // ── Backend + Frontend (no agent) ─────────────────────
+    {
+      "name": "Backend + Frontend",
+      "configurations": [
+        "Backend: FastAPI",
+        "Frontend: Next.js Server"
+      ],
+      "stopAll": true
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  // Python
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true
+  },
+
+  // TypeScript / Next.js
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // File associations
+  "files.associations": {
+    "*.yml": "yaml",
+    "Makefile": "makefile"
+  },
+
+  // Exclude from explorer
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/node_modules": true,
+    "**/.next": true
+  },
+
+  // Terminal
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  // Search exclusions
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/__pycache__": true,
+    "**/.venv": true
+  }
+}
