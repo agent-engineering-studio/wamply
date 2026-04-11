@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker restart:*)",
+      "Read(//c/Users/GiuseppeZileni/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/**)",
+      "Bash(bash \"C:\\\\Users\\\\GiuseppeZileni\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\superpowers\\\\5.0.7\\\\scripts\\\\start-server.sh\" --project-dir \"c:\\\\Users\\\\GiuseppeZileni\\\\Git\\\\wamply\")"
+    ]
+  }
+}

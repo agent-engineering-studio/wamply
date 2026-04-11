@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -46,8 +46,8 @@ export default function RegisterPage() {
       <div className="flex min-h-screen items-center justify-center bg-brand-ink-05">
         <div className="w-full max-w-sm text-center">
           <div className="rounded-xl border border-brand-ink-10 bg-white p-8 shadow-card">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-green-light">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#128C7E" strokeWidth="2.5" className="h-6 w-6">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal-light">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" className="h-6 w-6">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
@@ -57,7 +57,7 @@ export default function RegisterPage() {
             </p>
             <Link
               href="/login"
-              className="mt-4 inline-block rounded-sm bg-brand-green px-6 py-2 text-sm font-medium text-white hover:bg-brand-green-dark"
+              className="mt-4 inline-block rounded-pill bg-brand-teal px-6 py-2 text-sm font-medium text-white hover:bg-brand-teal-dark"
             >
               Vai al login
             </Link>
@@ -72,7 +72,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold text-brand-ink">
-            Wam<span className="text-brand-green">ply</span>
+            Wam<span className="text-brand-teal">ply</span>
           </h1>
           <p className="mt-2 text-sm text-brand-ink-60">Crea il tuo account</p>
         </div>
@@ -90,7 +90,7 @@ export default function RegisterPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Mario Rossi"
-                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
                 required
               />
             </div>
@@ -101,7 +101,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@azienda.it"
-                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
                 required
               />
             </div>
@@ -112,14 +112,14 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimo 6 caratteri"
-                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-sm bg-brand-green py-2.5 text-[13px] font-medium text-white shadow-[0_2px_8px_rgba(37,211,102,.3)] hover:bg-brand-green-dark disabled:opacity-50"
+              className="w-full rounded-pill bg-brand-teal py-2.5 text-[13px] font-medium text-white shadow-teal hover:bg-brand-teal-dark disabled:opacity-50"
             >
               {loading ? "Registrazione..." : "Crea account"}
             </button>
@@ -128,7 +128,7 @@ export default function RegisterPage() {
 
         <p className="mt-4 text-center text-[12px] text-brand-ink-60">
           Hai già un account?{" "}
-          <Link href="/login" className="font-medium text-brand-green-dark hover:underline">
+          <Link href="/login" className="font-medium text-brand-teal-dark hover:underline">
             Accedi
           </Link>
         </p>

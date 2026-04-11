@@ -1,0 +1,150 @@
+<h2>Wamply — Architettura Finale v3</h2>
+<p class="subtitle">Redis Stack come layer unificato per cache, queue, vector search e agent memory</p>
+
+<div class="section">
+  <h3>Service Architecture</h3>
+  <div class="mockup">
+    <div class="mockup-header">Architettura Completa</div>
+    <div class="mockup-body" style="padding:20px;font-family:monospace;font-size:11px;line-height:1.9;background:#0f172a;color:#e2e8f0;">
+      <div style="text-align:center;margin-bottom:10px;">
+        <span style="background:#0d9488;color:#fff;padding:5px 14px;border-radius:20px;font-weight:600;font-size:12px;">Browser</span>
+      </div>
+      <div style="text-align:center;color:#64748b;font-size:10px;">UI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Chat</div>
+      <div style="text-align:center;margin:4px 0;">
+        <span style="background:#7c3aed;color:#fff;padding:4px 14px;border-radius:8px;font-weight:600;">Kong Gateway :8100</span>
+      </div>
+      <div style="display:flex;justify-content:center;gap:12px;margin:10px 0;">
+        <div style="text-align:center;">
+          <div style="color:#94a3b8;font-size:9px;">/auth/v1/*</div>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:3px 8px;border-radius:5px;font-size:10px;">GoTrue</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#94a3b8;font-size:9px;">/rest/v1/*</div>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:3px 8px;border-radius:5px;font-size:10px;">PostgREST</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#0d9488;font-size:9px;font-weight:600;">/api/v1/*</div>
+          <span style="background:#0d9488;color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;">Backend :8200</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#7c3aed;font-size:9px;font-weight:600;">/agent/v1/*</div>
+          <span style="background:#7c3aed;color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;">Agent :8000</span>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;border-top:1px solid #334155;padding-top:10px;">
+        <div style="display:flex;justify-content:center;gap:6px;align-items:center;margin-bottom:8px;">
+          <span style="background:#7c3aed;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">Agent</span>
+          <span style="color:#f59e0b;font-size:10px;">&#8594; @tool &#8594;</span>
+          <span style="background:#0d9488;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">Backend</span>
+          <span style="color:#64748b;font-size:10px;">&#8594;</span>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:2px 6px;border-radius:4px;font-size:10px;">PostgreSQL</span>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;border-top:1px solid #334155;padding-top:10px;">
+        <div style="text-align:center;margin-bottom:8px;">
+          <span style="background:#dc2626;color:#fff;padding:4px 14px;border-radius:8px;font-weight:600;">Redis Stack :6379</span>
+          <div style="color:#64748b;font-size:9px;margin-top:2px;">redis/redis-stack:latest (RediSearch + RedisJSON + Vector Search)</div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+          <div style="background:#1a1a2e;border:1px solid #dc2626;border-radius:6px;padding:6px 10px;text-align:center;min-width:100px;">
+            <div style="color:#dc2626;font-size:9px;font-weight:600;">Cache</div>
+            <div style="color:#64748b;font-size:8px;">Plan limits<br>Session data</div>
+          </div>
+          <div style="background:#1a1a2e;border:1px solid #dc2626;border-radius:6px;padding:6px 10px;text-align:center;min-width:100px;">
+            <div style="color:#dc2626;font-size:9px;font-weight:600;">Queue</div>
+            <div style="color:#64748b;font-size:8px;">Campaign jobs<br>Async tasks</div>
+          </div>
+          <div style="background:#1a1a2e;border:1px solid #f59e0b;border-radius:6px;padding:6px 10px;text-align:center;min-width:100px;">
+            <div style="color:#f59e0b;font-size:9px;font-weight:600;">Vector Search</div>
+            <div style="color:#64748b;font-size:8px;">Embeddings (Voyage-3)<br>Semantic similarity</div>
+          </div>
+          <div style="background:#1a1a2e;border:1px solid #7c3aed;border-radius:6px;padding:6px 10px;text-align:center;min-width:100px;">
+            <div style="color:#7c3aed;font-size:9px;font-weight:600;">Agent Memory</div>
+            <div style="color:#64748b;font-size:8px;">Chat history<br>User context<br>Semantic cache</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>Agent Memory Model (MS Agent Framework + Redis)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Memory Layers</div>
+    <div class="mockup-body" style="padding:20px;background:#0f172a;color:#e2e8f0;font-family:monospace;font-size:11px;">
+      <div style="display:flex;gap:12px;">
+        <div style="flex:1;background:#1a1a2e;border:1px solid #7c3aed;border-radius:8px;padding:12px;">
+          <div style="color:#7c3aed;font-weight:600;font-size:11px;margin-bottom:6px;">HistoryProvider</div>
+          <div style="color:#94a3b8;font-size:10px;line-height:1.6;">
+            <div>&#8226; Chat messages per session</div>
+            <div>&#8226; before_run: load last N messages</div>
+            <div>&#8226; after_run: persist new messages</div>
+            <div style="color:#dc2626;margin-top:4px;">&#8594; Redis Hash: agent:history:{session_id}</div>
+            <div style="color:#64748b;margin-top:2px;">TTL: 24h (active sessions)</div>
+            <div style="color:#475569;">&#8594; PostgreSQL: agent_sessions (archive)</div>
+          </div>
+        </div>
+        <div style="flex:1;background:#1a1a2e;border:1px solid #0d9488;border-radius:8px;padding:12px;">
+          <div style="color:#0d9488;font-weight:600;font-size:11px;margin-bottom:6px;">ContextProvider</div>
+          <div style="color:#94a3b8;font-size:10px;line-height:1.6;">
+            <div>&#8226; User preferences &amp; facts</div>
+            <div>&#8226; before_run: inject user context</div>
+            <div>&#8226; after_run: extract &amp; store facts</div>
+            <div style="color:#dc2626;margin-top:4px;">&#8594; Redis JSON: agent:ctx:{user_id}</div>
+            <div style="color:#64748b;margin-top:2px;">Persistent (no TTL)</div>
+            <div style="color:#475569;">&#8594; PostgreSQL: agent_memory (backup)</div>
+          </div>
+        </div>
+        <div style="flex:1;background:#1a1a2e;border:1px solid #f59e0b;border-radius:8px;padding:12px;">
+          <div style="color:#f59e0b;font-weight:600;font-size:11px;margin-bottom:6px;">SemanticMemory</div>
+          <div style="color:#94a3b8;font-size:10px;line-height:1.6;">
+            <div>&#8226; Embeddings via Voyage-3</div>
+            <div>&#8226; before_run: find similar past context</div>
+            <div>&#8226; after_run: embed &amp; store conversation</div>
+            <div style="color:#dc2626;margin-top:4px;">&#8594; Redis Vector: agent:vec:{user_id}</div>
+            <div style="color:#64748b;margin-top:2px;">HNSW index, cosine similarity</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;background:#1a1a2e;border:1px dashed #64748b;border-radius:8px;padding:10px;text-align:center;">
+        <div style="color:#f59e0b;font-weight:600;font-size:11px;">Semantic Cache (LangCache pattern)</div>
+        <div style="color:#94a3b8;font-size:10px;margin-top:4px;">Domanda utente &#8594; embed &#8594; search similar cached Q&amp;A &#8594; hit? return cached &#8594; miss? call Claude &#8594; cache response</div>
+        <div style="color:#64748b;font-size:9px;margin-top:2px;">Riduce costi API Anthropic per domande ricorrenti</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>Backend API Endpoints</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:#111827;border:1px solid #1e3a5f;border-radius:8px;padding:12px;">
+      <div style="color:#0d9488;font-weight:600;font-size:12px;margin-bottom:6px;">CRUD Endpoints</div>
+      <div style="color:#94a3b8;font-size:10px;line-height:1.8;font-family:monospace;">
+        GET/POST /api/v1/contacts<br>
+        GET/PUT /api/v1/contacts/{id}<br>
+        POST /api/v1/contacts/import<br>
+        GET/POST /api/v1/campaigns<br>
+        GET/PUT /api/v1/campaigns/{id}<br>
+        GET/POST /api/v1/templates<br>
+        GET/PUT /api/v1/templates/{id}<br>
+        GET /api/v1/me/plan
+      </div>
+    </div>
+    <div style="background:#111827;border:1px solid #1e3a5f;border-radius:8px;padding:12px;">
+      <div style="color:#0d9488;font-weight:600;font-size:12px;margin-bottom:6px;">Admin + Settings + Webhooks</div>
+      <div style="color:#94a3b8;font-size:10px;line-height:1.8;font-family:monospace;">
+        GET /api/v1/admin/overview<br>
+        GET /api/v1/admin/users<br>
+        GET /api/v1/admin/campaigns<br>
+        GET/POST /api/v1/settings/whatsapp<br>
+        GET/POST /api/v1/settings/ai<br>
+        POST /api/v1/webhooks/meta<br>
+        POST /api/v1/billing/webhook
+      </div>
+    </div>
+  </div>
+</div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: "grid" },
+  { href: "/dashboard", label: "Home", icon: "grid" },
   { href: "/campaigns", label: "Campagne", icon: "send" },
   { href: "/campaigns/new", label: "Nuovo invio", icon: "edit" },
   { href: "/contacts", label: "Contatti", icon: "users" },
@@ -43,7 +43,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   function isActive(href: string) {
-    if (href === "/") return pathname === "/";
+    if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   }
 

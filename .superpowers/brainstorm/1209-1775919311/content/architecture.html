@@ -1,0 +1,97 @@
+<h2>Wamply — Architettura Target</h2>
+<p class="subtitle">Backend extraction: Next.js UI + Python Backend API + AI Agent</p>
+
+<div class="section">
+  <h3>Flusso richieste</h3>
+  <div class="mockup">
+    <div class="mockup-header">Architecture Overview</div>
+    <div class="mockup-body" style="padding:24px;font-family:monospace;font-size:13px;line-height:2.2;background:#0f172a;color:#e2e8f0;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <span style="background:#0d9488;color:#fff;padding:6px 16px;border-radius:20px;font-weight:600;">Browser (User)</span>
+      </div>
+      <div style="text-align:center;color:#64748b;">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|</div>
+      <div style="text-align:center;color:#64748b;">UI pages&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API + Chat</div>
+      <div style="text-align:center;color:#64748b;">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|</div>
+      <div style="display:flex;justify-content:center;gap:12px;margin:8px 0;">
+        <span style="background:#1e3a5f;border:1px solid #0d9488;padding:6px 14px;border-radius:8px;">Next.js :3000</span>
+        <span style="color:#64748b;padding:6px;">&#8592;&#8594;</span>
+        <span style="background:#7c3aed;color:#fff;padding:6px 14px;border-radius:8px;font-weight:600;">Kong :8100</span>
+        <span style="color:#64748b;padding:6px;">&#8592;&#8594;</span>
+        <span style="background:#1e3a5f;border:1px solid #0d9488;padding:6px 14px;border-radius:8px;">Frontend SSR</span>
+      </div>
+      <div style="text-align:center;color:#64748b;margin:4px 0;">Kong routes:</div>
+      <div style="display:flex;justify-content:center;gap:24px;margin:12px 0;">
+        <div style="text-align:center;">
+          <div style="color:#0d9488;font-size:11px;">/auth/v1/*</div>
+          <div style="color:#64748b;">&#8595;</div>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:4px 12px;border-radius:6px;font-size:12px;">GoTrue :9999</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#0d9488;font-size:11px;">/rest/v1/*</div>
+          <div style="color:#64748b;">&#8595;</div>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:4px 12px;border-radius:6px;font-size:12px;">PostgREST :3001</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#f59e0b;font-size:11px;font-weight:600;">/api/v1/*&nbsp;(NEW)</div>
+          <div style="color:#64748b;">&#8595;</div>
+          <span style="background:#0d9488;color:#fff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;">Backend :8200</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#f59e0b;font-size:11px;font-weight:600;">/agent/v1/*&nbsp;(NEW)</div>
+          <div style="color:#64748b;">&#8595;</div>
+          <span style="background:#7c3aed;color:#fff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;">Agent :8000</span>
+        </div>
+      </div>
+      <div style="margin-top:20px;border-top:1px solid #334155;padding-top:16px;">
+        <div style="text-align:center;color:#64748b;margin-bottom:8px;">Service-to-service (Docker internal)</div>
+        <div style="display:flex;justify-content:center;gap:8px;align-items:center;">
+          <span style="background:#7c3aed;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;">Agent</span>
+          <span style="color:#f59e0b;">&#8594; tools &#8594;</span>
+          <span style="background:#0d9488;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;">Backend</span>
+          <span style="color:#64748b;">&#8594;</span>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:4px 10px;border-radius:6px;font-size:12px;">PostgreSQL</span>
+          <span style="color:#64748b;">+</span>
+          <span style="background:#1e3a5f;border:1px solid #475569;padding:4px 10px;border-radius:6px;font-size:12px;">Redis</span>
+        </div>
+        <div style="text-align:center;margin-top:6px;font-size:11px;color:#64748b;">AGENT_SECRET + X-On-Behalf-Of: user_id</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Componenti</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+    <div style="background:#111827;border:1px solid #1e3a5f;border-radius:8px;padding:16px;">
+      <div style="color:#0d9488;font-weight:600;font-size:14px;margin-bottom:6px;">Frontend (Next.js)</div>
+      <ul style="color:#94a3b8;font-size:12px;line-height:1.8;padding-left:16px;margin:0;">
+        <li>Solo UI — zero API routes</li>
+        <li>SSR middleware per redirect auth</li>
+        <li>Chat widget per agent</li>
+        <li>Chiama Kong per API + Agent</li>
+      </ul>
+    </div>
+    <div style="background:#111827;border:2px solid #0d9488;border-radius:8px;padding:16px;">
+      <div style="color:#0d9488;font-weight:600;font-size:14px;margin-bottom:6px;">Backend (FastAPI) <span style="color:#f59e0b;font-size:11px;">NEW</span></div>
+      <ul style="color:#94a3b8;font-size:12px;line-height:1.8;padding-left:16px;margin:0;">
+        <li>CRUD: contacts, campaigns, templates</li>
+        <li>Admin: users, overview, audit</li>
+        <li>Settings: WhatsApp, AI config</li>
+        <li>Billing: Stripe webhooks</li>
+        <li>Auth: JWT verification</li>
+        <li>Plan limits enforcement</li>
+      </ul>
+    </div>
+    <div style="background:#111827;border:2px solid #7c3aed;border-radius:8px;padding:16px;">
+      <div style="color:#7c3aed;font-weight:600;font-size:14px;margin-bottom:6px;">Agent (FastAPI) <span style="color:#f59e0b;font-size:11px;">REFACTORED</span></div>
+      <ul style="color:#94a3b8;font-size:12px;line-height:1.8;padding-left:16px;margin:0;">
+        <li>Chat conversazionale (Claude)</li>
+        <li>Tools: backend API wrapper</li>
+        <li>Campaign orchestration</li>
+        <li>Message personalization (AI)</li>
+        <li>WhatsApp dispatch</li>
+        <li>Worker async (Redis queue)</li>
+      </ul>
+    </div>
+  </div>
+</div>

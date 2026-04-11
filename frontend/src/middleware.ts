@@ -6,8 +6,10 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   });
 
+  // Server-side: use internal Docker URL to reach Kong; fallback to public URL for local dev
+  const supabaseUrl = process.env.SUPABASE_INTERNAL_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -26,23 +28,49 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
 
-  const isDashboard = request.nextUrl.pathname.startsWith("/(dashboard)") ||
-    request.nextUrl.pathname.startsWith("/contacts") ||
-    request.nextUrl.pathname.startsWith("/campaigns") ||
-    request.nextUrl.pathname.startsWith("/templates") ||
-    request.nextUrl.pathname.startsWith("/analytics") ||
-    request.nextUrl.pathname.startsWith("/settings");
+  // ── Protected routes: require login ───────────────────
+  const isProtected =
+    path.startsWith("/dashboard") ||
+    path.startsWith("/contacts") ||
+    path.startsWith("/campaigns") ||
+    path.startsWith("/templates") ||
+    path.startsWith("/analytics") ||
+    path.startsWith("/settings") ||
+    path.startsWith("/groups") ||
+    path.startsWith("/history");
 
-  if (isDashboard && !user) {
+  if (isProtected && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const isAuth = request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/register");
+  // ── Admin routes: require admin role ──────────────────
+  if (path.startsWith("/admin")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    // Check role from user metadata or DB
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
+    if (dbUser?.role !== "admin") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
+  // ── Landing page: redirect authenticated users ────────
+  if (path === "/" && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // ── Auth pages: redirect already-authenticated users ──
+  const isAuth = path.startsWith("/login") || path.startsWith("/register");
   if (isAuth && user) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;
