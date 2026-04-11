@@ -162,11 +162,47 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Powered by Anthropic */}
+      <section className="border-t border-white/10 py-16">
+        <div className="mx-auto max-w-6xl px-6 text-center">
+          <p className="mb-6 text-[12px] uppercase tracking-widest text-brand-slate-muted">Intelligenza artificiale powered by</p>
+          <div className="flex items-center justify-center gap-8">
+            {/* Anthropic Logo */}
+            <div className="flex items-center gap-3">
+              <svg viewBox="0 0 46 32" className="h-8 w-auto" fill="none">
+                <path d="M32.73 0H27.2l12.8 32h5.53L32.73 0zM12.8 0L0 32h5.67l2.63-6.74h13.41L24.33 32H30L17.2 0h-4.4zm-1.96 20.37L15 10.2l4.16 10.17H10.84z" fill="#D4A27F"/>
+              </svg>
+              <div className="text-left">
+                <div className="text-[14px] font-medium text-white/80">Anthropic</div>
+                <div className="text-[11px] text-brand-slate-muted">Claude AI</div>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-white/10" />
+            <div className="rounded-pill border border-white/10 bg-white/5 px-5 py-2">
+              <span className="text-[12px] text-brand-slate-light">
+                Ogni messaggio personalizzato da <strong className="text-brand-teal">Claude</strong> — l&apos;AI di Anthropic
+              </span>
+            </div>
+          </div>
+          <p className="mx-auto mt-6 max-w-lg text-[12px] leading-relaxed text-brand-slate-muted">
+            Wamply utilizza i modelli Claude Sonnet e Haiku di Anthropic per personalizzare
+            ogni messaggio WhatsApp in modo unico per ciascun destinatario, con tono naturale
+            e rispetto della privacy.
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-white/10 py-8">
         <div className="mx-auto max-w-6xl px-6 flex items-center justify-between text-[12px] text-brand-slate-muted">
           <span>Wamply &copy; 2026. Tutti i diritti riservati.</span>
-          <span>Powered by Claude AI &middot; Built with Next.js</span>
+          <div className="flex items-center gap-2">
+            <span>Powered by</span>
+            <svg viewBox="0 0 46 32" className="h-3.5 w-auto" fill="none">
+              <path d="M32.73 0H27.2l12.8 32h5.53L32.73 0zM12.8 0L0 32h5.67l2.63-6.74h13.41L24.33 32H30L17.2 0h-4.4zm-1.96 20.37L15 10.2l4.16 10.17H10.84z" fill="#D4A27F"/>
+            </svg>
+            <span>Claude AI &middot; Built with Next.js</span>
+          </div>
         </div>
       </footer>
     </div>
