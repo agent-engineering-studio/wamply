@@ -39,7 +39,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/analytics") ||
     path.startsWith("/settings") ||
     path.startsWith("/groups") ||
-    path.startsWith("/history");
+    path.startsWith("/history") ||
+    path.startsWith("/agent");
 
   if (isProtected && !user) {
     return NextResponse.redirect(new URL("/login", request.url));

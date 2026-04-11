@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { apiFetch } from "@/lib/api-client";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: "grid" },
@@ -43,6 +45,14 @@ function UsageBar({ label, used, total, color }: { label: string; used: number; 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [agentActive, setAgentActive] = useState(false);
+
+  useEffect(() => {
+    apiFetch("/settings/agent-status")
+      .then((r) => r.json())
+      .then((data) => setAgentActive(data.active))
+      .catch(() => {});
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -104,6 +114,25 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
+
+      {/* Agent AI */}
+      {agentActive && (
+        <div className="mx-2 mb-1">
+          <Link href="/agent"
+            className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
+              pathname.startsWith("/agent")
+                ? "bg-brand-teal text-white shadow-teal"
+                : "text-brand-teal-dark bg-brand-teal-pale hover:bg-brand-teal-light"
+            }`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.75 w-3.75">
+              <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
+              <circle cx="9" cy="14" r="1" fill="currentColor" />
+              <circle cx="15" cy="14" r="1" fill="currentColor" />
+            </svg>
+            Agent AI
+          </Link>
+        </div>
+      )}
 
       {/* Usage */}
       <div className="mx-2.5 mb-1.5">
