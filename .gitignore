@@ -47,3 +47,5 @@ htmlcov/
 # Misc
 *.log
 .vercel
+
+.superpowers/
