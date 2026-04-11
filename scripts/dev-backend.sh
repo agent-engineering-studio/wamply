@@ -10,12 +10,14 @@ cd "$(dirname "$0")/../backend"
 if [ ! -d ".venv" ]; then
     echo "Creating Python virtual environment..."
     python3 -m venv .venv
-    source .venv/bin/activate
+fi
+source .venv/bin/activate
+
+# Install dependencies if missing
+if ! python -c "import fastapi" 2>/dev/null; then
     echo "Installing dependencies..."
     pip install uv
     uv pip install -e ".[dev]"
-else
-    source .venv/bin/activate
 fi
 
 # Override env vars to point to localhost (not Docker hostnames)

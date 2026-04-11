@@ -9,12 +9,15 @@ REM Create venv if it doesn't exist
 if not exist .venv (
     echo Creating Python virtual environment...
     python -m venv .venv
+)
+call .venv\Scripts\activate
+
+REM Install dependencies if missing
+python -c "import fastapi" 2>nul
+if errorlevel 1 (
     echo Installing dependencies...
-    call .venv\Scripts\activate
     pip install uv
     uv pip install -e ".[dev]"
-) else (
-    call .venv\Scripts\activate
 )
 
 REM Override env vars to point to localhost (not Docker hostnames)
