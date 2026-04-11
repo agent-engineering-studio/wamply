@@ -1,4 +1,4 @@
-.PHONY: up up-full up-debug down reset seed test test-e2e logs migrate setup env clean rebuild build
+.PHONY: up up-full up-debug down reset seed test test-e2e logs migrate setup env clean rebuild build dev dev-services
 
 # ── Shell detection (Windows compat) ─────────────────────
 ifdef OS
@@ -65,6 +65,14 @@ rebuild:
 	$(RM_NEXT)
 	docker compose up -d frontend
 	@echo Frontend rebuilt from scratch.
+
+# ── Local Debug (no app containers) ──────────────────────
+
+dev-services:
+	docker compose stop frontend backend agent 2>nul & docker compose up -d supabase-db redis supabase-auth supabase-rest supabase-kong
+
+dev:
+	scripts\dev-all.bat
 
 # ── Database ──────────────────────────────────────────────
 
