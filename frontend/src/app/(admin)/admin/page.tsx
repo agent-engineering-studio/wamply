@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 interface Overview {
   total_users: number;
@@ -43,9 +44,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/admin/overview").then((r) => r.json()),
-      fetch("/api/admin/users").then((r) => r.json()),
-      fetch("/api/admin/campaigns").then((r) => r.json()),
+      apiFetch("/admin/overview").then((r) => r.json()),
+      apiFetch("/admin/users").then((r) => r.json()),
+      apiFetch("/admin/campaigns").then((r) => r.json()),
     ]).then(([o, u, c]) => {
       setOverview(o);
       setUsers(u.users || []);
