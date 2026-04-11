@@ -1,0 +1,19 @@
+[project]
+name = "wcm-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "asyncpg>=0.30",
+    "redis[hiredis]>=5.2",
+    "cryptography>=44.0",
+    "pydantic-settings>=2.7",
+    "python-jose[cryptography]>=3.3",
+    "httpx>=0.28",
+    "structlog>=24.4",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "httpx>=0.28"]
