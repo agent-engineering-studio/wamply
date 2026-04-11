@@ -1,18 +1,20 @@
-.PHONY: up up-full up-debug down reset seed test test-e2e logs migrate stripe-listen db-studio agent-only setup env clean
+.PHONY: up up-full up-debug down reset seed test test-e2e logs migrate setup env clean rebuild build
 
 # ── Shell detection (Windows compat) ─────────────────────
 ifdef OS
   SHELL := cmd.exe
   .SHELLFLAGS := /c
   COPY_ENV = if not exist .env copy .env.example .env
-  SLEEP = timeout /nobreak 8 >nul
+  SLEEP = timeout /nobreak 12 >nul
   CAT_SEED = type supabase\seed.sql | docker compose exec -T supabase-db psql -h localhost -U supabase_admin -d postgres
   RM_CLEAN = if exist frontend\node_modules rmdir /s /q frontend\node_modules & if exist frontend\.next rmdir /s /q frontend\.next
+  RM_NEXT = if exist frontend\.next rmdir /s /q frontend\.next
 else
   COPY_ENV = test -f .env || cp .env.example .env
-  SLEEP = sleep 8
+  SLEEP = sleep 12
   CAT_SEED = cat supabase/seed.sql | docker compose exec -T supabase-db psql -h localhost -U supabase_admin -d postgres
-  RM_CLEAN = rm -rf frontend/node_modules frontend/.next agent/.venv agent/__pycache__
+  RM_CLEAN = rm -rf frontend/node_modules frontend/.next agent/.venv agent/__pycache__ backend/.venv backend/__pycache__
+  RM_NEXT = rm -rf frontend/.next
 endif
 
 # ── Docker Compose ────────────────────────────────────────
@@ -29,10 +31,13 @@ up-debug:
 down:
 	docker compose down
 
+build:
+	docker compose build
+
 reset:
 	docker compose down -v
-	docker compose up -d
-	@echo Waiting for DB to be ready...
+	docker compose up -d --build
+	@echo Waiting for DB and services to be ready...
 	@$(SLEEP)
 	$(MAKE) seed
 	@echo Reset complete. Seed data loaded.
@@ -42,10 +47,12 @@ setup: env reset
 	@echo ========================================================
 	@echo   Wamply dev environment ready!
 	@echo.
-	@echo   Frontend:  http://localhost:3000
-	@echo   Admin:     http://localhost:3000/admin
-	@echo   GoTrue:    http://localhost:9999
-	@echo   PostgREST: http://localhost:3001
+	@echo   Frontend:    http://localhost:3000
+	@echo   Dashboard:   http://localhost:3000/dashboard
+	@echo   Admin:       http://localhost:3000/admin
+	@echo   Backend API: http://localhost:8100/api/v1/health
+	@echo   Kong:        http://localhost:8100
+	@echo   RedisInsight: http://localhost:8001
 	@echo.
 	@echo   Login credentials:
 	@echo   Admin:  admin@wcm.local     / Admin123!
@@ -53,8 +60,11 @@ setup: env reset
 	@echo   User 2: user2@test.local    / User123!
 	@echo ========================================================
 
-agent-only:
-	docker compose --profile agent-only up -d agent supabase-db redis
+rebuild:
+	docker compose stop frontend
+	$(RM_NEXT)
+	docker compose up -d frontend
+	@echo Frontend rebuilt from scratch.
 
 # ── Database ──────────────────────────────────────────────
 
@@ -64,14 +74,14 @@ seed:
 migrate:
 	docker compose exec -T supabase-db bash -c "for f in /docker-entrypoint-initdb.d/*.sql; do echo Running $$f...; psql -h localhost -U supabase_admin -d postgres -f $$f; done"
 
-db-studio:
-	@echo Supabase Studio is not included in self-hosted. Use pgAdmin or connect directly:
-	@echo   psql postgresql://supabase_admin@localhost:5432/postgres
+db-shell:
+	docker compose exec supabase-db psql -h localhost -U supabase_admin -d postgres
 
 # ── Testing ───────────────────────────────────────────────
 
 test:
 	cd frontend && npm run test
+	cd backend && python -m pytest tests/ -v
 
 test-e2e:
 	cd frontend && npx playwright test
@@ -81,16 +91,32 @@ test-e2e:
 logs:
 	docker compose logs -f
 
+logs-frontend:
+	docker compose logs -f frontend
+
+logs-backend:
+	docker compose logs -f backend
+
 logs-agent:
 	docker compose logs -f agent
 
-logs-frontend:
-	docker compose logs -f frontend
+# ── Health Checks ─────────────────────────────────────────
+
+health:
+	@echo --- Kong Gateway ---
+	@curl -s http://localhost:8100/api/v1/health 2>nul || echo UNREACHABLE
+	@echo.
+	@echo --- GoTrue Auth ---
+	@curl -s http://localhost:8100/auth/v1/health 2>nul || echo UNREACHABLE
+	@echo.
+	@echo --- PostgREST ---
+	@curl -s http://localhost:3001/ 2>nul || echo UNREACHABLE
+	@echo.
 
 # ── Stripe ────────────────────────────────────────────────
 
 stripe-listen:
-	stripe listen --forward-to localhost:3000/api/billing/webhook
+	stripe listen --forward-to http://localhost:8100/api/v1/billing/webhook
 
 # ── Utilities ─────────────────────────────────────────────
 
