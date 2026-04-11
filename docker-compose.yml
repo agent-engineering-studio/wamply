@@ -15,7 +15,8 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
-      - SUPABASE_URL=${SUPABASE_URL:-http://localhost:3001}
+      - SUPABASE_URL=${SUPABASE_URL:-http://supabase-kong:8000}
+      - SUPABASE_INTERNAL_URL=http://supabase-kong:8000
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - AGENT_URL=${AGENT_URL:-http://agent:8000}
@@ -24,8 +25,9 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://supabase-auth:9999}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:8100}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY}}
+      - NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=${ENABLE_GOOGLE_AUTH:-false}
     depends_on:
       supabase-db:
         condition: service_healthy
@@ -55,6 +57,33 @@ services:
       - WHATSAPP_API_URL=${WHATSAPP_API_URL:-http://whatsapp-mock:9090}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - AGENT_SECRET=${AGENT_SECRET}
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wcm-network
+
+  # ── Backend API ─────────────────────────────────────────
+  backend:
+    container_name: wcm-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      - AGENT_SECRET=${AGENT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
     depends_on:
       supabase-db:
         condition: service_healthy
@@ -195,13 +224,36 @@ services:
     networks:
       - wcm-network
 
-  # ── Redis ───────────────────────────────────────────────
+  # ── Supabase Kong (API Gateway) ──────────────────────────
+  supabase-kong:
+    container_name: wcm-supabase-kong
+    image: kong:3.9
+    ports:
+      - "8100:8000"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    volumes:
+      - ./supabase/kong.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      supabase-auth:
+        condition: service_started
+      supabase-rest:
+        condition: service_started
+    networks:
+      - wcm-network
+
+  # ── Redis Stack (cache + queue + vector search + RedisInsight) ─
   redis:
     container_name: wcm-redis
-    image: redis:7-alpine
+    image: redis/redis-stack:latest
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+      - "8001:8001"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -209,22 +261,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    networks:
-      - wcm-network
-
-  # ── Redis Commander (dev UI) ────────────────────────────
-  redis-commander:
-    container_name: wcm-redis-commander
-    image: rediscommander/redis-commander:latest
-    ports:
-      - "8081:8081"
-    environment:
-      REDIS_HOSTS: local:redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-    profiles:
-      - full
     networks:
       - wcm-network
 
