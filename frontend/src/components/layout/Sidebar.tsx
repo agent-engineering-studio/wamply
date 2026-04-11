@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: "grid" },
@@ -41,6 +42,14 @@ function UsageBar({ label, used, total, color }: { label: string; used: number; 
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -106,16 +115,27 @@ export function Sidebar() {
         <UsageBar label="Messaggi AI" used={8490} total={15000} color="bg-brand-teal" />
       </div>
 
-      {/* User */}
+      {/* User + Logout */}
       <div className="border-t border-brand-ink-10 px-2.5 py-2">
         <div className="flex items-center gap-2 px-2 py-1.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal-light text-[11px] font-semibold text-brand-teal-dark">
             MR
           </div>
-          <div>
+          <div className="flex-1">
             <div className="text-[12px] font-medium text-brand-ink">Mario Rossi</div>
             <div className="text-[10px] text-brand-ink-30">mario@azienda.it</div>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Esci"
+            className="shrink-0 rounded-sm p-1.5 text-brand-ink-30 hover:bg-brand-ink-05 hover:text-brand-ink-60"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
