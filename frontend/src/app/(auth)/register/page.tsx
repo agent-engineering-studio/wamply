@@ -71,9 +71,17 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-brand-ink-05">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-brand-ink">
-            Wam<span className="text-brand-teal">ply</span>
-          </h1>
+          <Link href="/" className="inline-flex items-center gap-2 transition-opacity hover:opacity-80">
+            <svg viewBox="0 0 400 400" className="h-9 w-9">
+              <defs><linearGradient id="regLogoBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#1B2A4A" /><stop offset="100%" stopColor="#0F1B33" /></linearGradient></defs>
+              <rect width="400" height="400" rx="80" fill="url(#regLogoBg)" />
+              <path d="M90 140 L130 290 L170 190 L200 290 L230 190 L270 290 L310 140" fill="none" stroke="#fff" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M90 140 L130 290 L170 190 L200 290 L230 190 L270 290 L310 140" fill="none" stroke="#0D9488" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+              <circle cx="320" cy="132" r="8" fill="#0D9488" opacity="0.9" />
+              <circle cx="336" cy="120" r="5" fill="#0D9488" opacity="0.6" />
+            </svg>
+            <span className="text-2xl font-semibold text-brand-ink">Wam<span className="text-brand-teal">ply</span></span>
+          </Link>
           <p className="mt-2 text-sm text-brand-ink-60">Crea il tuo account</p>
         </div>
 
