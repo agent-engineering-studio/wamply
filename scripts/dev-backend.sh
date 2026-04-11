@@ -6,6 +6,18 @@
 set -e
 cd "$(dirname "$0")/../backend"
 
+# Create venv if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv .venv
+    source .venv/bin/activate
+    echo "Installing dependencies..."
+    pip install uv
+    uv pip install -e ".[dev]"
+else
+    source .venv/bin/activate
+fi
+
 # Override env vars to point to localhost (not Docker hostnames)
 export DATABASE_URL="postgresql://supabase_admin:postgres@localhost:5432/postgres"
 export REDIS_URL="redis://localhost:6379"
@@ -17,6 +29,7 @@ export STRIPE_SECRET_KEY="sk_test_xxxxx"
 export STRIPE_WEBHOOK_SECRET="whsec_xxxxx"
 
 echo "Starting Backend API on http://localhost:8200 ..."
+echo "venv: $VIRTUAL_ENV"
 echo "Press Ctrl+C to stop."
 echo ""
 

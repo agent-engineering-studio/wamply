@@ -5,6 +5,18 @@ REM ============================================================
 
 cd /d "%~dp0\..\backend"
 
+REM Create venv if it doesn't exist
+if not exist .venv (
+    echo Creating Python virtual environment...
+    python -m venv .venv
+    echo Installing dependencies...
+    call .venv\Scripts\activate
+    pip install uv
+    uv pip install -e ".[dev]"
+) else (
+    call .venv\Scripts\activate
+)
+
 REM Override env vars to point to localhost (not Docker hostnames)
 set DATABASE_URL=postgresql://supabase_admin:postgres@localhost:5432/postgres
 set REDIS_URL=redis://localhost:6379
@@ -16,6 +28,7 @@ set STRIPE_SECRET_KEY=sk_test_xxxxx
 set STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 
 echo Starting Backend API on http://localhost:8200 ...
+echo venv: %VIRTUAL_ENV%
 echo Press Ctrl+C to stop.
 echo.
 

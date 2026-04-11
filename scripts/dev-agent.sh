@@ -6,6 +6,18 @@
 set -e
 cd "$(dirname "$0")/../agent"
 
+# Create venv if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv .venv
+    source .venv/bin/activate
+    echo "Installing dependencies..."
+    pip install uv
+    uv pip install -e ".[dev]"
+else
+    source .venv/bin/activate
+fi
+
 # Override env vars to point to localhost (not Docker hostnames)
 export DATABASE_URL="postgresql://supabase_admin:postgres@localhost:5432/postgres"
 export REDIS_URL="redis://localhost:6379"
@@ -18,6 +30,7 @@ export MOCK_LLM="true"
 export BACKEND_INTERNAL_URL="http://localhost:8200"
 
 echo "Starting Agent on http://localhost:8000 ..."
+echo "venv: $VIRTUAL_ENV"
 echo "MOCK_LLM=true (no Claude API calls)"
 echo "Press Ctrl+C to stop."
 echo ""
