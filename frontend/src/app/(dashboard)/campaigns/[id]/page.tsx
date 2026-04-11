@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-client";
 
 interface CampaignDetail {
   id: string;
@@ -22,12 +23,12 @@ export default function CampaignDetailPage() {
   const [launching, setLaunching] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/campaigns/${id}`).then((r) => r.json()).then(setCampaign);
+    apiFetch(`/campaigns/${id}`).then((r) => r.json()).then(setCampaign);
   }, [id]);
 
   async function handleLaunch() {
     setLaunching(true);
-    await fetch(`/api/campaigns/${id}/launch`, { method: "POST" });
+    await apiFetch(`/campaigns/${id}/launch`, { method: "POST" });
     setCampaign((prev) => prev ? { ...prev, status: "running" } : prev);
     setLaunching(false);
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 interface WhatsAppData {
   phone_number_id: string | null;
@@ -26,7 +27,7 @@ export function WhatsAppConfigForm() {
   const [defaultLanguage, setDefaultLanguage] = useState("it");
 
   useEffect(() => {
-    fetch("/api/settings/whatsapp")
+    apiFetch("/settings/whatsapp")
       .then((r) => r.json())
       .then((d: WhatsAppData) => {
         setData(d);
@@ -43,9 +44,8 @@ export function WhatsAppConfigForm() {
     setSaving(true);
     setMessage(null);
 
-    const res = await fetch("/api/settings/whatsapp", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    const res = await apiFetch("/settings/whatsapp", {
+      method: "POST",
       body: JSON.stringify({
         phone_number_id: phoneNumberId,
         waba_id: wabaId,

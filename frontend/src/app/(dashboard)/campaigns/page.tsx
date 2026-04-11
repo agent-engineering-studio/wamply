@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-client";
 
 interface Campaign {
   id: string;
@@ -30,8 +31,7 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const url = filter ? `/api/campaigns?status=${filter}` : "/api/campaigns";
-    fetch(url).then((r) => r.json()).then((d) => { setCampaigns(d.campaigns || []); setLoading(false); });
+    apiFetch(filter ? `/campaigns?status=${filter}` : "/campaigns").then((r) => r.json()).then((d) => { setCampaigns(d.campaigns || []); setLoading(false); });
   }, [filter]);
 
   return (

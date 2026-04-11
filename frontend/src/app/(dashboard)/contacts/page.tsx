@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 interface Contact {
   id: string;
@@ -34,7 +35,7 @@ export default function ContactsPage() {
     if (search) params.set("search", search);
     if (tagFilter) params.set("tag", tagFilter);
 
-    fetch(`/api/contacts?${params}`)
+    apiFetch(`/contacts?${params}`)
       .then((r) => r.json())
       .then((d) => { setContacts(d.contacts || []); setTotal(d.total || 0); })
       .finally(() => setLoading(false));

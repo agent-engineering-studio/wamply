@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 import { FeatureGate } from "@/components/shared/FeatureGate";
 import { UpgradePrompt } from "@/components/shared/UpgradePrompt";
 
@@ -32,7 +33,7 @@ export function AIConfigForm() {
   const [maxTokens, setMaxTokens] = useState(500);
 
   useEffect(() => {
-    fetch("/api/settings/ai")
+    apiFetch("/settings/ai")
       .then((r) => r.json())
       .then((d: AIData) => {
         setData(d);
@@ -49,9 +50,8 @@ export function AIConfigForm() {
     setSaving(true);
     setMessage(null);
 
-    const res = await fetch("/api/settings/ai", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    const res = await apiFetch("/settings/ai", {
+      method: "POST",
       body: JSON.stringify({
         mode,
         api_key: mode === "byok" ? apiKey || undefined : undefined,

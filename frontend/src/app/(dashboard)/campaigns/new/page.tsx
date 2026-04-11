@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api-client";
 
 interface Template { id: string; name: string; category: string; }
 interface Group { id: string; name: string; }
@@ -17,24 +18,23 @@ export default function NewCampaignPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/templates").then((r) => r.json()).then((d) => setTemplates(d.templates || []));
+    apiFetch("/templates").then((r) => r.json()).then((d) => setTemplates(d.templates || []));
     // Groups API doesn't exist yet — will be empty
-    fetch("/api/contacts?page=1").then(() => {});
+    apiFetch("/contacts?page=1").then(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
 
-    const res = await fetch("/api/campaigns", {
+    const res = await apiFetch("/campaigns", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, template_id: templateId || null, group_id: groupId || null }),
     });
     const campaign = await res.json();
 
     if (sendNow && campaign.id) {
-      await fetch(`/api/campaigns/${campaign.id}/launch`, { method: "POST" });
+      await apiFetch(`/campaigns/${campaign.id}/launch`, { method: "POST" });
     }
 
     router.push(`/campaigns/${campaign.id}`);
