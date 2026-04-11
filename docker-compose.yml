@@ -3,6 +3,7 @@ name: wcm
 services:
   # ── Frontend ────────────────────────────────────────────
   frontend:
+    container_name: wcm-frontend
     image: node:22-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev"
@@ -35,6 +36,7 @@ services:
 
   # ── Agent AI ────────────────────────────────────────────
   agent:
+    container_name: wcm-agent
     build:
       context: ./agent
       dockerfile: Dockerfile
@@ -63,6 +65,7 @@ services:
 
   # ── Supabase PostgreSQL ─────────────────────────────────
   supabase-db:
+    container_name: wcm-supabase-db
     image: supabase/postgres:15.8.1.060
     ports:
       - "5432:5432"
@@ -73,7 +76,7 @@ services:
       - supabase-data:/var/lib/postgresql/data
       - ./supabase/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -U supabase_admin"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U supabase_admin -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -82,6 +85,7 @@ services:
 
   # ── Supabase Auth (GoTrue) ─────────────────────────────
   supabase-auth:
+    container_name: wcm-supabase-auth
     image: supabase/gotrue:v2.170.0
     ports:
       - "9999:9999"
@@ -117,6 +121,7 @@ services:
 
   # ── Supabase REST (PostgREST) ───────────────────────────
   supabase-rest:
+    container_name: wcm-supabase-rest
     image: postgrest/postgrest:v12.2.8
     ports:
       - "3001:3000"
@@ -134,6 +139,7 @@ services:
 
   # ── Supabase Realtime ───────────────────────────────────
   supabase-realtime:
+    container_name: wcm-supabase-realtime
     image: supabase/realtime:v2.34.47
     ports:
       - "4000:4000"
@@ -161,6 +167,7 @@ services:
 
   # ── Supabase Storage ────────────────────────────────────
   supabase-storage:
+    container_name: wcm-supabase-storage
     image: supabase/storage-api:v1.14.7
     ports:
       - "5000:5000"
@@ -190,6 +197,7 @@ services:
 
   # ── Redis ───────────────────────────────────────────────
   redis:
+    container_name: wcm-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
@@ -206,6 +214,7 @@ services:
 
   # ── Redis Commander (dev UI) ────────────────────────────
   redis-commander:
+    container_name: wcm-redis-commander
     image: rediscommander/redis-commander:latest
     ports:
       - "8081:8081"
@@ -221,6 +230,7 @@ services:
 
   # ── Mailhog (dev email) ────────────────────────────────
   mailhog:
+    container_name: wcm-mailhog
     image: mailhog/mailhog:latest
     ports:
       - "1025:1025"
@@ -232,6 +242,7 @@ services:
 
   # ── Stripe CLI (webhook forwarding) ────────────────────
   stripe-cli:
+    container_name: wcm-stripe-cli
     image: stripe/stripe-cli:latest
     command: listen --forward-to http://frontend:3000/api/billing/webhook --api-key ${STRIPE_SECRET_KEY}
     depends_on:
@@ -243,6 +254,7 @@ services:
 
   # ── WhatsApp Mock Server ────────────────────────────────
   whatsapp-mock:
+    container_name: wcm-whatsapp-mock
     build:
       context: ./mock/whatsapp-mock
       dockerfile: Dockerfile

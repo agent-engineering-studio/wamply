@@ -48,24 +48,32 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-[220px] flex-col border-r border-brand-ink-10 bg-white">
+    <aside className="flex h-screen w-55 flex-col border-r border-brand-ink-10 bg-white">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 border-b border-brand-ink-10 px-4 py-[18px]">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-green shadow-[0_2px_8px_rgba(37,211,102,.35)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" className="h-[17px] w-[17px]">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          </svg>
-        </div>
+      <div className="flex items-center gap-2.5 border-b border-brand-ink-10 px-4 py-4.5">
+        <svg viewBox="0 0 400 400" className="h-8 w-8 shrink-0">
+          <defs>
+            <linearGradient id="sidebarLogoBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#1B2A4A" />
+              <stop offset="100%" stopColor="#0F1B33" />
+            </linearGradient>
+          </defs>
+          <rect width="400" height="400" rx="80" fill="url(#sidebarLogoBg)" />
+          <path d="M90 140 L130 290 L170 190 L200 290 L230 190 L270 290 L310 140" fill="none" stroke="#fff" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M90 140 L130 290 L170 190 L200 290 L230 190 L270 290 L310 140" fill="none" stroke="#0D9488" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+          <circle cx="320" cy="132" r="8" fill="#0D9488" opacity="0.9" />
+          <circle cx="336" cy="120" r="5" fill="#0D9488" opacity="0.6" />
+        </svg>
         <span className="text-[17px] font-semibold tracking-tight text-brand-ink">
-          Wam<span className="text-brand-green">ply</span>
+          Wam<span className="text-brand-teal">ply</span>
         </span>
       </div>
 
       {/* Tenant */}
-      <div className="mx-2.5 mt-2.5 mb-1 rounded-sm border border-brand-green/20 bg-gradient-to-br from-brand-green-pale to-white px-3 py-2">
+      <div className="mx-2.5 mt-2.5 mb-1 rounded-sm border border-brand-teal/20 bg-linear-to-br from-brand-teal-pale to-white px-3 py-2">
         <div className="text-[12.5px] font-medium text-brand-ink">Azienda SRL</div>
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-green-dark">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="#128C7E"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-teal-dark">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#0D9488"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           Piano Professional
         </div>
       </div>
@@ -78,11 +86,11 @@ export function Sidebar() {
             href={item.href}
             className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
               isActive(item.href)
-                ? "bg-brand-green text-white shadow-[0_2px_8px_rgba(37,211,102,.3)]"
+                ? "bg-brand-navy text-white shadow-[0_2px_8px_rgba(27,42,74,.3)]"
                 : "text-brand-ink-60 hover:bg-brand-ink-05 hover:text-brand-ink"
             }`}
           >
-            <span className="h-[15px] w-[15px] flex-shrink-0">{ICONS[item.icon]}</span>
+            <span className="h-3.75 w-3.75 shrink-0">{ICONS[item.icon]}</span>
             {item.label}
           </Link>
         ))}
@@ -93,15 +101,15 @@ export function Sidebar() {
         <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-brand-ink-30">
           Utilizzo mese
         </div>
-        <UsageBar label="Campagne" used={4} total={20} color="bg-brand-green" />
+        <UsageBar label="Campagne" used={4} total={20} color="bg-brand-teal" />
         <UsageBar label="Contatti" used={3847} total={5000} color="bg-brand-amber" />
-        <UsageBar label="Messaggi AI" used={8490} total={15000} color="bg-brand-green" />
+        <UsageBar label="Messaggi AI" used={8490} total={15000} color="bg-brand-teal" />
       </div>
 
       {/* User */}
       <div className="border-t border-brand-ink-10 px-2.5 py-2">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-green-light text-[11px] font-semibold text-brand-green-dark">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal-light text-[11px] font-semibold text-brand-teal-dark">
             MR
           </div>
           <div>

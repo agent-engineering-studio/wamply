@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+const googleEnabled = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === "true";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -43,7 +45,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold text-brand-ink">
-            Wam<span className="text-brand-green">ply</span>
+            Wam<span className="text-brand-teal">ply</span>
           </h1>
           <p className="mt-2 text-sm text-brand-ink-60">Accedi al tuo account</p>
         </div>
@@ -61,7 +63,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@azienda.it"
-                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
                 required
               />
             </div>
@@ -72,36 +74,40 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-sm bg-brand-green py-2.5 text-[13px] font-medium text-white shadow-[0_2px_8px_rgba(37,211,102,.3)] hover:bg-brand-green-dark disabled:opacity-50"
+              className="w-full rounded-pill bg-brand-teal py-2.5 text-[13px] font-medium text-white shadow-teal hover:bg-brand-teal-dark disabled:opacity-50"
             >
               {loading ? "Accesso in corso..." : "Accedi"}
             </button>
           </form>
 
-          <div className="my-4 flex items-center gap-3">
-            <div className="h-px flex-1 bg-brand-ink-10" />
-            <span className="text-[11px] text-brand-ink-30">oppure</span>
-            <div className="h-px flex-1 bg-brand-ink-10" />
-          </div>
+          {googleEnabled && (
+            <>
+              <div className="my-4 flex items-center gap-3">
+                <div className="h-px flex-1 bg-brand-ink-10" />
+                <span className="text-[11px] text-brand-ink-30">oppure</span>
+                <div className="h-px flex-1 bg-brand-ink-10" />
+              </div>
 
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full rounded-sm border border-brand-ink-10 bg-white py-2.5 text-[13px] font-medium text-brand-ink-60 hover:bg-brand-ink-05"
-          >
-            Continua con Google
-          </button>
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full rounded-pill border border-brand-ink-10 bg-white py-2.5 text-[13px] font-medium text-brand-ink-60 hover:bg-brand-ink-05"
+              >
+                Continua con Google
+              </button>
+            </>
+          )}
         </div>
 
         <p className="mt-4 text-center text-[12px] text-brand-ink-60">
           Non hai un account?{" "}
-          <Link href="/register" className="font-medium text-brand-green-dark hover:underline">
+          <Link href="/register" className="font-medium text-brand-teal-dark hover:underline">
             Registrati
           </Link>
         </p>

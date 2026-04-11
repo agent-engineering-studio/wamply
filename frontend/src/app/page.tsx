@@ -24,49 +24,79 @@ const PLANS = [
   },
 ];
 
+/* W-wave inline logo from brand SVG */
+function WaveLogo({ className = "h-8 w-8" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 400 400" className={className}>
+      <defs>
+        <linearGradient id="logoBg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#1B2A4A" />
+          <stop offset="100%" stopColor="#0F1B33" />
+        </linearGradient>
+      </defs>
+      <rect width="400" height="400" rx="80" fill="url(#logoBg)" />
+      <path d="M90 140 L130 290 L170 190 L200 290 L230 190 L270 290 L310 140" fill="none" stroke="#fff" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M90 140 L130 290 L170 190 L200 290 L230 190 L270 290 L310 140" fill="none" stroke="#0D9488" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <circle cx="320" cy="132" r="8" fill="#0D9488" opacity="0.9" />
+      <circle cx="336" cy="120" r="5" fill="#0D9488" opacity="0.6" />
+      <circle cx="348" cy="112" r="3" fill="#0D9488" opacity="0.35" />
+    </svg>
+  );
+}
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0F1923] text-white">
+    <div className="min-h-screen bg-linear-to-br from-brand-navy via-brand-navy-light to-brand-navy-deep text-white">
       {/* Nav */}
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <span className="text-xl font-semibold tracking-tight">
-          Wam<span className="text-brand-green">ply</span>
-        </span>
+        <div className="flex items-center gap-2.5">
+          <WaveLogo className="h-9 w-9" />
+          <span className="text-xl font-semibold tracking-tight">
+            Wam<span className="text-brand-teal">ply</span>
+          </span>
+        </div>
         <div className="flex items-center gap-4">
-          <Link href="/login" className="text-[13px] text-white/60 hover:text-white">Accedi</Link>
-          <Link href="/register" className="rounded-pill bg-brand-green px-5 py-2 text-[13px] font-medium text-white hover:bg-brand-green-dark">
+          <Link href="/login" className="text-[13px] text-white/60 hover:text-white transition-colors">Accedi</Link>
+          <Link href="/register" className="rounded-pill bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-teal hover:bg-brand-teal-dark transition-colors">
             Inizia gratis
           </Link>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
-        <h1 className="mx-auto max-w-3xl text-[48px] font-semibold leading-tight tracking-tight">
+      <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
+        {/* Decorative signal rings */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.06]">
+          <div className="h-160 w-160 rounded-full border border-brand-teal" />
+          <div className="absolute h-120 w-120 rounded-full border border-brand-teal" />
+          <div className="absolute h-80 w-80 rounded-full border border-brand-teal" />
+        </div>
+
+        <h1 className="relative mx-auto max-w-3xl text-[48px] font-semibold leading-tight tracking-tight">
           Amplify your WhatsApp campaigns{" "}
-          <span className="text-brand-green">with AI</span>
+          <span className="text-brand-teal">with AI</span>
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-[16px] leading-relaxed text-white/60">
+        <p className="relative mx-auto mt-5 max-w-xl text-[16px] leading-relaxed text-brand-slate-light">
           Ogni contatto riceve il messaggio giusto, nel momento giusto, nella lingua giusta.
           Personalizzato dall&apos;AI. Zero spam.
         </p>
 
-        <div className="mt-8 flex items-center justify-center gap-4">
-          <Link href="/register" className="rounded-pill bg-brand-green px-8 py-3 text-[15px] font-medium text-white shadow-[0_2px_12px_rgba(37,211,102,.4)] hover:bg-brand-green-dark">
+        <div className="relative mt-8 flex items-center justify-center gap-4">
+          <Link href="/register" className="rounded-pill bg-brand-teal px-8 py-3 text-[15px] font-medium text-white shadow-teal hover:bg-brand-teal-dark transition-colors">
             Inizia gratis
           </Link>
-          <a href="#pricing" className="rounded-pill border border-white/20 px-8 py-3 text-[15px] font-medium text-white/70 hover:border-white/40 hover:text-white">
+          <a href="#pricing" className="rounded-pill border border-brand-slate px-8 py-3 text-[15px] font-medium text-brand-slate-light hover:border-brand-slate-light hover:text-white transition-colors">
             Scopri i piani
           </a>
         </div>
 
-        <div className="mt-10 flex items-center justify-center gap-8 text-[12px] text-white/40">
+        <div className="relative mt-10 flex items-center justify-center gap-8 text-[12px] text-brand-slate-muted">
           <span>Open rate 95%</span>
-          <span className="h-3 w-px bg-white/20" />
+          <span className="h-3 w-px bg-white/15" />
           <span>Response rate 60%</span>
-          <span className="h-3 w-px bg-white/20" />
+          <span className="h-3 w-px bg-white/15" />
           <span>Da 49 &euro;/mese</span>
-          <span className="h-3 w-px bg-white/20" />
+          <span className="h-3 w-px bg-white/15" />
           <span>Powered by Claude AI</span>
         </div>
       </section>
@@ -81,12 +111,12 @@ export default function LandingPage() {
               { step: "2", title: "Crea la campagna", desc: "Scegli il template, seleziona il target. L'AI personalizza ogni messaggio." },
               { step: "3", title: "Analizza i risultati", desc: "Monitora invii, consegne e letture in tempo reale. Migliora ad ogni campagna." },
             ].map((f) => (
-              <div key={f.step} className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-brand-green text-[16px] font-semibold text-white">
+              <div key={f.step} className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-brand-teal text-[16px] font-semibold text-white">
                   {f.step}
                 </div>
                 <h3 className="mb-2 text-[16px] font-medium">{f.title}</h3>
-                <p className="text-[13px] leading-relaxed text-white/50">{f.desc}</p>
+                <p className="text-[13px] leading-relaxed text-brand-slate-light">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -97,25 +127,25 @@ export default function LandingPage() {
       <section id="pricing" className="border-t border-white/10 py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="mb-3 text-center text-[28px] font-semibold">Piani e prezzi</h2>
-          <p className="mb-12 text-center text-[14px] text-white/50">Scegli il piano adatto alla tua azienda</p>
+          <p className="mb-12 text-center text-[14px] text-brand-slate-light">Scegli il piano adatto alla tua azienda</p>
           <div className="grid grid-cols-3 gap-6">
             {PLANS.map((plan) => (
               <div key={plan.name}
-                className={`rounded-xl border p-6 ${plan.popular ? "border-brand-green bg-brand-green/5 shadow-[0_0_30px_rgba(37,211,102,.1)]" : "border-white/10 bg-white/5"}`}>
+                className={`rounded-xl border p-6 ${plan.popular ? "border-brand-teal bg-brand-teal/5 shadow-[0_0_30px_rgba(13,148,136,.12)]" : "border-white/10 bg-white/5"}`}>
                 {plan.popular && (
-                  <div className="mb-3 inline-block rounded-pill bg-brand-green/20 px-3 py-1 text-[11px] font-medium text-brand-green">
+                  <div className="mb-3 inline-block rounded-pill bg-brand-teal/20 px-3 py-1 text-[11px] font-medium text-brand-teal">
                     Consigliato
                   </div>
                 )}
                 <h3 className="text-[20px] font-semibold">{plan.name}</h3>
                 <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-[36px] font-semibold">{plan.price}</span>
-                  <span className="text-[14px] text-white/50">&euro;/mese</span>
+                  <span className="text-[14px] text-brand-slate-light">&euro;/mese</span>
                 </div>
                 <ul className="mt-6 space-y-2.5">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-[13px] text-white/70">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#25D366" strokeWidth="2.5" className="h-3.5 w-3.5 flex-shrink-0">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" className="h-3.5 w-3.5 shrink-0">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                       {f}
@@ -123,7 +153,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link href="/register"
-                  className={`mt-6 block rounded-pill py-2.5 text-center text-[13px] font-medium ${plan.popular ? "bg-brand-green text-white shadow-[0_2px_8px_rgba(37,211,102,.3)]" : "border border-white/20 text-white/70 hover:border-white/40"}`}>
+                  className={`mt-6 block rounded-pill py-2.5 text-center text-[13px] font-medium transition-colors ${plan.popular ? "bg-brand-teal text-white shadow-teal hover:bg-brand-teal-dark" : "border border-white/20 text-white/70 hover:border-brand-teal/50 hover:text-white"}`}>
                   {plan.cta}
                 </Link>
               </div>
@@ -134,7 +164,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/10 py-8">
-        <div className="mx-auto max-w-6xl px-6 flex items-center justify-between text-[12px] text-white/30">
+        <div className="mx-auto max-w-6xl px-6 flex items-center justify-between text-[12px] text-brand-slate-muted">
           <span>Wamply &copy; 2026. Tutti i diritti riservati.</span>
           <span>Powered by Claude AI &middot; Built with Next.js</span>
         </div>

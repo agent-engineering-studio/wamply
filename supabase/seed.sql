@@ -1,21 +1,147 @@
 -- seed.sql
 -- Development seed data: 1 admin + 2 test users with subscriptions, contacts, templates, campaigns
 -- Run with: make seed
+--
+-- ╔═══════════════════════════════════════════════════════╗
+-- ║  CREDENZIALI DI SVILUPPO                              ║
+-- ║                                                       ║
+-- ║  Admin:  admin@wcm.local     / Admin123!              ║
+-- ║  User 1: user1@test.local    / User123!               ║
+-- ║  User 2: user2@test.local    / User123!               ║
+-- ╚═══════════════════════════════════════════════════════╝
 
--- ── Admin user ───────────────────────────────────────────
-INSERT INTO users (id, email, role, full_name)
-VALUES ('a0000000-0000-0000-0000-000000000001', 'admin@wcm.local', 'admin', 'Admin WCM')
-ON CONFLICT (email) DO NOTHING;
+-- ── Auth → Public user sync trigger ─────────────────────
+-- This trigger auto-creates a public.users row when someone signs up via GoTrue.
+-- Must run AFTER GoTrue has created auth.users (not during DB init).
 
--- ── Test User 1 (Starter plan) ───────────────────────────
-INSERT INTO users (id, email, role, full_name)
-VALUES ('b0000000-0000-0000-0000-000000000001', 'user1@test.local', 'user', 'Marco Rossi')
-ON CONFLICT (email) DO NOTHING;
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.users (id, email, full_name, avatar_url, role)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data ->> 'full_name', NEW.raw_user_meta_data ->> 'name'),
+        NEW.raw_user_meta_data ->> 'avatar_url',
+        'user'
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email      = EXCLUDED.email,
+        full_name  = COALESCE(EXCLUDED.full_name, public.users.full_name),
+        avatar_url = COALESCE(EXCLUDED.avatar_url, public.users.avatar_url),
+        updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ── Test User 2 (Professional plan) ──────────────────────
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_user();
+
+-- ── Auth users (Supabase GoTrue) ────────────────────────
+-- Creates authenticable users in auth.users so you can actually log in.
+-- Passwords are hashed with bcrypt (pgcrypto).
+
+INSERT INTO auth.users (
+    id, instance_id, aud, role, email,
+    encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data,
+    created_at, updated_at,
+    confirmation_token, recovery_token, reauthentication_token,
+    email_change, email_change_token_new, email_change_token_current,
+    email_change_confirm_status, phone_change, phone_change_token,
+    is_sso_user
+)
+VALUES
+-- Admin: admin@wcm.local / Admin123!
+(
+    'a0000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'admin@wcm.local',
+    crypt('Admin123!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"full_name":"Admin WCM"}'::jsonb,
+    now(), now(),
+    '', '', '',
+    '', '', '',
+    0, '', '',
+    false
+),
+-- User 1: user1@test.local / User123!
+(
+    'b0000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'user1@test.local',
+    crypt('User123!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"full_name":"Marco Rossi"}'::jsonb,
+    now(), now(),
+    '', '', '',
+    '', '', '',
+    0, '', '',
+    false
+),
+-- User 2: user2@test.local / User123!
+(
+    'c0000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'user2@test.local',
+    crypt('User123!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"full_name":"Giulia Bianchi"}'::jsonb,
+    now(), now(),
+    '', '', '',
+    '', '', '',
+    0, '', '',
+    false
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Auth identities (required by GoTrue for email login)
+INSERT INTO auth.identities (
+    id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
+)
+VALUES
+(
+    'a0000000-0000-0000-0000-000000000001',
+    'a0000000-0000-0000-0000-000000000001',
+    'admin@wcm.local', 'email',
+    '{"sub":"a0000000-0000-0000-0000-000000000001","email":"admin@wcm.local"}'::jsonb,
+    now(), now(), now()
+),
+(
+    'b0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000001',
+    'user1@test.local', 'email',
+    '{"sub":"b0000000-0000-0000-0000-000000000001","email":"user1@test.local"}'::jsonb,
+    now(), now(), now()
+),
+(
+    'c0000000-0000-0000-0000-000000000001',
+    'c0000000-0000-0000-0000-000000000001',
+    'user2@test.local', 'email',
+    '{"sub":"c0000000-0000-0000-0000-000000000001","email":"user2@test.local"}'::jsonb,
+    now(), now(), now()
+)
+ON CONFLICT DO NOTHING;
+
+-- ── Public users ────────────────────────────────────────
+-- Note: if trigger on_auth_user_created exists, these may already be created.
+-- ON CONFLICT ensures idempotency.
+
 INSERT INTO users (id, email, role, full_name)
-VALUES ('c0000000-0000-0000-0000-000000000001', 'user2@test.local', 'user', 'Giulia Bianchi')
-ON CONFLICT (email) DO NOTHING;
+VALUES
+    ('a0000000-0000-0000-0000-000000000001', 'admin@wcm.local', 'admin', 'Admin WCM'),
+    ('b0000000-0000-0000-0000-000000000001', 'user1@test.local', 'user', 'Marco Rossi'),
+    ('c0000000-0000-0000-0000-000000000001', 'user2@test.local', 'user', 'Giulia Bianchi')
+ON CONFLICT (id) DO UPDATE SET
+    role = EXCLUDED.role,
+    full_name = EXCLUDED.full_name;
 
 -- ── Subscriptions ────────────────────────────────────────
 INSERT INTO subscriptions (user_id, plan_id)

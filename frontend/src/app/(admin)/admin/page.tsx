@@ -30,9 +30,9 @@ interface Campaign {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  starter: "bg-blue-500",
-  professional: "bg-indigo-500",
-  enterprise: "bg-purple-500",
+  starter: "bg-brand-teal",
+  professional: "bg-brand-navy",
+  enterprise: "bg-brand-purple",
 };
 
 export default function AdminPage() {
@@ -55,8 +55,11 @@ export default function AdminPage() {
 
   if (!overview) return <div className="animate-pulse text-brand-ink-30">Caricamento...</div>;
 
-  const mrrFormatted = (overview.mrr_cents / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
-  const totalSubs = Object.values(overview.plan_breakdown).reduce((a, b) => a + b, 0);
+  const mrrFormatted = ((overview.mrr_cents ?? 0) / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+  const planBreakdown = overview.plan_breakdown || {};
+  const totalSubs = Object.values(planBreakdown).reduce((a, b) => a + b, 0);
+  const messagesToday = (overview.messages_today ?? 0).toLocaleString("it-IT");
+  const activeCampaigns = overview.active_campaigns ?? 0;
 
   return (
     <>
@@ -83,11 +86,11 @@ export default function AdminPage() {
               <div className="text-[11px] text-brand-ink-60">MRR</div>
             </div>
             <div className="rounded-card border border-brand-ink-10 bg-white p-4 shadow-card">
-              <div className="text-[26px] font-semibold text-brand-ink">{overview.messages_today.toLocaleString("it-IT")}</div>
+              <div className="text-[26px] font-semibold text-brand-ink">{messagesToday}</div>
               <div className="text-[11px] text-brand-ink-60">Messaggi oggi</div>
             </div>
             <div className="rounded-card border border-brand-ink-10 bg-white p-4 shadow-card">
-              <div className="text-[26px] font-semibold text-brand-ink">{overview.active_campaigns}</div>
+              <div className="text-[26px] font-semibold text-brand-ink">{activeCampaigns}</div>
               <div className="text-[11px] text-brand-ink-60">Campagne attive</div>
             </div>
           </div>
@@ -95,7 +98,7 @@ export default function AdminPage() {
           {/* MRR Breakdown */}
           <div className="rounded-card border border-brand-ink-10 bg-white p-5 shadow-card">
             <div className="mb-4 text-[13px] font-semibold text-brand-ink">Revenue per piano</div>
-            {Object.entries(overview.plan_breakdown).map(([slug, count]) => {
+            {Object.entries(planBreakdown).map(([slug, count]) => {
               const pct = totalSubs > 0 ? Math.round((count / totalSubs) * 100) : 0;
               return (
                 <div key={slug} className="mb-2.5 flex items-center gap-3">
@@ -162,7 +165,7 @@ export default function AdminPage() {
                 </div>
                 {pct > 0 && (
                   <div className="mt-2 h-[5px] overflow-hidden rounded-full bg-brand-ink-10">
-                    <div className="h-full rounded-full bg-brand-green" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-brand-teal" style={{ width: `${pct}%` }} />
                   </div>
                 )}
               </div>
