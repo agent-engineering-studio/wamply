@@ -1,7 +1,22 @@
 import base64
+import os
+
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from src.config import settings
+
+
+def encrypt(plaintext: str) -> str:
+    """Encrypt plaintext with AES-256-GCM. Returns iv:authTag:encrypted (all base64)."""
+    key = settings.encryption_key.encode("utf-8")
+    if len(key) != 32:
+        raise ValueError("ENCRYPTION_KEY must be exactly 32 bytes")
+    iv = os.urandom(12)
+    aesgcm = AESGCM(key)
+    ciphertext = aesgcm.encrypt(iv, plaintext.encode("utf-8"), None)
+    ct = ciphertext[:-16]
+    tag = ciphertext[-16:]
+    return f"{base64.b64encode(iv).decode()}:{base64.b64encode(tag).decode()}:{base64.b64encode(ct).decode()}"
 
 
 def decrypt(ciphertext: str) -> str:
