@@ -174,10 +174,19 @@ export default function AgentPage() {
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        setMessages((prev) => [
+          ...prev.slice(0, -1),
+          { role: "assistant", content: data.error || "Errore nella risposta." },
+        ]);
+        return;
+      }
+
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.content ?? data.message ?? JSON.stringify(data),
-        tool_calls: data.tool_calls ?? [],
+        content: data.response ?? JSON.stringify(data),
+        tool_calls: data.tool_calls?.map((tc: { tool: string }) => tc.tool) ?? [],
       };
 
       setMessages((prev) => [...prev.slice(0, -1), assistantMessage]);
