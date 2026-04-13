@@ -46,6 +46,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // ── Email not confirmed: redirect to confirmation page ─
+  if (isProtected && user && !user.email_confirmed_at) {
+    return NextResponse.redirect(new URL("/confirm-email", request.url));
+  }
+
   // ── Admin routes: require admin role ──────────────────
   if (path.startsWith("/admin")) {
     if (!user) {
@@ -63,15 +68,29 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // ── Confirm-email page: only for unconfirmed users ─────
+  if (path.startsWith("/confirm-email")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (user.email_confirmed_at) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return response;
+  }
+
+  // ── Unconfirmed users: always redirect to confirm-email ─
+  const needsConfirmation = user && !user.email_confirmed_at;
+
   // ── Landing page: redirect authenticated users ────────
   if (path === "/" && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(needsConfirmation ? "/confirm-email" : "/dashboard", request.url));
   }
 
   // ── Auth pages: redirect already-authenticated users ──
   const isAuth = path.startsWith("/login") || path.startsWith("/register");
   if (isAuth && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(needsConfirmation ? "/confirm-email" : "/dashboard", request.url));
   }
 
   return response;

@@ -27,7 +27,20 @@
       "mcp__plugin_context7_context7__query-docs",
       "Bash(npm install:*)",
       "Bash(npx next:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(python -c \"from src.tools.chat_tools import CHAT_TOOLS; print\\(f'{len\\(CHAT_TOOLS\\)} tools defined'\\)\")",
+      "Bash(python -c \"from src.tools.chat_tools import CHAT_TOOLS; names = [t['name'] for t in CHAT_TOOLS]; print\\(f'{len\\(CHAT_TOOLS\\)} tools:'\\); print\\('\\\\n'.join\\(names\\)\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/agents/chat_handler.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"from src.agents.chat_handler import handle_chat, execute_tool; print\\('OK'\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/agents/chat_handler.py'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
+      "Bash(python -c \"from src.agents.chat_handler import handle_chat, execute_tool; print\\('Import OK'\\)\")",
+      "Bash(python -c ':*)",
+      "Bash(npx tsc:*)",
+      "Bash(python -c \"from src.main import app; print\\('OK'\\)\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(python -c \"from src.main import app; print\\('Agent app OK'\\)\")",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

@@ -28,6 +28,13 @@ export default function LoginPage() {
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && !user.email_confirmed_at) {
+      router.push("/confirm-email");
+      router.refresh();
+      return;
+    }
+
     router.push("/dashboard");
     router.refresh();
   }

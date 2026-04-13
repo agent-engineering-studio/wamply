@@ -12,7 +12,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,7 +28,10 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/callback`,
+      },
     });
 
     if (error) {
@@ -38,33 +40,7 @@ export default function RegisterPage() {
       return;
     }
 
-    setSuccess(true);
-  }
-
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-ink-05">
-        <div className="w-full max-w-sm text-center">
-          <div className="rounded-xl border border-brand-ink-10 bg-white p-8 shadow-card">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal-light">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" className="h-6 w-6">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-brand-ink">Registrazione completata!</h2>
-            <p className="mt-2 text-sm text-brand-ink-60">
-              Controlla la tua email per confermare l&apos;account.
-            </p>
-            <Link
-              href="/login"
-              className="mt-4 inline-block rounded-pill bg-brand-teal px-6 py-2 text-sm font-medium text-white hover:bg-brand-teal-dark"
-            >
-              Vai al login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    router.push("/confirm-email");
   }
 
   return (
