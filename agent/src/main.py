@@ -9,7 +9,8 @@ from src.memory.redis_memory import RedisMemory
 from src.memory.supabase_memory import SupabaseMemory
 from src.worker.queue_consumer import QueueConsumer
 from src.api.router import api_router
-from src.api.endpoints.campaigns import set_resources
+from src.api.endpoints.campaigns import set_resources as set_campaign_resources
+from src.api.endpoints.chat import set_resources as set_chat_resources
 from src.utils.telemetry import setup_logging, log
 
 _db = SupabaseMemory()
@@ -25,7 +26,8 @@ async def lifespan(app: FastAPI):
 
     await _db.connect()
     await _redis.connect()
-    set_resources(_db, _redis)
+    set_campaign_resources(_db, _redis)
+    set_chat_resources(_db, _redis)
     await _consumer.start()
 
     await log.ainfo("agent_ready")
