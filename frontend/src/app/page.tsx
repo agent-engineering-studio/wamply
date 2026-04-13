@@ -192,6 +192,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Developed by */}
+      <section className="border-t border-white/10 py-10">
+        <div className="mx-auto max-w-6xl px-6 text-center">
+          <p className="mb-4 text-[12px] uppercase tracking-widest text-brand-slate-muted">Developed by</p>
+          <a
+            href="https://www.agentengineering.it"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-8 py-4 backdrop-blur-sm transition-colors hover:border-brand-teal/30 hover:bg-white/8"
+          >
+            <img
+              src="/agent-engineering-icon.png"
+              alt="Agent Engineering Studio"
+              className="h-10 w-10 rounded-lg object-contain"
+            />
+            <img
+              src="/agent-engineering-logo.png"
+              alt="Agent Engineering Studio"
+              className="h-8 w-auto object-contain"
+            />
+          </a>
+          <p className="mx-auto mt-4 max-w-md text-[12px] leading-relaxed text-brand-slate-muted">
+            Progettato e sviluppato da{" "}
+            <a href="https://www.agentengineering.it" target="_blank" rel="noopener noreferrer" className="text-brand-teal hover:underline">
+              Agent Engineering Studio
+            </a>
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-white/10 py-8">
         <div className="mx-auto max-w-6xl px-6 flex items-center justify-between text-[12px] text-brand-slate-muted">
