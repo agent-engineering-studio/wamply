@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { UserEditModal, type AdminUser, type Plan } from "./_components/UserEditModal";
 
 interface Overview {
   total_users: number;
@@ -9,16 +10,6 @@ interface Overview {
   messages_today: number;
   active_campaigns: number;
   plan_breakdown: Record<string, number>;
-}
-
-interface User {
-  id: string;
-  email: string;
-  full_name: string | null;
-  role: string;
-  created_at: string;
-  subscription: { status: string; plans: { name: string; slug: string } } | null;
-  messages_used: number;
 }
 
 interface Campaign {
@@ -38,8 +29,10 @@ const PLAN_COLORS: Record<string, string> = {
 
 export default function AdminPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [tab, setTab] = useState<"overview" | "users" | "campaigns">("overview");
 
   useEffect(() => {
@@ -47,10 +40,12 @@ export default function AdminPage() {
       apiFetch("/admin/overview").then((r) => r.json()),
       apiFetch("/admin/users").then((r) => r.json()),
       apiFetch("/admin/campaigns").then((r) => r.json()),
-    ]).then(([o, u, c]) => {
+      apiFetch("/admin/plans").then((r) => r.json()),
+    ]).then(([o, u, c, p]) => {
       setOverview(o);
       setUsers(u.users || []);
       setCampaigns(c.campaigns || []);
+      setPlans(p.plans || []);
     });
   }, []);
 
@@ -129,7 +124,11 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-slate-800/50 last:border-0 hover:bg-brand-navy-deep">
+                <tr
+                  key={u.id}
+                  onClick={() => setEditingUser(u)}
+                  className="cursor-pointer border-b border-slate-800/50 last:border-0 hover:bg-brand-navy-deep"
+                >
                   <td className="px-3.5 py-3">
                     <div className="text-[13px] font-medium text-slate-100">{u.full_name || u.email}</div>
                     <div className="text-[11px] text-slate-400">{u.email}</div>
@@ -148,6 +147,15 @@ export default function AdminPage() {
           </table>
         </div>
       )}
+
+      <UserEditModal
+        user={editingUser}
+        plans={plans}
+        onClose={() => setEditingUser(null)}
+        onSaved={(updated) =>
+          setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+        }
+      />
 
       {tab === "campaigns" && (
         <div className="space-y-2.5">
