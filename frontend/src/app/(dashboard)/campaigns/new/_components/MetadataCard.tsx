@@ -4,7 +4,7 @@ import type { Template } from "@/lib/templates/types";
 import { bodyLength, collectVariables } from "@/lib/templates/preview-meta";
 
 const CATEGORY_STYLES: Record<string, string> = {
-  marketing: "bg-brand-navy-light text-brand-teal",
+  marketing: "bg-brand-navy-deep text-brand-teal",
   utility: "bg-blue-50 text-blue-700",
   authentication: "bg-amber-50 text-amber-700",
 };

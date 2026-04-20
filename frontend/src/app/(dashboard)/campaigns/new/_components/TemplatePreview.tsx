@@ -59,19 +59,28 @@ export function TemplatePreview({ templateId }: { templateId: string | null }) {
       className="lg:sticky lg:top-4"
     >
       {state.kind === "empty" && (
-        <div className="rounded-card border border-dashed border-slate-800 bg-brand-navy-light p-8 text-center text-[12px] text-slate-500">
+        <div
+          role="status"
+          className="rounded-card border border-dashed border-slate-800 bg-brand-navy-light p-8 text-center text-[12px] text-slate-500"
+        >
           Seleziona un template per vedere l&apos;anteprima.
         </div>
       )}
 
       {state.kind === "loading" && (
-        <div className="animate-pulse rounded-card border border-slate-800 bg-brand-navy-light p-8 text-center text-[12px] text-slate-500">
+        <div
+          role="status"
+          className="animate-pulse rounded-card border border-slate-800 bg-brand-navy-light p-8 text-center text-[12px] text-slate-500"
+        >
           Caricamento anteprima...
         </div>
       )}
 
       {state.kind === "error" && (
-        <div className="rounded-card border border-red-900/40 bg-red-950/30 p-4 text-[12px] text-red-300">
+        <div
+          role="alert"
+          className="rounded-card border border-red-900/40 bg-red-950/30 p-4 text-[12px] text-red-300"
+        >
           Impossibile caricare l&apos;anteprima.
         </div>
       )}
