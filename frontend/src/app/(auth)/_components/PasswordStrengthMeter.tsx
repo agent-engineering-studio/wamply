@@ -30,7 +30,7 @@ export function PasswordStrengthMeter({
       <div className="flex items-center gap-2">
         <div
           role="progressbar"
-          aria-label="Robustezza password"
+          aria-label={`Robustezza password: ${label}`}
           aria-valuemin={0}
           aria-valuemax={4}
           aria-valuenow={s}
