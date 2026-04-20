@@ -1,0 +1,174 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+  created_at: string;
+  subscription: { status: string; plans: { name: string; slug: string } } | null;
+  messages_used: number;
+}
+
+export interface Plan {
+  id: string;
+  name: string;
+  slug: string;
+  price_cents: number;
+}
+
+function buildInitials(fullName: string, email: string): string {
+  const source = fullName.trim() || email.split("@")[0] || "";
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export function UserEditModal({
+  user,
+  plans,
+  onClose,
+  onSaved,
+}: {
+  user: AdminUser | null;
+  plans: Plan[];
+  onClose: () => void;
+  onSaved: (updated: AdminUser) => void;
+}) {
+  const [planSlug, setPlanSlug] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setPlanSlug(user.subscription?.plans.slug ?? "starter");
+      setError(null);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [user, onClose]);
+
+  if (!user) return null;
+
+  async function handleSave() {
+    if (!user) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}/plan`, {
+        method: "PUT",
+        body: JSON.stringify({ plan_slug: planSlug }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Errore ${res.status}`);
+      }
+      const data = await res.json();
+      onSaved({ ...user, subscription: data.subscription });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore imprevisto.");
+      setSaving(false);
+    }
+  }
+
+  const initials = buildInitials(user.full_name ?? "", user.email);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="user-edit-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-card border border-slate-800 bg-brand-navy-light p-6 shadow-card"
+      >
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-[13px] font-semibold text-brand-teal">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2
+              id="user-edit-title"
+              className="truncate text-[14px] font-semibold text-slate-100"
+            >
+              {user.full_name || "Utente"}
+            </h2>
+            <div className="truncate text-[11px] text-slate-500">{user.email}</div>
+          </div>
+          <span className="shrink-0 rounded-pill bg-brand-navy-deep px-2 py-0.5 text-[10.5px] uppercase tracking-wider text-slate-400">
+            {user.role}
+          </span>
+        </div>
+
+        {error && (
+          <div className="mb-3 rounded-sm border border-red-900/40 bg-red-950/30 p-2 text-[12px] text-red-300">
+            {error}
+          </div>
+        )}
+
+        <dl className="mb-4 space-y-1.5 text-[12px]">
+          <div className="flex items-center justify-between">
+            <dt className="text-slate-500">Piano attuale</dt>
+            <dd className="text-slate-200">
+              {user.subscription?.plans.name ?? "Nessuno"}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-slate-500">Messaggi usati (mese)</dt>
+            <dd className="text-slate-200">{user.messages_used}</dd>
+          </div>
+        </dl>
+
+        <div className="mb-5">
+          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">
+            Cambia piano
+          </label>
+          <select
+            value={planSlug}
+            onChange={(e) => setPlanSlug(e.target.value)}
+            className="w-full rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none"
+          >
+            {plans.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.name} — {(p.price_cents / 100).toFixed(2)} €/mese
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-sm px-4 py-2 text-[13px] font-medium text-slate-400 hover:bg-brand-navy-deep"
+          >
+            Annulla
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-sm bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(13,148,136,.3)] hover:bg-brand-teal-dark disabled:opacity-50"
+          >
+            {saving ? "Salvataggio..." : "Salva modifiche"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
