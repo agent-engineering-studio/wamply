@@ -1,7 +1,7 @@
 export const KNOWN_VARIABLES = ["nome", "email", "phone", "azienda"] as const;
 export type KnownVariable = (typeof KNOWN_VARIABLES)[number];
 
-const TOKEN_RE = /\{\{([a-z0-9_:-]+)\}\}/gi;
+const tokenRe = () => /\{\{([a-z0-9_:-]+)\}\}/gi;
 const VALID_TOKEN_RE = /^(nome|email|phone|azienda|tag:[a-z0-9_-]+)$/i;
 
 export interface VariableOption {
@@ -23,7 +23,7 @@ export function tagToken(tag: string): string {
 
 export function extractVariables(text: string): string[] {
   const found = new Set<string>();
-  for (const match of text.matchAll(TOKEN_RE)) {
+  for (const match of text.matchAll(tokenRe())) {
     found.add(match[1]);
   }
   return [...found];
@@ -58,7 +58,7 @@ const SAMPLE_VALUES: Record<string, string> = {
 };
 
 export function renderWithSamples(text: string): string {
-  return text.replace(TOKEN_RE, (_, name: string) => {
+  return text.replace(tokenRe(), (_, name: string) => {
     if (SAMPLE_VALUES[name]) return SAMPLE_VALUES[name];
     if (name.startsWith("tag:")) return `[${name.slice(4)}]`;
     return _;
