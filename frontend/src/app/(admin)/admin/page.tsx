@@ -130,7 +130,17 @@ export default function AdminPage() {
                   className="cursor-pointer border-b border-slate-800/50 last:border-0 hover:bg-brand-navy-deep"
                 >
                   <td className="px-3.5 py-3">
-                    <div className="text-[13px] font-medium text-slate-100">{u.full_name || u.email}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-[13px] font-medium text-slate-100">{u.full_name || u.email}</div>
+                      {u.banned && (
+                        <span
+                          title="Account disabilitato"
+                          className="rounded-pill bg-amber-950/50 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-amber-400"
+                        >
+                          Disabilitato
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[11px] text-slate-400">{u.email}</div>
                   </td>
                   <td className="px-3.5 py-3 text-[13px] capitalize text-slate-100">{(u.subscription?.plans as Record<string, string>)?.name || "—"}</td>

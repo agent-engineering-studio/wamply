@@ -11,6 +11,7 @@ export interface AdminUser {
   created_at: string;
   subscription: { status: string; plans: { name: string; slug: string } } | null;
   messages_used: number;
+  banned: boolean;
 }
 
 export interface Plan {
@@ -83,6 +84,28 @@ export function UserEditModal({
       }
       const data = await res.json();
       onSaved({ ...user, subscription: data.subscription });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore imprevisto.");
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleBan() {
+    if (!user) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ banned: !user.banned }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Errore ${res.status}`);
+      }
+      const data = await res.json();
+      onSaved({ ...user, banned: data.banned });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Errore imprevisto.");
@@ -198,14 +221,29 @@ export function UserEditModal({
 
         <div className="flex items-center justify-between gap-3">
           {!confirmOpen ? (
-            <button
-              type="button"
-              onClick={() => setConfirmOpen(true)}
-              disabled={!onDeleted}
-              className="rounded-sm border border-red-900/60 px-3 py-2 text-[12.5px] font-medium text-red-400 hover:bg-red-950/40 disabled:opacity-40"
-            >
-              Elimina utente
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleBan}
+                disabled={saving}
+                title={user.banned ? "Riattiva l'account" : "Disabilita l'account (reversibile)"}
+                className={`rounded-sm border px-3 py-2 text-[12.5px] font-medium disabled:opacity-40 ${
+                  user.banned
+                    ? "border-amber-600/60 text-amber-400 hover:bg-amber-950/40"
+                    : "border-slate-700 text-slate-300 hover:bg-brand-navy-deep"
+                }`}
+              >
+                {user.banned ? "Riattiva" : "Disabilita"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(true)}
+                disabled={!onDeleted}
+                className="rounded-sm border border-red-900/60 px-3 py-2 text-[12.5px] font-medium text-red-400 hover:bg-red-950/40 disabled:opacity-40"
+              >
+                Elimina utente
+              </button>
+            </div>
           ) : (
             <button
               type="button"
