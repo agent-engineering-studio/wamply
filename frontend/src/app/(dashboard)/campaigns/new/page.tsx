@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 
 interface Template { id: string; name: string; category: string; }
@@ -82,7 +83,11 @@ export default function NewCampaignPage() {
             </select>
             {templates.length === 0 && (
               <p className="mt-1 text-[11px] text-brand-ink-60">
-                Non hai ancora template. Creane uno per inviare campagne personalizzate.
+                Non hai ancora template.{" "}
+                <Link href="/templates/new" className="font-medium text-brand-teal-dark hover:underline">
+                  Creane uno
+                </Link>{" "}
+                per inviare campagne personalizzate.
               </p>
             )}
           </div>
