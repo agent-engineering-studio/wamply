@@ -12,7 +12,7 @@ import {
 } from "@/lib/templates/types";
 import { validateTemplate } from "@/lib/templates/validation";
 import { EditorForm } from "./_components/EditorForm";
-import { PreviewBubble } from "./_components/PreviewBubble";
+import { PreviewBubble } from "@/components/templates/PreviewBubble";
 
 export default function TemplateEditorPage() {
   const params = useParams<{ id: string }>();
