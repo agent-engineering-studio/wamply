@@ -22,6 +22,7 @@ const ICONS: Record<string, React.ReactNode> = {
   send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
   edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
   template: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>,
+  shield: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   users: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>,
   "users-plus": <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>,
   clock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
@@ -48,6 +49,7 @@ interface CurrentUser {
   fullName: string;
   email: string;
   initials: string;
+  role: string;
 }
 
 function buildInitials(fullName: string, email: string): string {
@@ -74,12 +76,20 @@ export function Sidebar() {
   useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
       if (cancelled || !data.user) return;
       const fullName = (data.user.user_metadata?.full_name as string | undefined) ?? "";
       const email = data.user.email ?? "";
-      setUser({ fullName, email, initials: buildInitials(fullName, email) });
-    });
+      const { data: row } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      if (cancelled) return;
+      const role = (row?.role as string | undefined) ?? "user";
+      setUser({ fullName, email, initials: buildInitials(fullName, email), role });
+    })();
     return () => {
       cancelled = true;
     };
@@ -145,6 +155,23 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
+
+      {/* Admin */}
+      {user?.role === "admin" && (
+        <div className="mx-2 mb-1">
+          <Link
+            href="/admin"
+            className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
+              pathname.startsWith("/admin")
+                ? "bg-brand-teal text-white shadow-teal"
+                : "text-brand-teal bg-brand-teal/10 hover:bg-brand-teal/15"
+            }`}
+          >
+            <span className="h-3.75 w-3.75 shrink-0">{ICONS.shield}</span>
+            Admin
+          </Link>
+        </div>
+      )}
 
       {/* Agent AI */}
       {agentActive && (
