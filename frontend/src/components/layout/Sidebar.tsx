@@ -44,16 +44,45 @@ function UsageBar({ label, used, total, color }: { label: string; used: number; 
   );
 }
 
+interface CurrentUser {
+  fullName: string;
+  email: string;
+  initials: string;
+}
+
+function buildInitials(fullName: string, email: string): string {
+  const source = fullName.trim() || email.split("@")[0] || "";
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [agentActive, setAgentActive] = useState(false);
+  const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
     apiFetch("/settings/agent-status")
       .then((r) => r.json())
       .then((data) => setAgentActive(data.active))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled || !data.user) return;
+      const fullName = (data.user.user_metadata?.full_name as string | undefined) ?? "";
+      const email = data.user.email ?? "";
+      setUser({ fullName, email, initials: buildInitials(fullName, email) });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleLogout() {
@@ -150,11 +179,15 @@ export function Sidebar() {
       <div className="border-t border-slate-800 px-2.5 py-2">
         <div className="flex items-center gap-2 px-2 py-1.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-[11px] font-semibold text-brand-teal">
-            MR
+            {user?.initials ?? "··"}
           </div>
-          <div className="flex-1">
-            <div className="text-[12px] font-medium text-slate-100">Mario Rossi</div>
-            <div className="text-[10px] text-slate-500">mario@azienda.it</div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12px] font-medium text-slate-100">
+              {user?.fullName || (user ? "Utente" : "\u00A0")}
+            </div>
+            <div className="truncate text-[10px] text-slate-500">
+              {user?.email ?? "\u00A0"}
+            </div>
           </div>
           <button
             onClick={handleLogout}
