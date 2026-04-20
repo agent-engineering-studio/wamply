@@ -23,7 +23,15 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError("Email o password non corretti.");
+      const code = (error as { code?: string; status?: number }).code;
+      const status = (error as { code?: string; status?: number }).status;
+      // GoTrue returns 500 unexpected_failure when a banned user tries to sign in
+      // and the same code on the /user endpoint with a valid-but-banned access token.
+      if (status === 500 || code === "unexpected_failure" || code === "user_banned") {
+        setError("Il tuo account è stato disabilitato. Contatta l'amministratore.");
+      } else {
+        setError("Email o password non corretti.");
+      }
       setLoading(false);
       return;
     }
