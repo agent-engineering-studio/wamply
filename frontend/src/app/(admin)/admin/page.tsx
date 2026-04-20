@@ -155,6 +155,9 @@ export default function AdminPage() {
         onSaved={(updated) =>
           setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
         }
+        onDeleted={(userId) =>
+          setUsers((prev) => prev.filter((u) => u.id !== userId))
+        }
       />
 
       {tab === "campaigns" && (

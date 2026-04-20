@@ -33,20 +33,27 @@ export function UserEditModal({
   plans,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   user: AdminUser | null;
   plans: Plan[];
   onClose: () => void;
   onSaved: (updated: AdminUser) => void;
+  onDeleted?: (userId: string) => void;
 }) {
   const [planSlug, setPlanSlug] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (user) {
       setPlanSlug(user.subscription?.plans.slug ?? "starter");
       setError(null);
+      setConfirmOpen(false);
+      setConfirmEmail("");
     }
   }, [user]);
 
@@ -83,7 +90,26 @@ export function UserEditModal({
     }
   }
 
+  async function handleDelete() {
+    if (!user) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Errore ${res.status}`);
+      }
+      onDeleted?.(user.id);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore imprevisto.");
+      setDeleting(false);
+    }
+  }
+
   const initials = buildInitials(user.full_name ?? "", user.email);
+  const canConfirmDelete = confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
 
   return (
     <div
@@ -151,7 +177,59 @@ export function UserEditModal({
           </select>
         </div>
 
-        <div className="flex items-center justify-end gap-3">
+        {confirmOpen && (
+          <div className="mb-4 rounded-sm border border-red-900/60 bg-red-950/40 p-3">
+            <p className="mb-2 text-[12px] text-red-200">
+              Questa azione è <strong>irreversibile</strong>. Verranno rimossi account,
+              contatti, template, campagne e tutti i dati dell&apos;utente.
+            </p>
+            <label className="mb-1 block text-[11px] text-red-300">
+              Digita <code className="rounded-sm bg-red-950/60 px-1 text-red-200">{user.email}</code> per confermare
+            </label>
+            <input
+              type="email"
+              autoFocus
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              className="w-full rounded-sm border border-red-900/60 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-red-500 focus:outline-none"
+            />
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3">
+          {!confirmOpen ? (
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              disabled={!onDeleted}
+              className="rounded-sm border border-red-900/60 px-3 py-2 text-[12.5px] font-medium text-red-400 hover:bg-red-950/40 disabled:opacity-40"
+            >
+              Elimina utente
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmOpen(false);
+                setConfirmEmail("");
+              }}
+              className="rounded-sm px-3 py-2 text-[12.5px] font-medium text-slate-400 hover:bg-brand-navy-deep"
+            >
+              Annulla eliminazione
+            </button>
+          )}
+          <div className="flex items-center gap-3">
+          {confirmOpen ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={!canConfirmDelete || deleting}
+              className="rounded-sm bg-red-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? "Eliminazione..." : "Elimina definitivamente"}
+            </button>
+          ) : (
+            <>
           <button
             type="button"
             onClick={onClose}
@@ -167,6 +245,9 @@ export function UserEditModal({
           >
             {saving ? "Salvataggio..." : "Salva modifiche"}
           </button>
+            </>
+          )}
+          </div>
         </div>
       </div>
     </div>
