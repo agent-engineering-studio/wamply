@@ -1,10 +1,17 @@
+import hashlib
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
-from src.services.plan_limits import check_plan_limit
+from src.services.ai_template import generate_template, improve_template
+from src.services.plan_limits import (
+    check_plan_limit,
+    increment_ai_template_ops,
+)
+
+IMPROVE_CACHE_TTL = 86400  # 24h
 
 router = APIRouter(prefix="/templates")
 
@@ -36,6 +43,82 @@ async def list_templates(request: Request, user: CurrentUser = Depends(get_curre
         user.id,
     )
     return {"templates": [_serialize_row(r) for r in rows]}
+
+
+@router.post("/generate", status_code=201)
+async def generate_template_ai(
+    request: Request, user: CurrentUser = Depends(get_current_user)
+):
+    """Generate a WhatsApp template from a natural-language prompt via Claude."""
+    db = get_db(request)
+    redis = get_redis(request)
+    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+
+    body = await request.json()
+    prompt = (body.get("prompt") or "").strip()
+    language = body.get("language", "it")
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt obbligatorio.")
+    if len(prompt) > 500:
+        raise HTTPException(status_code=400, detail="Prompt troppo lungo (max 500 caratteri).")
+
+    try:
+        generated = await generate_template(prompt, language)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"AI error: {e}") from e
+
+    row = await db.fetchrow(
+        """INSERT INTO templates (user_id, name, language, category, components, status)
+           VALUES ($1, $2, $3, $4, $5, 'draft') RETURNING *""",
+        user.id,
+        generated.name,
+        generated.language,
+        generated.category,
+        json.dumps([{"type": "body", "text": generated.body}]),
+    )
+    await increment_ai_template_ops(db, redis, user.id)
+
+    return {
+        **_serialize_row(row),
+        "generated_body": generated.body,
+        "generated_variables": generated.variables,
+    }
+
+
+@router.post("/improve")
+async def improve_template_ai(
+    request: Request, user: CurrentUser = Depends(get_current_user)
+):
+    """Return 3 stylistic variants (short/warm/professional) of a template body.
+
+    Redis cache 24h keyed on SHA-256(body). Cache hit = free (no quota used).
+    """
+    db = get_db(request)
+    redis = get_redis(request)
+
+    body = await request.json()
+    text = (body.get("body") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="body obbligatorio.")
+    if len(text) > 1024:
+        raise HTTPException(status_code=400, detail="body troppo lungo (max 1024).")
+
+    cache_key = f"ai:improve:{hashlib.sha256(text.encode()).hexdigest()}"
+    cached = await redis.get(cache_key)
+    if cached:
+        return {"cached": True, **json.loads(cached)}
+
+    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+
+    try:
+        result = await improve_template(text)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"AI error: {e}") from e
+
+    payload = {"variants": [v.model_dump() for v in result.variants]}
+    await redis.set(cache_key, json.dumps(payload), ex=IMPROVE_CACHE_TTL)
+    await increment_ai_template_ops(db, redis, user.id)
+    return {"cached": False, **payload}
 
 
 @router.post("", status_code=201)

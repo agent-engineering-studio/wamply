@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type {
   TemplateFormState,
   Language,
@@ -11,6 +11,7 @@ import type {
 import { insertAtCursor } from "@/lib/templates/variables";
 import { VariableToolbar } from "./VariableToolbar";
 import { ButtonsEditor } from "./ButtonsEditor";
+import { ImproveWithAI } from "./ImproveWithAI";
 
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: "it", label: "Italiano" },
@@ -36,6 +37,7 @@ export function EditorForm({
 }) {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const headerRef = useRef<HTMLInputElement>(null);
+  const [improveOpen, setImproveOpen] = useState(false);
 
   function insertIntoBody(token: string) {
     if (!bodyRef.current) return;
@@ -140,7 +142,17 @@ export function EditorForm({
       <div className="rounded-card border border-slate-800 bg-brand-navy-light p-4">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[12.5px] font-medium text-slate-100">Corpo del messaggio *</span>
-          <span className="text-[11px] text-slate-500">{form.body.text.length} / 1024</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setImproveOpen(true)}
+              disabled={!form.body.text.trim()}
+              className="flex items-center gap-1 rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-2.5 py-1 text-[11px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-40"
+            >
+              ✨ Migliora
+            </button>
+            <span className="text-[11px] text-slate-500">{form.body.text.length} / 1024</span>
+          </div>
         </div>
         <textarea
           ref={bodyRef}
@@ -194,6 +206,13 @@ export function EditorForm({
           onChange={(buttons) => onChange({ ...form, buttons })}
         />
       </div>
+
+      <ImproveWithAI
+        open={improveOpen}
+        body={form.body.text}
+        onClose={() => setImproveOpen(false)}
+        onApply={(text) => onChange({ ...form, body: { type: "BODY", text } })}
+      />
     </div>
   );
 }

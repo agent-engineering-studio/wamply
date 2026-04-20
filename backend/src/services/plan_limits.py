@@ -32,14 +32,18 @@ async def check_plan_limit(
             raise HTTPException(status_code=500, detail="Piano non trovato.")
 
         usage = await db.fetchrow(
-            "SELECT campaigns_used, messages_used, contacts_count FROM usage_counters WHERE user_id = $1 AND period_start = $2",
+            "SELECT campaigns_used, messages_used, contacts_count, ai_template_ops_used "
+            "FROM usage_counters WHERE user_id = $1 AND period_start = $2",
             user_id,
             date.today(),
         )
 
         ctx = {
             "plan": dict(plan),
-            "usage": dict(usage) if usage else {"campaigns_used": 0, "messages_used": 0, "contacts_count": 0},
+            "usage": dict(usage) if usage else {
+                "campaigns_used": 0, "messages_used": 0,
+                "contacts_count": 0, "ai_template_ops_used": 0,
+            },
         }
         # Convert non-serializable types for JSON
         for k, v in ctx["plan"].items():
@@ -58,6 +62,10 @@ async def check_plan_limit(
         "contacts": (ctx["plan"]["max_contacts"], ctx["usage"]["contacts_count"]),
         "templates": (ctx["plan"]["max_templates"], 0),
         "team_members": (ctx["plan"]["max_team_members"], 0),
+        "ai_template_ops": (
+            ctx["plan"]["max_ai_template_ops_month"],
+            ctx["usage"]["ai_template_ops_used"],
+        ),
     }
 
     limit, used = limit_map.get(resource, (0, 0))
@@ -73,3 +81,19 @@ async def check_plan_limit(
         )
 
     return ctx
+
+
+async def increment_ai_template_ops(
+    db: asyncpg.Pool,
+    redis: aioredis.Redis,
+    user_id: str,
+) -> None:
+    """Increment AI template ops counter and invalidate plan cache."""
+    await db.execute(
+        """INSERT INTO usage_counters (user_id, period_start, ai_template_ops_used)
+           VALUES ($1, CURRENT_DATE, 1)
+           ON CONFLICT (user_id, period_start)
+           DO UPDATE SET ai_template_ops_used = usage_counters.ai_template_ops_used + 1""",
+        user_id,
+    )
+    await redis.delete(f"plan:{user_id}")
