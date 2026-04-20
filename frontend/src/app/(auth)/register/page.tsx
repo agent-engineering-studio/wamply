@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { scorePassword, type PasswordScore } from "@/lib/password-strength";
+import { PasswordStrengthMeter } from "../_components/PasswordStrengthMeter";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,14 +14,41 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [strength, setStrength] = useState<PasswordScore | null>(null);
+
+  useEffect(() => {
+    if (!password) {
+      setStrength(null);
+      return;
+    }
+    let active = true;
+    const t = setTimeout(() => {
+      scorePassword(password, [fullName, email].filter(Boolean))
+        .then((s) => {
+          if (active) setStrength(s);
+        })
+        .catch(() => {
+          if (active) setStrength(null);
+        });
+    }, 200);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [password, fullName, email]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    if (password.length < 6) {
-      setError("La password deve avere almeno 6 caratteri.");
+    if (password.length < 10) {
+      setError("La password deve avere almeno 10 caratteri.");
+      setLoading(false);
+      return;
+    }
+    if (!strength || strength.score < 3) {
+      setError("La password non è sufficientemente robusta. Scegline una più forte.");
       setLoading(false);
       return;
     }
@@ -95,14 +124,15 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimo 6 caratteri"
+                placeholder="Almeno 10 caratteri"
                 className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
                 required
               />
+              <PasswordStrengthMeter password={password} score={strength} />
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || password.length < 10 || (strength?.score ?? 0) < 3}
               className="w-full rounded-pill bg-brand-teal py-2.5 text-[13px] font-medium text-white shadow-teal hover:bg-brand-teal-dark disabled:opacity-50"
             >
               {loading ? "Registrazione..." : "Crea account"}
