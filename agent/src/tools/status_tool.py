@@ -7,10 +7,12 @@ async def update_message_sent(
     redis: RedisMemory,
     campaign_id: str,
     message_id: str,
-    wamid: str,
+    provider_message_id: str,
 ) -> None:
     """Mark a message as sent and update campaign progress."""
-    await db.update_message_status(message_id, "sent", wamid=wamid)
+    await db.update_message_status(
+        message_id, "sent", provider_message_id=provider_message_id
+    )
     await redis.update_progress(campaign_id, sent=1)
 
 

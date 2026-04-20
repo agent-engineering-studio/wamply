@@ -216,8 +216,8 @@ export default function AgentPage() {
     <div className="flex h-[calc(100vh-64px)] flex-col">
       {/* Header */}
       <div className="mb-4 flex-shrink-0">
-        <h1 className="text-[15px] font-semibold text-brand-ink">Agent AI</h1>
-        <p className="text-[11px] text-brand-ink-60">
+        <h1 className="text-[15px] font-semibold text-slate-100">Agent AI</h1>
+        <p className="text-[11px] text-slate-400">
           Assistente intelligente per gestire contatti, campagne e messaggi
         </p>
       </div>
@@ -229,8 +229,8 @@ export default function AgentPage() {
           <div className="space-y-5 pb-4">
             {CATEGORIES.map((cat) => (
               <div key={cat.title}>
-                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-ink-60">
-                  <span className="text-brand-teal-dark">{cat.icon}</span>
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  <span className="text-brand-teal">{cat.icon}</span>
                   {cat.title}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -238,7 +238,7 @@ export default function AgentPage() {
                     <button
                       key={qp.label}
                       onClick={() => sendPrompt(qp.prompt)}
-                      className="rounded-pill border border-brand-ink-10 bg-white px-3 py-1.5 text-[12px] text-brand-ink shadow-card transition-colors hover:border-brand-teal hover:bg-brand-teal-pale hover:text-brand-teal-dark"
+                      className="rounded-pill border border-slate-800 bg-brand-navy-light px-3 py-1.5 text-[12px] text-slate-100 shadow-card transition-colors hover:border-brand-teal hover:bg-brand-teal/10 hover:text-brand-teal"
                     >
                       {qp.label}
                     </button>
@@ -258,12 +258,12 @@ export default function AgentPage() {
                 <div
                   className={`max-w-[75%] rounded-card px-4 py-2.5 text-[13px] ${
                     msg.role === "user"
-                      ? "bg-brand-green text-white"
-                      : "border border-brand-ink-10 bg-white text-brand-ink shadow-card"
+                      ? "bg-brand-teal text-white"
+                      : "border border-slate-800 bg-brand-navy-light text-slate-100 shadow-card"
                   }`}
                 >
                   {msg.loading ? (
-                    <span className="flex items-center gap-2 text-brand-ink-60">
+                    <span className="flex items-center gap-2 text-slate-400">
                       <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-teal" />
                       Sto pensando...
                     </span>
@@ -275,7 +275,7 @@ export default function AgentPage() {
                           {msg.tool_calls.map((tc, i) => (
                             <span
                               key={i}
-                              className="rounded-pill bg-brand-teal-pale px-2 py-0.5 text-[11px] text-brand-teal-dark"
+                              className="rounded-pill bg-brand-teal/15 px-2 py-0.5 text-[11px] text-brand-teal"
                             >
                               {tc}
                             </span>
@@ -293,7 +293,7 @@ export default function AgentPage() {
       </div>
 
       {/* Input Bar */}
-      <div className="flex-shrink-0 border-t border-brand-ink-10 pt-3">
+      <div className="flex-shrink-0 border-t border-slate-800 pt-3">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
@@ -301,12 +301,12 @@ export default function AgentPage() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Scrivi un messaggio o scegli un prompt rapido…"
             disabled={sending}
-            className="min-w-0 flex-1 rounded-card border border-brand-ink-10 bg-white px-3 py-2 text-[13px] text-brand-ink placeholder:text-brand-ink-30 focus:border-brand-teal focus:outline-none disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-card border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={!input.trim() || sending}
-            className="flex items-center gap-1.5 rounded-pill bg-brand-green px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-pill bg-brand-teal px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             <IconSendMsg />
             Invia
@@ -316,7 +316,7 @@ export default function AgentPage() {
           <div className="mt-2 text-right">
             <button
               onClick={resetConversation}
-              className="text-[11px] text-brand-ink-60 underline-offset-2 hover:text-brand-teal-dark hover:underline"
+              className="text-[11px] text-slate-400 underline-offset-2 hover:text-brand-teal hover:underline"
             >
               Nuova conversazione
             </button>

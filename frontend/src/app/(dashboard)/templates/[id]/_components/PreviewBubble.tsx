@@ -38,10 +38,10 @@ export function PreviewBubble({ form }: { form: TemplateFormState }) {
   return (
     <div className="sticky top-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-brand-ink-30">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
           Anteprima
         </span>
-        <label className="flex items-center gap-1.5 text-[11px] text-brand-ink-60">
+        <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <input
             type="checkbox"
             checked={showRendered}
@@ -61,11 +61,11 @@ export function PreviewBubble({ form }: { form: TemplateFormState }) {
           )}
           <div className="whitespace-pre-wrap text-[13px] leading-snug text-[#1F2937]">
             {showRendered ? (
-              renderText(bodyText) || <span className="text-brand-ink-30">Scrivi il corpo del messaggio...</span>
+              renderText(bodyText) || <span className="text-slate-500">Scrivi il corpo del messaggio...</span>
             ) : bodyText ? (
               highlight(bodyText)
             ) : (
-              <span className="text-brand-ink-30">Scrivi il corpo del messaggio...</span>
+              <span className="text-slate-500">Scrivi il corpo del messaggio...</span>
             )}
           </div>
           {form.footer && footerText && (
@@ -78,18 +78,18 @@ export function PreviewBubble({ form }: { form: TemplateFormState }) {
             {buttons.map((b, i) => (
               <div
                 key={i}
-                className="rounded-lg bg-white px-3 py-1.5 text-center text-[12.5px] font-medium text-[#1E88E5] shadow-sm"
+                className="rounded-lg bg-brand-navy-light px-3 py-1.5 text-center text-[12.5px] font-medium text-[#1E88E5] shadow-sm"
               >
                 {b.type === "URL" && "🔗 "}
                 {b.type === "PHONE_NUMBER" && "📞 "}
-                {b.text || <span className="text-brand-ink-30">Testo bottone</span>}
+                {b.text || <span className="text-slate-500">Testo bottone</span>}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="mt-2 text-right text-[11px] text-brand-ink-30">
+      <div className="mt-2 text-right text-[11px] text-slate-500">
         {bodyText.length} / 1024
       </div>
     </div>

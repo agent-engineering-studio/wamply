@@ -4,7 +4,7 @@
 
 ## Panoramica
 
-Wamply permette a PMI, agenzie marketing e professionisti di creare e lanciare campagne di messaggistica massiva su WhatsApp Business. Un agent AI basato su **Microsoft Agent Framework** orchestra l'intero processo: dalla segmentazione dei contatti alla personalizzazione di ogni singolo messaggio tramite **Claude (Anthropic)**, fino all'invio automatizzato via **Meta Cloud API**.
+Wamply permette a PMI, agenzie marketing e professionisti di creare e lanciare campagne di messaggistica massiva su WhatsApp Business. Un agent AI basato su **Microsoft Agent Framework** orchestra l'intero processo: dalla segmentazione dei contatti alla personalizzazione di ogni singolo messaggio tramite **Claude (Anthropic)**, fino all'invio automatizzato via **Twilio WhatsApp API** (Programmable Messaging + Content Templates).
 
 A differenza delle soluzioni tradizionali che inviano lo stesso template con variabili statiche, Wamply **personalizza ogni messaggio** per ogni destinatario tramite un agent AI che apprende dalle campagne precedenti.
 
@@ -24,7 +24,7 @@ A differenza delle soluzioni tradizionali che inviano lo stesso template con var
 | **Cache/Queue/Vector** | Redis Stack (RediSearch + RedisJSON + Vector Search) |
 | **API Gateway** | Kong 3.9 |
 | **Pagamenti** | Stripe Billing |
-| **WhatsApp** | Meta Cloud API v21.0 |
+| **WhatsApp** | Twilio WhatsApp API (SDK `twilio` Python + Node) |
 | **Tracing** | Jaeger (dev) |
 
 ---
@@ -61,7 +61,6 @@ Kong API Gateway (:8100)
 | **PostgreSQL** | 5432 | Application data |
 | **Redis Stack** | 6379 / 8001 | Cache + queue + vector search + RedisInsight UI |
 | **Jaeger** | 16686 | Distributed tracing (dev) |
-| **WhatsApp Mock** | 9090 | Meta API mock (profilo debug) |
 
 ### Flussi
 
@@ -73,7 +72,8 @@ Kong API Gateway (:8100)
 
 - JWT Supabase per auth utente, `AGENT_SECRET` per service-to-service
 - Row Level Security (RLS) su tutte le tabelle
-- Token WhatsApp e API Key criptati con AES-256-GCM
+- Twilio Auth Token e API Key criptati con AES-256-GCM
+- Validazione webhook Twilio via firma `X-Twilio-Signature` (HMAC-SHA1)
 - Plan limits con Redis cache (TTL 5min)
 - Audit trail per azioni admin
 
@@ -121,7 +121,6 @@ make setup
 | **Backend API** | <http://localhost:8100/api/v1/health> |
 | **RedisInsight** | <http://localhost:8001> |
 | **Jaeger UI** | <http://localhost:16686> |
-| **WhatsApp Mock** | <http://localhost:9090> (profilo debug) |
 
 ---
 
@@ -140,7 +139,7 @@ make clean           # Rimuove tutto (container + volumi + node_modules + venv)
 ```bash
 make up              # Avvia stack base
 make up-full         # Aggiunge realtime, storage, mailhog (profilo full)
-make up-debug        # Aggiunge whatsapp-mock, stripe-cli (profilo debug)
+make up-debug        # Aggiunge stripe-cli (profilo debug)
 make down            # Ferma container (mantiene dati)
 make build           # Builda le immagini Docker
 make reset           # Cancella volumi + ricrea + seed
@@ -220,7 +219,7 @@ wamply/
 │   └── Dockerfile
 │
 ├── supabase/
-│   ├── migrations/            # SQL migrations (001-008)
+│   ├── migrations/            # SQL migrations (001-012)
 │   ├── kong.yml               # Kong gateway routes
 │   └── seed.sql               # Dev seed data (users, contacts, campaigns)
 │
@@ -253,7 +252,7 @@ Tutti accessibili via Kong su `http://localhost:8100/api/v1/`.
 | POST | /campaigns/{id}/launch | Lancia campagna (enqueue Redis) |
 | GET/POST | /templates | Lista / crea template |
 | GET/PUT | /templates/{id} | Dettaglio / aggiorna template |
-| GET/POST | /settings/whatsapp | Config WhatsApp |
+| GET/POST | /settings/twilio | Config Twilio WhatsApp (Account SID, Auth Token, From/Messaging Service SID) |
 | GET/POST | /settings/ai | Config AI (model, BYOK) |
 
 ### Admin (JWT + ruolo admin)
@@ -268,7 +267,7 @@ Tutti accessibili via Kong su `http://localhost:8100/api/v1/`.
 
 | Metodo | Path | Descrizione |
 |--------|------|-------------|
-| GET/POST | /webhooks/meta | WhatsApp webhook verification + status |
+| POST | /webhooks/twilio | Twilio status callback (delivered / read / failed) — firma `X-Twilio-Signature` |
 | POST | /billing/webhook | Stripe webhook (checkout, subscription) |
 
 ---

@@ -1,4 +1,8 @@
-import httpx
+import asyncio
+import json
+
+from twilio.base.exceptions import TwilioRestException
+from twilio.rest import Client
 
 from src.config import settings
 from src.utils.rate_limiter import TokenBucketRateLimiter
@@ -7,42 +11,71 @@ from src.utils.telemetry import log
 _rate_limiter = TokenBucketRateLimiter(rate=settings.whatsapp_rate_limit)
 
 
+def _with_whatsapp_prefix(addr: str) -> str:
+    return addr if addr.startswith("whatsapp:") else f"whatsapp:{addr}"
+
+
 async def send_whatsapp_message(
-    phone_number_id: str,
-    token: str,
+    account_sid: str,
+    auth_token: str,
     to: str,
-    template_name: str,
-    template_language: str,
-    components: list[dict],
+    content_sid: str,
+    content_variables: dict | None = None,
+    from_: str | None = None,
+    messaging_service_sid: str | None = None,
 ) -> dict:
-    """Send a WhatsApp template message via Meta Cloud API v21.0."""
+    """Send a WhatsApp template message via Twilio.
+
+    Uses Twilio Content Templates. Provide either
+    `messaging_service_sid` (preferred) or `from_`.
+    """
+    if not messaging_service_sid and not from_:
+        return {
+            "success": False,
+            "error": "missing sender (from_ or messaging_service_sid)",
+        }
+
     await _rate_limiter.acquire()
 
-    url = f"{settings.whatsapp_api_url}/v21.0/{phone_number_id}/messages"
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "template",
-        "template": {
-            "name": template_name,
-            "language": {"code": template_language},
-            "components": components,
-        },
+    kwargs: dict = {
+        "to": _with_whatsapp_prefix(to),
+        "content_sid": content_sid,
     }
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            url,
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"},
-        )
-
-    if resp.status_code == 200:
-        data = resp.json()
-        wamid = data.get("messages", [{}])[0].get("id")
-        await log.ainfo("whatsapp_sent", to=to, wamid=wamid)
-        return {"success": True, "wamid": wamid}
+    if content_variables:
+        kwargs["content_variables"] = json.dumps(content_variables)
+    if messaging_service_sid:
+        kwargs["messaging_service_sid"] = messaging_service_sid
     else:
-        error = resp.text
-        await log.awarn("whatsapp_failed", to=to, status=resp.status_code, error=error)
-        return {"success": False, "error": error}
+        kwargs["from_"] = _with_whatsapp_prefix(from_)
+
+    def _send_sync() -> dict:
+        client = Client(account_sid, auth_token)
+        message = client.messages.create(**kwargs)
+        return {
+            "success": True,
+            "sid": message.sid,
+            "status": message.status,
+        }
+
+    try:
+        result = await asyncio.to_thread(_send_sync)
+        await log.ainfo(
+            "twilio_sent",
+            to=to,
+            sid=result["sid"],
+            status=result["status"],
+        )
+        return result
+    except TwilioRestException as exc:
+        await log.awarn(
+            "twilio_failed",
+            to=to,
+            status=exc.status,
+            code=exc.code,
+            msg=exc.msg,
+        )
+        return {
+            "success": False,
+            "error": f"{exc.code}: {exc.msg}",
+            "status_code": exc.status,
+        }

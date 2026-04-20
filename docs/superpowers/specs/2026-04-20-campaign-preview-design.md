@@ -13,6 +13,7 @@ When the user picks a template in `/campaigns/new`, show a read-only preview of 
 `/campaigns/new` today is a single-column form: name, template select, send-mode (immediate/scheduled), submit. There is no visual feedback about the template chosen. Users cannot see what their message looks like before launching.
 
 Feature C already provides:
+
 - `GET /templates/{id}` returning `{ id, name, language, category, components, ... }` with `components` as a proper object array (jsonb deserialized).
 - `PreviewBubble` component in `frontend/src/app/(dashboard)/templates/[id]/_components/PreviewBubble.tsx` that renders components with a WhatsApp bubble style and highlights variables.
 - `TemplateComponent`, `TemplateFormState`, and `componentsToForm` helpers in `frontend/src/lib/templates/types.ts`.

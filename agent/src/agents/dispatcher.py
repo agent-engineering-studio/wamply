@@ -1,12 +1,11 @@
-"""Stage 3 — Dispatcher: Sends messages via WhatsApp API with rate limiting and retry."""
+"""Stage 3 — Dispatcher: Sends messages via Twilio WhatsApp API with rate limiting and retry."""
 
 import asyncio
 
-from src.config import settings
 from src.memory.redis_memory import RedisMemory
 from src.memory.supabase_memory import SupabaseMemory
+from src.tools.status_tool import update_message_failed, update_message_sent
 from src.tools.whatsapp_tool import send_whatsapp_message
-from src.tools.status_tool import update_message_sent, update_message_failed
 from src.utils.encryption import decrypt
 from src.utils.telemetry import log
 
@@ -23,7 +22,7 @@ async def dispatch_messages(
     template: dict,
 ) -> dict:
     """
-    Stage 3: Send all messages via WhatsApp API.
+    Stage 3: Send all messages via Twilio WhatsApp API.
 
     Handles rate limiting, retry with exponential backoff, and pause/resume.
     Returns summary stats.
@@ -34,19 +33,35 @@ async def dispatch_messages(
         messages=len(messages),
     )
 
-    # Get WhatsApp credentials
+    # Get Twilio credentials
     row = await db.pool.fetchrow(
-        "SELECT phone_number_id, encrypted_token FROM whatsapp_config WHERE user_id = $1",
+        "SELECT twilio_account_sid, twilio_auth_token_encrypted, "
+        "twilio_from, twilio_messaging_service_sid "
+        "FROM whatsapp_config WHERE user_id = $1",
         user_id,
     )
-    if not row or not row["encrypted_token"]:
-        raise ValueError("Configurazione WhatsApp mancante")
+    if not row or not row["twilio_auth_token_encrypted"] or not row["twilio_account_sid"]:
+        raise ValueError("Configurazione Twilio mancante")
+    if not row["twilio_from"] and not row["twilio_messaging_service_sid"]:
+        raise ValueError(
+            "Configurazione Twilio: serve twilio_from o twilio_messaging_service_sid"
+        )
 
-    phone_number_id = row["phone_number_id"]
-    token = decrypt(row["encrypted_token"])
+    account_sid = row["twilio_account_sid"]
+    auth_token = decrypt(row["twilio_auth_token_encrypted"])
+    from_ = row["twilio_from"]
+    messaging_service_sid = row["twilio_messaging_service_sid"]
+
+    content_sid = template.get("twilio_content_sid")
+    if not content_sid:
+        raise ValueError(
+            f"Template {template.get('name')} senza twilio_content_sid: "
+            "creare il Content Template su Twilio Console e salvare il SID."
+        )
 
     sent = 0
     failed = 0
+    result: dict = {}
 
     for msg in messages:
         # Check pause
@@ -67,21 +82,26 @@ async def dispatch_messages(
             failed += 1
             continue
 
+        # Single variable {{1}} filled with personalized_text.
+        # Customize here if Twilio template has multiple variables.
+        content_variables = {"1": msg["personalized_text"]}
+
         # Send with retry
         success = False
         for attempt in range(MAX_RETRIES):
             result = await send_whatsapp_message(
-                phone_number_id=phone_number_id,
-                token=token,
+                account_sid=account_sid,
+                auth_token=auth_token,
                 to=msg["contact"]["phone"],
-                template_name=template["name"],
-                template_language=template.get("language", "it"),
-                components=template.get("components", []),
+                content_sid=content_sid,
+                content_variables=content_variables,
+                from_=from_,
+                messaging_service_sid=messaging_service_sid,
             )
 
             if result["success"]:
                 await update_message_sent(
-                    db, redis, campaign_id, msg["message_id"], result["wamid"]
+                    db, redis, campaign_id, msg["message_id"], result["sid"]
                 )
                 sent += 1
                 success = True

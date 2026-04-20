@@ -441,7 +441,7 @@ CHAT_TOOLS: list[dict] = [
     # ------------------------------------------------------------------ #
     {
         "name": "get_whatsapp_config",
-        "description": "Visualizza la configurazione attuale dell'integrazione WhatsApp Business.",
+        "description": "Visualizza la configurazione Twilio per l'invio di messaggi WhatsApp Business.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -450,21 +450,25 @@ CHAT_TOOLS: list[dict] = [
     },
     {
         "name": "update_whatsapp_config",
-        "description": "Aggiorna la configurazione WhatsApp Business. Phone number ID e WABA ID sono obbligatori.",
+        "description": "Aggiorna la configurazione Twilio WhatsApp. account_sid è obbligatorio; serve from_ oppure messaging_service_sid come mittente.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "phone_number_id": {
+                "account_sid": {
                     "type": "string",
-                    "description": "ID del numero di telefono WhatsApp Business.",
+                    "description": "Twilio Account SID (inizia con AC...).",
                 },
-                "waba_id": {
+                "auth_token": {
                     "type": "string",
-                    "description": "ID dell'account WhatsApp Business (WABA).",
+                    "description": "Twilio Auth Token (verrà cifrato prima del salvataggio).",
                 },
-                "token": {
+                "from_": {
                     "type": "string",
-                    "description": "Token di accesso per l'API WhatsApp Cloud.",
+                    "description": "Sender WhatsApp Twilio (es. 'whatsapp:+14155238886'). Lascia vuoto se usi messaging_service_sid.",
+                },
+                "messaging_service_sid": {
+                    "type": "string",
+                    "description": "Twilio Messaging Service SID (preferito in produzione, abilita sender pool/failover). Ha precedenza su from_.",
                 },
                 "business_name": {
                     "type": "string",
@@ -475,7 +479,7 @@ CHAT_TOOLS: list[dict] = [
                     "description": "Lingua predefinita per i template (es. it, en_US).",
                 },
             },
-            "required": ["phone_number_id", "waba_id"],
+            "required": ["account_sid"],
         },
     },
     {

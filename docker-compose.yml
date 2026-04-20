@@ -54,7 +54,10 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-20250514}
-      - WHATSAPP_API_URL=${WHATSAPP_API_URL:-http://whatsapp-mock:9090}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_FROM=${TWILIO_FROM:-whatsapp:+14155238886}
+      - TWILIO_MESSAGING_SERVICE_SID=${TWILIO_MESSAGING_SERVICE_SID:-}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - AGENT_SECRET=${AGENT_SECRET}
     depends_on:
@@ -285,19 +288,6 @@ services:
     command: listen --forward-to http://frontend:3000/api/billing/webhook --api-key ${STRIPE_SECRET_KEY}
     depends_on:
       - frontend
-    profiles:
-      - debug
-    networks:
-      - wcm-network
-
-  # ── WhatsApp Mock Server ────────────────────────────────
-  whatsapp-mock:
-    container_name: wcm-whatsapp-mock
-    build:
-      context: ./mock/whatsapp-mock
-      dockerfile: Dockerfile
-    ports:
-      - "9090:9090"
     profiles:
       - debug
     networks:

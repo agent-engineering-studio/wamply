@@ -27,7 +27,10 @@ set AGENT_SECRET=dev-agent-secret-change-in-production
 set ENCRYPTION_KEY=0123456789abcdef0123456789abcdef
 set ANTHROPIC_API_KEY=sk-ant-xxxxx
 set CLAUDE_MODEL=claude-sonnet-4-20250514
-set WHATSAPP_API_URL=http://localhost:9090
+set TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+set TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+set TWILIO_FROM=whatsapp:+14155238886
+set TWILIO_MESSAGING_SERVICE_SID=
 set MOCK_LLM=true
 set BACKEND_INTERNAL_URL=http://localhost:8200
 

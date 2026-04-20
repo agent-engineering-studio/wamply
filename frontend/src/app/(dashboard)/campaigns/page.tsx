@@ -38,10 +38,10 @@ export default function CampaignsPage() {
     <>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-[15px] font-semibold text-brand-ink">Campagne</h1>
-          <p className="text-[11px] text-brand-ink-60">{campaigns.length} campagne totali</p>
+          <h1 className="text-[15px] font-semibold text-slate-100">Campagne</h1>
+          <p className="text-[11px] text-slate-400">{campaigns.length} campagne totali</p>
         </div>
-        <Link href="/campaigns/new" className="rounded-sm bg-brand-green px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-green-dark">
+        <Link href="/campaigns/new" className="rounded-sm bg-brand-teal px-4 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-teal-dark">
           + Nuova
         </Link>
       </div>
@@ -49,42 +49,42 @@ export default function CampaignsPage() {
       <div className="mb-5 flex gap-1.5">
         {[null, "running", "completed", "scheduled", "draft"].map((s) => (
           <button key={s ?? "all"} onClick={() => setFilter(s)}
-            className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === s ? "bg-green-100 text-green-800" : "bg-brand-ink-10 text-brand-ink-60 hover:bg-brand-ink-10"}`}>
+            className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === s ? "bg-green-100 text-green-800" : "bg-slate-800 text-slate-400 hover:bg-slate-800"}`}>
             {s ? LABELS[s] || s : "Tutte"}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="animate-pulse text-brand-ink-30">Caricamento...</div>
+        <div className="animate-pulse text-slate-500">Caricamento...</div>
       ) : (
         <div className="space-y-2.5">
           {campaigns.map((c) => {
             const pct = c.stats?.total > 0 ? Math.round((c.stats.sent / c.stats.total) * 100) : 0;
             return (
               <Link key={c.id} href={`/campaigns/${c.id}`}
-                className="block rounded-card border border-brand-ink-10 bg-white p-4 shadow-card transition-shadow hover:shadow-md">
+                className="block rounded-card border border-slate-800 bg-brand-navy-light p-4 shadow-card transition-shadow hover:shadow-md">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 text-[14px] font-medium text-brand-ink">
+                    <div className="flex items-center gap-2 text-[14px] font-medium text-slate-100">
                       {c.name}
                       <span className={`rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${STATUS_BADGES[c.status] || "bg-gray-100"}`}>
                         {LABELS[c.status] || c.status}
                       </span>
                     </div>
-                    <div className="mt-1 text-[11px] text-brand-ink-60">
+                    <div className="mt-1 text-[11px] text-slate-400">
                       {c.stats?.total || 0} contatti · {new Date(c.created_at).toLocaleDateString("it-IT")}
                     </div>
                     {c.stats?.sent > 0 && (
                       <div className="mt-2 flex gap-3.5 text-[11px]">
-                        <span className="text-brand-ink-60">Inviati <strong className="text-brand-ink">{c.stats.sent}</strong></span>
-                        <span className="text-brand-ink-60">Consegnati <strong className="text-brand-green-dark">{c.stats.total > 0 ? Math.round((c.stats.delivered / c.stats.total) * 100) : 0}%</strong></span>
-                        <span className="text-brand-ink-60">Letti <strong className="text-brand-green-dark">{c.stats.total > 0 ? Math.round((c.stats.read / c.stats.total) * 100) : 0}%</strong></span>
+                        <span className="text-slate-400">Inviati <strong className="text-slate-100">{c.stats.sent}</strong></span>
+                        <span className="text-slate-400">Consegnati <strong className="text-brand-teal">{c.stats.total > 0 ? Math.round((c.stats.delivered / c.stats.total) * 100) : 0}%</strong></span>
+                        <span className="text-slate-400">Letti <strong className="text-brand-teal">{c.stats.total > 0 ? Math.round((c.stats.read / c.stats.total) * 100) : 0}%</strong></span>
                       </div>
                     )}
                     {pct > 0 && (
-                      <div className="mt-1.5 h-[5px] w-full overflow-hidden rounded-full bg-brand-ink-10">
-                        <div className="h-full rounded-full bg-brand-green" style={{ width: `${pct}%` }} />
+                      <div className="mt-1.5 h-[5px] w-full overflow-hidden rounded-full bg-slate-800">
+                        <div className="h-full rounded-full bg-brand-teal" style={{ width: `${pct}%` }} />
                       </div>
                     )}
                   </div>
@@ -93,8 +93,8 @@ export default function CampaignsPage() {
             );
           })}
           {campaigns.length === 0 && (
-            <div className="rounded-card border border-brand-ink-10 bg-white p-12 text-center text-brand-ink-30">
-              Nessuna campagna. <Link href="/campaigns/new" className="text-brand-green-dark underline">Creane una!</Link>
+            <div className="rounded-card border border-slate-800 bg-brand-navy-light p-12 text-center text-slate-500">
+              Nessuna campagna. <Link href="/campaigns/new" className="text-brand-teal underline">Creane una!</Link>
             </div>
           )}
         </div>

@@ -96,16 +96,16 @@ export function AIConfigForm() {
   }
 
   if (loading) {
-    return <div className="animate-pulse rounded-xl bg-white p-8 text-brand-ink-30">Caricamento...</div>;
+    return <div className="animate-pulse rounded-xl bg-brand-navy-light p-8 text-slate-500">Caricamento...</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Agent Status Card */}
       {agentStatus && (
-        <div className={`rounded-card border p-4 ${agentStatus.active ? "border-brand-teal/30 bg-brand-teal-pale" : "border-brand-ink-10 bg-brand-ink-05"}`}>
+        <div className={`rounded-card border p-4 ${agentStatus.active ? "border-brand-teal/30 bg-brand-teal/10" : "border-slate-800 bg-brand-navy-deep"}`}>
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${agentStatus.active ? "bg-brand-teal/20" : "bg-brand-ink-10"}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${agentStatus.active ? "bg-brand-teal/20" : "bg-slate-800"}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke={agentStatus.active ? "#0D9488" : "#94A3B8"} strokeWidth="2" className="h-5 w-5">
                 <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
                 <circle cx="9" cy="14" r="1" fill={agentStatus.active ? "#0D9488" : "#94A3B8"} />
@@ -113,23 +113,23 @@ export function AIConfigForm() {
               </svg>
             </div>
             <div className="flex-1">
-              <div className={`text-[13px] font-semibold ${agentStatus.active ? "text-brand-teal-dark" : "text-brand-ink-60"}`}>
+              <div className={`text-[13px] font-semibold ${agentStatus.active ? "text-brand-teal" : "text-slate-400"}`}>
                 Agent AI {agentStatus.active ? "attivo" : "non disponibile"}
               </div>
-              <div className="text-[11px] text-brand-ink-60">
+              <div className="text-[11px] text-slate-400">
                 {agentStatus.active && agentStatus.reason === "byok" && "Usa la tua API Key personale"}
                 {agentStatus.active && agentStatus.reason === "plan" && "Incluso nel tuo piano di abbonamento"}
                 {!agentStatus.active && !agentStatus.plan_has_agent && "Il tuo piano non include l'agent AI. Inserisci la tua API Key Claude per attivarlo."}
                 {!agentStatus.active && agentStatus.plan_has_agent && !agentStatus.system_key_set && "In attesa di configurazione da parte dell'amministratore."}
               </div>
             </div>
-            <div className={`h-3 w-3 rounded-full ${agentStatus.active ? "bg-brand-teal" : "bg-brand-ink-30"}`} />
+            <div className={`h-3 w-3 rounded-full ${agentStatus.active ? "bg-brand-teal" : "bg-slate-500"}`} />
           </div>
         </div>
       )}
 
       {/* AI Config Form */}
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-card border border-brand-ink-10 bg-white p-6 shadow-card">
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-card border border-slate-800 bg-brand-navy-light p-6 shadow-card">
         {message && (
           <div className={`rounded-lg p-3 text-[12px] ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
             {message.text}
@@ -138,12 +138,12 @@ export function AIConfigForm() {
 
         {/* API Key Section */}
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">
+          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">
             API Key Claude (Anthropic)
           </label>
           {config?.has_api_key ? (
             <div className="flex items-center gap-2">
-              <div className="flex-1 rounded-sm border border-brand-teal/30 bg-brand-teal-pale px-3 py-2 text-[12px] text-brand-teal-dark">
+              <div className="flex-1 rounded-sm border border-brand-teal/30 bg-brand-teal/10 px-3 py-2 text-[12px] text-brand-teal">
                 sk-ant-•••••••••• (configurata)
               </div>
               <button type="button" onClick={handleRemoveKey} disabled={saving}
@@ -157,19 +157,19 @@ export function AIConfigForm() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="sk-ant-..."
-              className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+              className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
             />
           )}
-          <p className="mt-1 text-[10px] text-brand-ink-30">
+          <p className="mt-1 text-[10px] text-slate-500">
             Inserisci la tua chiave per attivare l&apos;agent AI. La chiave viene criptata e non sarà mai visibile.
           </p>
         </div>
 
         {/* Model */}
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Modello</label>
+          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Modello</label>
           <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none">
+            className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none">
             {MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
@@ -177,22 +177,22 @@ export function AIConfigForm() {
         {/* Temperature + Max Tokens */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">
+            <label className="mb-1 block text-[11.5px] font-medium text-slate-400">
               Temperatura: {temperature}
             </label>
             <input type="range" min="0" max="1" step="0.1" value={temperature}
               onChange={(e) => setTemperature(Number(e.target.value))}
               className="w-full accent-brand-teal" />
-            <div className="mt-1 flex justify-between text-[10px] text-brand-ink-30">
+            <div className="mt-1 flex justify-between text-[10px] text-slate-500">
               <span>Preciso</span>
               <span>Creativo</span>
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Max Token</label>
+            <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Max Token</label>
             <input type="number" min={50} max={4096} value={maxTokens}
               onChange={(e) => setMaxTokens(Number(e.target.value))}
-              className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none" />
+              className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none" />
           </div>
         </div>
 

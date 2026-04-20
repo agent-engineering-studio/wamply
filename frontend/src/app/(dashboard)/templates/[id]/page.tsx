@@ -82,22 +82,22 @@ export default function TemplateEditorPage() {
     }
   }
 
-  if (loading) return <div className="animate-pulse text-brand-ink-30">Caricamento...</div>;
+  if (loading) return <div className="animate-pulse text-slate-500">Caricamento...</div>;
 
   return (
     <>
       <Link
         href="/templates"
-        className="mb-4 inline-block text-[12px] text-brand-teal-dark hover:underline"
+        className="mb-4 inline-block text-[12px] text-brand-teal hover:underline"
       >
         ← Torna ai template
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-[18px] font-semibold text-brand-ink">
+        <h1 className="text-[18px] font-semibold text-slate-100">
           {isNew ? "Nuovo template" : "Modifica template"}
         </h1>
-        <p className="mt-1 text-[11.5px] text-brand-ink-60">
+        <p className="mt-1 text-[11.5px] text-slate-400">
           Crea un messaggio riutilizzabile con variabili dinamiche.
         </p>
       </div>
@@ -117,10 +117,10 @@ export default function TemplateEditorPage() {
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-end gap-3 border-t border-brand-ink-10 pt-4">
+      <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-800 pt-4">
         <Link
           href="/templates"
-          className="rounded-sm px-4 py-2 text-[13px] font-medium text-brand-ink-60 hover:bg-brand-ink-05"
+          className="rounded-sm px-4 py-2 text-[13px] font-medium text-slate-400 hover:bg-brand-navy-deep"
         >
           Annulla
         </Link>
@@ -128,7 +128,7 @@ export default function TemplateEditorPage() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-sm bg-brand-green px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-green-dark disabled:opacity-50"
+          className="rounded-sm bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-teal-dark disabled:opacity-50"
         >
           {saving ? "Salvataggio..." : "Salva template"}
         </button>

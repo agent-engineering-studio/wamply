@@ -33,11 +33,11 @@ function UsageBar({ label, used, total, color }: { label: string; used: number; 
   const display = total >= 10000 ? `${(used / 1000).toFixed(1)}k/${(total / 1000).toFixed(0)}k` : `${used}/${total}`;
   return (
     <div className="mb-1.5">
-      <div className="flex justify-between text-[11px] text-brand-ink-60 mb-0.5">
+      <div className="flex justify-between text-[11px] text-slate-400 mb-0.5">
         <span>{label}</span>
-        <span className="text-brand-ink">{display}</span>
+        <span className="text-slate-100">{display}</span>
       </div>
-      <div className="h-1 rounded-full bg-brand-ink-10 overflow-hidden">
+      <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
     </div>
@@ -69,9 +69,9 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-55 flex-col border-r border-brand-ink-10 bg-white">
+    <aside className="flex h-screen w-55 flex-col border-r border-slate-800 bg-brand-navy-light">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 border-b border-brand-ink-10 px-4 py-4.5">
+      <div className="flex items-center gap-2.5 border-b border-slate-800 px-4 py-4.5">
         <svg viewBox="0 0 400 400" className="h-8 w-8 shrink-0">
           <defs>
             <linearGradient id="sidebarLogoBg" x1="0" y1="0" x2="1" y2="1">
@@ -85,15 +85,15 @@ export function Sidebar() {
           <circle cx="320" cy="132" r="8" fill="#0D9488" opacity="0.9" />
           <circle cx="336" cy="120" r="5" fill="#0D9488" opacity="0.6" />
         </svg>
-        <span className="text-[17px] font-semibold tracking-tight text-brand-ink">
+        <span className="text-[17px] font-semibold tracking-tight text-slate-100">
           Wam<span className="text-brand-teal">ply</span>
         </span>
       </div>
 
       {/* Tenant */}
-      <div className="mx-2.5 mt-2.5 mb-1 rounded-sm border border-brand-teal/20 bg-linear-to-br from-brand-teal-pale to-white px-3 py-2">
-        <div className="text-[12.5px] font-medium text-brand-ink">Azienda SRL</div>
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-teal-dark">
+      <div className="mx-2.5 mt-2.5 mb-1 rounded-sm border border-brand-teal/30 bg-brand-teal/10 px-3 py-2">
+        <div className="text-[12.5px] font-medium text-slate-100">Azienda SRL</div>
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-teal">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="#0D9488"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           Piano Professional
         </div>
@@ -108,7 +108,7 @@ export function Sidebar() {
             className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
               isActive(item.href)
                 ? "bg-brand-navy text-white shadow-[0_2px_8px_rgba(27,42,74,.3)]"
-                : "text-brand-ink-60 hover:bg-brand-ink-05 hover:text-brand-ink"
+                : "text-slate-400 hover:bg-brand-navy-deep hover:text-slate-100"
             }`}
           >
             <span className="h-3.75 w-3.75 shrink-0">{ICONS[item.icon]}</span>
@@ -124,7 +124,7 @@ export function Sidebar() {
             className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
               pathname.startsWith("/agent")
                 ? "bg-brand-teal text-white shadow-teal"
-                : "text-brand-teal-dark bg-brand-teal-pale hover:bg-brand-teal-light"
+                : "text-brand-teal bg-brand-teal/10 hover:bg-brand-teal/15"
             }`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.75 w-3.75">
               <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
@@ -138,7 +138,7 @@ export function Sidebar() {
 
       {/* Usage */}
       <div className="mx-2.5 mb-1.5">
-        <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-brand-ink-30">
+        <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
           Utilizzo mese
         </div>
         <UsageBar label="Campagne" used={4} total={20} color="bg-brand-teal" />
@@ -147,19 +147,19 @@ export function Sidebar() {
       </div>
 
       {/* User + Logout */}
-      <div className="border-t border-brand-ink-10 px-2.5 py-2">
+      <div className="border-t border-slate-800 px-2.5 py-2">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal-light text-[11px] font-semibold text-brand-teal-dark">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-[11px] font-semibold text-brand-teal">
             MR
           </div>
           <div className="flex-1">
-            <div className="text-[12px] font-medium text-brand-ink">Mario Rossi</div>
-            <div className="text-[10px] text-brand-ink-30">mario@azienda.it</div>
+            <div className="text-[12px] font-medium text-slate-100">Mario Rossi</div>
+            <div className="text-[10px] text-slate-500">mario@azienda.it</div>
           </div>
           <button
             onClick={handleLogout}
             title="Esci"
-            className="shrink-0 rounded-sm p-1.5 text-brand-ink-30 hover:bg-brand-ink-05 hover:text-brand-ink-60"
+            className="shrink-0 rounded-sm p-1.5 text-slate-500 hover:bg-brand-navy-deep hover:text-slate-400"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />

@@ -20,13 +20,13 @@ export function VariableToolbar({
 
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-      <span className="text-[10.5px] uppercase tracking-wider text-brand-ink-30">Inserisci:</span>
+      <span className="text-[10.5px] uppercase tracking-wider text-slate-500">Inserisci:</span>
       {BUILTIN_VARIABLE_OPTIONS.map((opt) => (
         <button
           key={opt.token}
           type="button"
           onClick={() => onInsert(opt.token)}
-          className="rounded-pill border border-brand-ink-10 bg-white px-2 py-0.5 text-[11px] text-brand-ink-60 hover:border-brand-teal hover:text-brand-teal-dark"
+          className="rounded-pill border border-slate-800 bg-brand-navy-light px-2 py-0.5 text-[11px] text-slate-400 hover:border-brand-teal hover:text-brand-teal"
         >
           {opt.label}
         </button>
@@ -48,7 +48,7 @@ export function VariableToolbar({
               }
             }}
             placeholder="nome tag"
-            className="w-28 rounded-sm border border-brand-ink-10 px-2 py-0.5 text-[11px] focus:border-brand-teal focus:outline-none"
+            className="w-28 rounded-sm border border-slate-800 px-2 py-0.5 text-[11px] focus:border-brand-teal focus:outline-none"
           />
           <button
             type="button"
@@ -62,7 +62,7 @@ export function VariableToolbar({
         <button
           type="button"
           onClick={() => setTagOpen(true)}
-          className="rounded-pill border border-dashed border-brand-ink-10 px-2 py-0.5 text-[11px] text-brand-ink-60 hover:border-brand-teal hover:text-brand-teal-dark"
+          className="rounded-pill border border-dashed border-slate-800 px-2 py-0.5 text-[11px] text-slate-400 hover:border-brand-teal hover:text-brand-teal"
         >
           + Tag
         </button>

@@ -1,10 +1,20 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { TwilioIcon } from "@/components/shared/TwilioIcon";
 
-const SECTIONS = [
+type Section = {
+  href: string;
+  title: string;
+  description: string;
+  icon?: ReactNode;
+};
+
+const SECTIONS: Section[] = [
   {
-    href: "/settings/whatsapp",
-    title: "WhatsApp Business",
-    description: "Configura il collegamento con la Meta Cloud API.",
+    href: "/settings/twilio",
+    title: "Twilio WhatsApp",
+    description: "Credenziali Twilio per inviare messaggi WhatsApp Business.",
+    icon: <TwilioIcon size={24} colored />,
   },
   {
     href: "/settings/ai",
@@ -31,8 +41,8 @@ const SECTIONS = [
 export default function SettingsPage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold text-slate-900">Impostazioni</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1 className="text-2xl font-semibold text-slate-100">Impostazioni</h1>
+      <p className="mt-1 text-sm text-slate-400">
         Configura il tuo account e le integrazioni.
       </p>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -40,12 +50,15 @@ export default function SettingsPage() {
           <Link
             key={s.href}
             href={s.href}
-            className="group rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md"
+            className="group rounded-xl border border-slate-800 bg-slate-900 p-5 transition-colors hover:border-brand-teal/50 hover:bg-slate-900/80"
           >
-            <h2 className="font-medium text-slate-900 group-hover:text-brand-green-dark">
-              {s.title}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">{s.description}</p>
+            <div className="flex items-center gap-3">
+              {s.icon}
+              <h2 className="font-medium text-slate-100 group-hover:text-brand-teal">
+                {s.title}
+              </h2>
+            </div>
+            <p className="mt-2 text-sm text-slate-400">{s.description}</p>
           </Link>
         ))}
       </div>

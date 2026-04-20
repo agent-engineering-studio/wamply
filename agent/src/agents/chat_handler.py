@@ -597,20 +597,20 @@ async def execute_tool(
 
     if tool_name == "get_whatsapp_config":
         row = await pool.fetchrow(
-            "SELECT phone_number_id, waba_id, business_name, default_language, "
-            "verified, webhook_verify_token, created_at, updated_at "
+            "SELECT twilio_account_sid, twilio_from, twilio_messaging_service_sid, "
+            "business_name, default_language, verified, created_at, updated_at "
             "FROM whatsapp_config WHERE user_id = $1",
             user_id,
         )
         if not row:
-            return {"success": False, "error": "WhatsApp non configurato"}
+            return {"success": False, "error": "Twilio non configurato"}
         return {
-            "phone_number_id": row["phone_number_id"],
-            "waba_id": row["waba_id"],
+            "twilio_account_sid": row["twilio_account_sid"],
+            "twilio_from": row["twilio_from"],
+            "twilio_messaging_service_sid": row["twilio_messaging_service_sid"],
             "business_name": row["business_name"],
             "default_language": row["default_language"],
             "verified": row["verified"],
-            "webhook_verify_token": row["webhook_verify_token"],
             "created_at": _dt_iso(row["created_at"]),
             "updated_at": _dt_iso(row["updated_at"]),
         }
@@ -618,47 +618,56 @@ async def execute_tool(
     if tool_name == "update_whatsapp_config":
         from src.utils.encryption import encrypt
 
-        token = tool_input.get("token")
-        encrypted_token = encrypt(token) if token else None
+        auth_token = tool_input.get("auth_token")
+        encrypted_auth_token = encrypt(auth_token) if auth_token else None
 
-        if encrypted_token:
+        if encrypted_auth_token:
             await pool.execute(
                 """
-                INSERT INTO whatsapp_config (user_id, phone_number_id, waba_id, encrypted_token,
+                INSERT INTO whatsapp_config (user_id, twilio_account_sid,
+                    twilio_auth_token_encrypted, twilio_from, twilio_messaging_service_sid,
                     business_name, default_language)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (user_id) DO UPDATE SET
-                    phone_number_id = $2, waba_id = $3, encrypted_token = $4,
-                    business_name = COALESCE($5, whatsapp_config.business_name),
-                    default_language = COALESCE($6, whatsapp_config.default_language),
+                    twilio_account_sid = $2,
+                    twilio_auth_token_encrypted = $3,
+                    twilio_from = COALESCE($4, whatsapp_config.twilio_from),
+                    twilio_messaging_service_sid = COALESCE($5, whatsapp_config.twilio_messaging_service_sid),
+                    business_name = COALESCE($6, whatsapp_config.business_name),
+                    default_language = COALESCE($7, whatsapp_config.default_language),
                     updated_at = now()
                 """,
                 user_id,
-                tool_input["phone_number_id"],
-                tool_input["waba_id"],
-                encrypted_token,
+                tool_input["account_sid"],
+                encrypted_auth_token,
+                tool_input.get("from_"),
+                tool_input.get("messaging_service_sid"),
                 tool_input.get("business_name"),
                 tool_input.get("default_language"),
             )
         else:
             await pool.execute(
                 """
-                INSERT INTO whatsapp_config (user_id, phone_number_id, waba_id,
+                INSERT INTO whatsapp_config (user_id, twilio_account_sid,
+                    twilio_from, twilio_messaging_service_sid,
                     business_name, default_language)
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (user_id) DO UPDATE SET
-                    phone_number_id = $2, waba_id = $3,
-                    business_name = COALESCE($4, whatsapp_config.business_name),
-                    default_language = COALESCE($5, whatsapp_config.default_language),
+                    twilio_account_sid = $2,
+                    twilio_from = COALESCE($3, whatsapp_config.twilio_from),
+                    twilio_messaging_service_sid = COALESCE($4, whatsapp_config.twilio_messaging_service_sid),
+                    business_name = COALESCE($5, whatsapp_config.business_name),
+                    default_language = COALESCE($6, whatsapp_config.default_language),
                     updated_at = now()
                 """,
                 user_id,
-                tool_input["phone_number_id"],
-                tool_input["waba_id"],
+                tool_input["account_sid"],
+                tool_input.get("from_"),
+                tool_input.get("messaging_service_sid"),
                 tool_input.get("business_name"),
                 tool_input.get("default_language"),
             )
-        return {"success": True, "message": "Configurazione WhatsApp aggiornata"}
+        return {"success": True, "message": "Configurazione Twilio aggiornata"}
 
     if tool_name == "get_ai_config":
         row = await pool.fetchrow(

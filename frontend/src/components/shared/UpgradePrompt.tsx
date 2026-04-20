@@ -43,11 +43,11 @@ export function UpgradePrompt({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-xl font-semibold text-brand-ink">
+      <div className="mx-4 w-full max-w-lg rounded-2xl bg-brand-navy-light p-6 shadow-xl">
+        <h2 className="text-xl font-semibold text-slate-100">
           Potenzia il tuo piano
         </h2>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-400">
           {message ?? `Il piano ${plan.name} non include questa funzionalità.`}
         </p>
 
@@ -57,12 +57,12 @@ export function UpgradePrompt({
               key={slug}
               className={`flex items-center justify-between rounded-xl border p-4 ${
                 slug === suggestedPlan
-                  ? "border-brand-green bg-brand-green/5"
-                  : "border-slate-200"
+                  ? "border-brand-teal bg-brand-teal/5"
+                  : "border-slate-800"
               }`}
             >
               <div>
-                <p className="font-medium text-brand-ink">
+                <p className="font-medium text-slate-100">
                   {PLAN_LABELS[slug]}
                 </p>
                 <p className="text-sm text-slate-500">
@@ -71,7 +71,7 @@ export function UpgradePrompt({
               </div>
               <a
                 href={`/settings/billing?upgrade=${slug}`}
-                className="rounded-pill bg-brand-green px-5 py-2 text-sm font-medium text-white hover:bg-brand-green/90"
+                className="rounded-pill bg-brand-teal px-5 py-2 text-sm font-medium text-white hover:bg-brand-teal/90"
               >
                 Upgrade
               </a>
@@ -81,7 +81,7 @@ export function UpgradePrompt({
 
         <button
           onClick={handleClose}
-          className="mt-4 w-full text-center text-sm text-slate-400 hover:text-slate-600"
+          className="mt-4 w-full text-center text-sm text-slate-400 hover:text-slate-400"
         >
           Non ora
         </button>

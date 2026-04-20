@@ -65,13 +65,13 @@ export function EditorForm({
     <div className="space-y-5">
       {/* Nome */}
       <div>
-        <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Nome template</label>
+        <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Nome template</label>
         <input
           value={form.name}
           onChange={(e) => onChange({ ...form, name: e.target.value })}
           maxLength={80}
           placeholder="Es: Promo sconto estate"
-          className="w-full rounded-sm border border-brand-ink-10 bg-white px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none"
+          className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none"
         />
         {errors.name && <div className="mt-1 text-[11px] text-red-600">{errors.name}</div>}
       </div>
@@ -79,11 +79,11 @@ export function EditorForm({
       {/* Lingua + Categoria */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Lingua</label>
+          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Lingua</label>
           <select
             value={form.language}
             onChange={(e) => onChange({ ...form, language: e.target.value as Language })}
-            className="w-full rounded-sm border border-brand-ink-10 bg-white px-3 py-2 text-[13px]"
+            className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px]"
           >
             {LANGUAGES.map((l) => (
               <option key={l.value} value={l.value}>{l.label}</option>
@@ -91,11 +91,11 @@ export function EditorForm({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Categoria</label>
+          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Categoria</label>
           <select
             value={form.category}
             onChange={(e) => onChange({ ...form, category: e.target.value as TemplateCategory })}
-            className="w-full rounded-sm border border-brand-ink-10 bg-white px-3 py-2 text-[13px]"
+            className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px]"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
@@ -105,13 +105,13 @@ export function EditorForm({
       </div>
 
       {/* Header */}
-      <div className="rounded-card border border-brand-ink-10 bg-white p-4">
+      <div className="rounded-card border border-slate-800 bg-brand-navy-light p-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[12.5px] font-medium text-brand-ink">Header (opzionale)</span>
+          <span className="text-[12.5px] font-medium text-slate-100">Header (opzionale)</span>
           <button
             type="button"
             onClick={toggleHeader}
-            className="text-[11px] text-brand-teal-dark hover:underline"
+            className="text-[11px] text-brand-teal hover:underline"
           >
             {form.header ? "Rimuovi" : "Aggiungi"}
           </button>
@@ -126,7 +126,7 @@ export function EditorForm({
                 onChange({ ...form, header: { type: "HEADER", format: "TEXT", text: e.target.value } })
               }
               placeholder="Testo header"
-              className="w-full rounded-sm border border-brand-ink-10 bg-white px-3 py-2 text-[13px]"
+              className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px]"
             />
             <VariableToolbar onInsert={insertIntoHeader} />
             {errors["header.text"] && (
@@ -137,10 +137,10 @@ export function EditorForm({
       </div>
 
       {/* Body */}
-      <div className="rounded-card border border-brand-ink-10 bg-white p-4">
+      <div className="rounded-card border border-slate-800 bg-brand-navy-light p-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[12.5px] font-medium text-brand-ink">Corpo del messaggio *</span>
-          <span className="text-[11px] text-brand-ink-30">{form.body.text.length} / 1024</span>
+          <span className="text-[12.5px] font-medium text-slate-100">Corpo del messaggio *</span>
+          <span className="text-[11px] text-slate-500">{form.body.text.length} / 1024</span>
         </div>
         <textarea
           ref={bodyRef}
@@ -149,7 +149,7 @@ export function EditorForm({
           rows={6}
           onChange={(e) => onChange({ ...form, body: { type: "BODY", text: e.target.value } })}
           placeholder="Ciao {{nome}}, ..."
-          className="w-full rounded-sm border border-brand-ink-10 bg-white px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none"
+          className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none"
         />
         <VariableToolbar onInsert={insertIntoBody} />
         {errors["body.text"] && (
@@ -158,13 +158,13 @@ export function EditorForm({
       </div>
 
       {/* Footer */}
-      <div className="rounded-card border border-brand-ink-10 bg-white p-4">
+      <div className="rounded-card border border-slate-800 bg-brand-navy-light p-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[12.5px] font-medium text-brand-ink">Footer (opzionale)</span>
+          <span className="text-[12.5px] font-medium text-slate-100">Footer (opzionale)</span>
           <button
             type="button"
             onClick={toggleFooter}
-            className="text-[11px] text-brand-teal-dark hover:underline"
+            className="text-[11px] text-brand-teal hover:underline"
           >
             {form.footer ? "Rimuovi" : "Aggiungi"}
           </button>
@@ -176,7 +176,7 @@ export function EditorForm({
               maxLength={60}
               onChange={(e) => onChange({ ...form, footer: { type: "FOOTER", text: e.target.value } })}
               placeholder="Testo footer"
-              className="w-full rounded-sm border border-brand-ink-10 bg-white px-3 py-2 text-[13px]"
+              className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px]"
             />
             {errors["footer.text"] && (
               <div className="mt-1 text-[11px] text-red-600">{errors["footer.text"]}</div>
@@ -186,8 +186,8 @@ export function EditorForm({
       </div>
 
       {/* Buttons */}
-      <div className="rounded-card border border-brand-ink-10 bg-white p-4">
-        <div className="mb-2 text-[12.5px] font-medium text-brand-ink">Bottoni (opzionale, max 3)</div>
+      <div className="rounded-card border border-slate-800 bg-brand-navy-light p-4">
+        <div className="mb-2 text-[12.5px] font-medium text-slate-100">Bottoni (opzionale, max 3)</div>
         <ButtonsEditor
           buttons={form.buttons}
           errors={errors}

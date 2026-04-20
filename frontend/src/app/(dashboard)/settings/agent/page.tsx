@@ -3,7 +3,7 @@ import { AgentSettingsForm } from "@/components/settings/AgentSettingsForm";
 export default function AgentSettingsPage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold text-slate-900">Agente AI</h1>
+      <h1 className="text-2xl font-semibold text-slate-100">Agente AI</h1>
       <p className="mt-1 text-sm text-slate-500">
         Personalizza il comportamento dell&apos;agente nelle campagne.
       </p>

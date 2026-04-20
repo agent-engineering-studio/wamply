@@ -53,3 +53,33 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
   --shadow-teal: 0 2px 12px rgba(13, 148, 136, 0.35);
 }
+
+/* ── Dark-theme input readability ──────────────────────────
+   Any input/select/textarea painted on a navy background
+   inherits slate-100 text + slate-500 placeholder, so the
+   typed value is legible without repeating text-* on every
+   form element. Scoped by background class so light surfaces
+   (auth/landing) are unaffected. */
+
+input[class*="bg-brand-navy"],
+select[class*="bg-brand-navy"],
+textarea[class*="bg-brand-navy"],
+input[class*="bg-slate-9"],
+textarea[class*="bg-slate-9"] {
+  color: #F1F5F9; /* slate-100 */
+}
+
+input[class*="bg-brand-navy"]::placeholder,
+textarea[class*="bg-brand-navy"]::placeholder,
+input[class*="bg-slate-9"]::placeholder,
+textarea[class*="bg-slate-9"]::placeholder {
+  color: #64748B; /* slate-500 */
+}
+
+/* Select option dropdown on some browsers keeps OS colors;
+   force readable colors for native selects on dark bg. */
+select[class*="bg-brand-navy"] option,
+select[class*="bg-slate-9"] option {
+  background-color: #0F1B33; /* brand-navy-dark */
+  color: #F1F5F9;
+}

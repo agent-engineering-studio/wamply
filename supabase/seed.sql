@@ -254,3 +254,37 @@ VALUES
    'running', now() - interval '1 hour', NULL,
    '{"total":200,"sent":120,"delivered":110,"read":80,"failed":2}'::jsonb)
 ON CONFLICT DO NOTHING;
+
+-- ── Twilio Content Template SIDs (demo placeholders) ────
+-- Sostituire con i SID reali (HX…) creati su Twilio Console → Content Editor.
+-- Senza un SID valido il dispatcher fallirà l'invio della campagna.
+UPDATE templates SET twilio_content_sid = 'HXbenvenuto00000000000000000000001' WHERE id = 'd0000000-0000-0000-0000-000000000001';
+UPDATE templates SET twilio_content_sid = 'HXpromo0estiva00000000000000000002' WHERE id = 'd0000000-0000-0000-0000-000000000002';
+UPDATE templates SET twilio_content_sid = 'HXconferma00ord00000000000000000003' WHERE id = 'd0000000-0000-0000-0000-000000000003';
+UPDATE templates SET twilio_content_sid = 'HXnewsletter000000000000000000000a1' WHERE id = 'e0000000-0000-0000-0000-000000000001';
+UPDATE templates SET twilio_content_sid = 'HXflash0sale000000000000000000000a2' WHERE id = 'e0000000-0000-0000-0000-000000000002';
+UPDATE templates SET twilio_content_sid = 'HXreminder00000000000000000000000a3' WHERE id = 'e0000000-0000-0000-0000-000000000003';
+UPDATE templates SET twilio_content_sid = 'HXfeedback00000000000000000000000a4' WHERE id = 'e0000000-0000-0000-0000-000000000004';
+UPDATE templates SET twilio_content_sid = 'HXcompleanno000000000000000000000a5' WHERE id = 'e0000000-0000-0000-0000-000000000005';
+
+-- ── Twilio WhatsApp config (per user) ──────────────────
+-- Valori di test: il sandbox Twilio WhatsApp è +14155238886.
+-- L'auth_token va impostato via UI (Impostazioni → Twilio), sarà
+-- cifrato lato backend prima del salvataggio (AES-256-GCM).
+INSERT INTO whatsapp_config (
+    user_id, twilio_account_sid, twilio_from, business_name, default_language, verified
+)
+VALUES
+  ('b0000000-0000-0000-0000-000000000001',
+   'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+   'whatsapp:+14155238886',
+   'Azienda Marco', 'it', false),
+  ('c0000000-0000-0000-0000-000000000001',
+   'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+   'whatsapp:+14155238886',
+   'Azienda Giulia', 'it', false)
+ON CONFLICT (user_id) DO UPDATE SET
+    twilio_account_sid = EXCLUDED.twilio_account_sid,
+    twilio_from = EXCLUDED.twilio_from,
+    business_name = EXCLUDED.business_name,
+    default_language = EXCLUDED.default_language;

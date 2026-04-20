@@ -17,9 +17,6 @@ class Settings(BaseSettings):
     claude_haiku_model: str = "claude-haiku-4-5-20251001"
     mock_llm: bool = False
 
-    # WhatsApp
-    whatsapp_api_url: str = "http://localhost:9090"
-
     # Encryption
     encryption_key: str = "0123456789abcdef0123456789abcdef"
 

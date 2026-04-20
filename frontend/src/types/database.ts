@@ -17,10 +17,10 @@ export interface User {
 export interface WhatsAppConfig {
   id: string;
   user_id: string;
-  phone_number_id: string | null;
-  waba_id: string | null;
-  encrypted_token: string | null;
-  webhook_verify_token: string;
+  twilio_account_sid: string | null;
+  twilio_auth_token_encrypted: string | null;
+  twilio_from: string | null;
+  twilio_messaging_service_sid: string | null;
   business_name: string | null;
   default_language: string;
   verified: boolean;
@@ -57,7 +57,7 @@ export interface Contact {
 export interface Template {
   id: string;
   user_id: string;
-  meta_template_id: string | null;
+  twilio_content_sid: string | null;
   name: string;
   language: string;
   category: TemplateCategory;
@@ -94,7 +94,7 @@ export interface Message {
   id: string;
   campaign_id: string;
   contact_id: string;
-  wamid: string | null;
+  provider_message_id: string | null;
   status: MessageStatus;
   personalized_text: string | null;
   error: string | null;

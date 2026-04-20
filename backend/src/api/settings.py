@@ -10,10 +10,10 @@ from src.services.encryption import encrypt, decrypt
 router = APIRouter(prefix="/settings")
 
 
-# ── WhatsApp Config (per user) ───────────────────────────
+# ── Twilio WhatsApp Config (per user) ────────────────────
 
-@router.get("/whatsapp")
-async def get_whatsapp(request: Request, user: CurrentUser = Depends(get_current_user)):
+@router.get("/twilio")
+async def get_twilio(request: Request, user: CurrentUser = Depends(get_current_user)):
     db = get_db(request)
     row = await db.fetchrow("SELECT * FROM whatsapp_config WHERE user_id = $1", user.id)
     if not row:
@@ -22,25 +22,39 @@ async def get_whatsapp(request: Request, user: CurrentUser = Depends(get_current
     for k, v in d.items():
         if hasattr(v, "hex"):
             d[k] = str(v)
-    d.pop("encrypted_token", None)
+    d["auth_token_set"] = d.get("twilio_auth_token_encrypted") is not None
+    d.pop("twilio_auth_token_encrypted", None)
     return {"config": d}
 
 
-@router.post("/whatsapp")
-async def update_whatsapp(request: Request, user: CurrentUser = Depends(get_current_user)):
+@router.post("/twilio")
+async def update_twilio(request: Request, user: CurrentUser = Depends(get_current_user)):
     db = get_db(request)
     body = await request.json()
-    token = body.get("token")
-    encrypted = encrypt(token) if token else None
+    auth_token = body.get("auth_token")
+    encrypted = encrypt(auth_token) if auth_token else None
     await db.execute(
-        """INSERT INTO whatsapp_config (user_id, phone_number_id, waba_id, encrypted_token, business_name)
-           VALUES ($1, $2, $3, $4, $5)
+        """INSERT INTO whatsapp_config (user_id, twilio_account_sid,
+            twilio_auth_token_encrypted, twilio_from, twilio_messaging_service_sid,
+            business_name, default_language)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            ON CONFLICT (user_id) DO UPDATE SET
-             phone_number_id = EXCLUDED.phone_number_id, waba_id = EXCLUDED.waba_id,
-             encrypted_token = COALESCE(EXCLUDED.encrypted_token, whatsapp_config.encrypted_token),
-             business_name = EXCLUDED.business_name, updated_at = now()""",
-        user.id, body.get("phone_number_id"), body.get("waba_id"),
-        encrypted.encode() if encrypted else None, body.get("business_name"),
+             twilio_account_sid = EXCLUDED.twilio_account_sid,
+             twilio_auth_token_encrypted = COALESCE(
+               EXCLUDED.twilio_auth_token_encrypted,
+               whatsapp_config.twilio_auth_token_encrypted),
+             twilio_from = EXCLUDED.twilio_from,
+             twilio_messaging_service_sid = EXCLUDED.twilio_messaging_service_sid,
+             business_name = EXCLUDED.business_name,
+             default_language = COALESCE(EXCLUDED.default_language, whatsapp_config.default_language),
+             updated_at = now()""",
+        user.id,
+        body.get("account_sid"),
+        encrypted.encode() if encrypted else None,
+        body.get("from"),
+        body.get("messaging_service_sid"),
+        body.get("business_name"),
+        body.get("default_language"),
     )
     return {"success": True}
 

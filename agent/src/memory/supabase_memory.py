@@ -115,7 +115,8 @@ class SupabaseMemory:
 
     async def get_template(self, template_id: str) -> dict | None:
         row = await self.pool.fetchrow(
-            "SELECT id, name, language, category, components FROM templates WHERE id = $1",
+            "SELECT id, name, language, category, components, twilio_content_sid "
+            "FROM templates WHERE id = $1",
             template_id,
         )
         if not row:
@@ -126,6 +127,7 @@ class SupabaseMemory:
             "language": row["language"],
             "category": row["category"],
             "components": json.loads(row["components"]) if isinstance(row["components"], str) else row["components"],
+            "twilio_content_sid": row["twilio_content_sid"],
         }
 
     async def update_campaign_status(
@@ -175,11 +177,15 @@ class SupabaseMemory:
         return message_ids
 
     async def update_message_status(
-        self, message_id: str, status: str, wamid: str | None = None, error: str | None = None
+        self,
+        message_id: str,
+        status: str,
+        provider_message_id: str | None = None,
+        error: str | None = None,
     ) -> None:
         await self.pool.execute(
             """
-            UPDATE messages SET status = $2, wamid = $3, error = $4,
+            UPDATE messages SET status = $2, provider_message_id = $3, error = $4,
                 sent_at = CASE WHEN $2 = 'sent' THEN now() ELSE sent_at END,
                 delivered_at = CASE WHEN $2 = 'delivered' THEN now() ELSE delivered_at END,
                 read_at = CASE WHEN $2 = 'read' THEN now() ELSE read_at END
@@ -187,6 +193,6 @@ class SupabaseMemory:
             """,
             message_id,
             status,
-            wamid,
+            provider_message_id,
             error,
         )

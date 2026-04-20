@@ -1,6 +1,6 @@
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-brand-ink-05">
+    <div className="min-h-screen bg-brand-navy-deep">
       <div className="bg-linear-to-r from-brand-navy to-brand-navy-light px-6 py-3 flex items-center gap-3 border-b border-white/10">
         <svg viewBox="0 0 400 400" className="h-7 w-7 shrink-0">
           <defs>
