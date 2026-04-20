@@ -31,7 +31,7 @@ A differenza delle soluzioni tradizionali che inviano lo stesso template con var
 
 ## Architettura
 
-```
+```text
 Browser
   │
   ▼
@@ -96,6 +96,7 @@ make setup
 ```
 
 `make setup` fa tutto automaticamente:
+
 1. Crea `.env` da `.env.example`
 2. Avvia tutti i container Docker
 3. Aspetta che il DB sia pronto
@@ -113,40 +114,82 @@ make setup
 
 | Servizio | URL |
 |----------|-----|
-| **Frontend** | http://localhost:3000 |
-| **Login** | http://localhost:3000/login |
-| **Dashboard** | http://localhost:3000/dashboard |
-| **Admin** | http://localhost:3000/admin |
-| **Backend API** | http://localhost:8100/api/v1/health |
-| **RedisInsight** | http://localhost:8001 |
-| **Jaeger UI** | http://localhost:16686 |
-| **WhatsApp Mock** | http://localhost:9090 (profilo debug) |
+| **Frontend** | <http://localhost:3000> |
+| **Login** | <http://localhost:3000/login> |
+| **Dashboard** | <http://localhost:3000/dashboard> |
+| **Admin** | <http://localhost:3000/admin> |
+| **Backend API** | <http://localhost:8100/api/v1/health> |
+| **RedisInsight** | <http://localhost:8001> |
+| **Jaeger UI** | <http://localhost:16686> |
+| **WhatsApp Mock** | <http://localhost:9090> (profilo debug) |
 
 ---
 
 ## Comandi Makefile
 
+### Setup e ambiente
+
 ```bash
 make setup           # Primo avvio completo (env + containers + seed)
+make env             # Crea .env da .env.example se non esiste
+make clean           # Rimuove tutto (container + volumi + node_modules + venv)
+```
+
+### Docker Compose
+
+```bash
 make up              # Avvia stack base
-make up-full         # Aggiunge realtime, storage, mailhog
-make up-debug        # Aggiunge whatsapp-mock, stripe-cli
+make up-full         # Aggiunge realtime, storage, mailhog (profilo full)
+make up-debug        # Aggiunge whatsapp-mock, stripe-cli (profilo debug)
 make down            # Ferma container (mantiene dati)
+make build           # Builda le immagini Docker
 make reset           # Cancella volumi + ricrea + seed
 make rebuild         # Ricostruisce frontend (pulisce cache .next)
+```
+
+### Sviluppo locale (senza container app)
+
+```bash
+make dev-services    # Avvia solo infra (supabase-db, redis, auth, rest, kong)
+make dev             # Esegue scripts\dev-all.bat (avvio locale completo)
+```
+
+### Database
+
+```bash
 make seed            # Popola database con dati di esempio
+make migrate         # Esegue tutte le migrations SQL in /docker-entrypoint-initdb.d
+make db-shell        # Apre psql sul container supabase-db
+```
+
+### Testing
+
+```bash
+make test            # Esegue test unitari (frontend npm + backend pytest)
+make test-e2e        # Esegue test end-to-end con Playwright
+```
+
+### Logs
+
+```bash
 make logs            # Tail di tutti i log
 make logs-frontend   # Tail log frontend
+make logs-backend    # Tail log backend
 make logs-agent      # Tail log agent
-make test            # Esegue test (frontend + agent)
-make clean           # Rimuove tutto (container + volumi + node_modules)
+```
+
+### Utilità
+
+```bash
+make health          # Health check di Kong, GoTrue e PostgREST
+make stripe-listen   # Stripe CLI forward webhook → backend
 ```
 
 ---
 
 ## Struttura del progetto
 
-```
+```text
 wamply/
 ├── frontend/                  # Next.js 15 — UI pura
 │   ├── src/
@@ -293,5 +336,5 @@ Proprietario — Hevolus Srl / Agent Engineering Studio
 
 ## Contatti
 
-- **Giuseppe Zileni** — giuseppe.zileni@hevolus.it
-- **Web** — https://agentengineering.it
+- **Giuseppe Zileni** — <giuseppe.zileni@hevolus.it>
+- **Web** — <https://agentengineering.it>

@@ -37,7 +37,7 @@
         "REDIS_URL": "redis://localhost:6379",
         "AGENT_SECRET": "dev-agent-secret-change-in-production",
         "ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
-        "ANTHROPIC_API_KEY": "sk-ant-xxxxx",
+        "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}",
         "CLAUDE_MODEL": "claude-sonnet-4-20250514",
         "WHATSAPP_API_URL": "http://localhost:9090",
         "MOCK_LLM": "true",
