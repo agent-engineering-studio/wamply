@@ -110,6 +110,53 @@ make setup
 | User 1 (Starter) | `user1@test.local` | `User123!` |
 | User 2 (Professional) | `user2@test.local` | `User123!` |
 
+### Ripristino admin in emergenza (break-glass)
+
+Se perdi la password dell'unico admin e non puoi più entrare nella UI, usa uno
+di questi percorsi (in ordine di preferenza):
+
+**1. Riseeding completo** — risolve tutto resettando le credenziali di seed.
+
+```bash
+docker exec -i -e PGPASSWORD=postgres wcm-supabase-db \
+  psql -U supabase_admin -d postgres < supabase/seed.sql
+```
+
+Riporta `admin@wcm.local` alla password `Admin123!`. Tutti gli altri dati di
+seed vengono ripristinati o duplicati (idempotente per gli utenti seed).
+
+**2. Reset password mirato** — cambia solo la password, senza toccare altro.
+
+```bash
+# Sostituisci <email> e <nuova-password>
+docker exec -i -e PGPASSWORD=postgres wcm-supabase-db \
+  psql -U supabase_admin -d postgres -c \
+  "UPDATE auth.users SET encrypted_password = crypt('<nuova-password>', gen_salt('bf')), updated_at = now() WHERE email = '<email>';"
+```
+
+**3. Promuovere un utente esistente a admin** — se hai accesso a un'altra
+utenza ma non all'admin:
+
+```bash
+docker exec -i -e PGPASSWORD=postgres wcm-supabase-db \
+  psql -U supabase_admin -d postgres -c \
+  "UPDATE public.users SET role = 'admin' WHERE email = '<email>';"
+```
+
+**4. Rimuovere un ban persistente**:
+
+```bash
+docker exec -i -e PGPASSWORD=postgres wcm-supabase-db \
+  psql -U supabase_admin -d postgres -c \
+  "UPDATE auth.users SET banned_until = NULL WHERE email = '<email>';"
+```
+
+> **Protezioni attive nel backend**
+>
+> - Un admin non può cancellare, disabilitare o modificare il proprio account (HTTP 400).
+> - Non è possibile cancellare o disabilitare l'ultimo amministratore attivo (HTTP 400).
+> - Il reset password via UI è disponibile sotto `/admin` → modale utente; revoca tutte le sessioni attive dell'utente.
+
 ### URL di sviluppo
 
 | Servizio | URL |
