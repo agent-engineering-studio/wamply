@@ -35,6 +35,7 @@ export function VariableToolbar({
         <div className="flex items-center gap-1">
           <input
             autoFocus
+            aria-label="Nome del tag"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
