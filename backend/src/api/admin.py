@@ -48,7 +48,12 @@ async def admin_plans(request: Request, user: CurrentUser = Depends(require_admi
 @router.get("/users")
 async def admin_users(request: Request, user: CurrentUser = Depends(require_admin)):
     db = get_db(request)
-    users = await db.fetch("SELECT id, email, role::text, full_name, created_at FROM users ORDER BY created_at DESC")
+    users = await db.fetch(
+        "SELECT u.id, u.email, u.role::text, u.full_name, u.created_at, "
+        "  (au.banned_until IS NOT NULL AND au.banned_until > now()) AS banned "
+        "FROM users u LEFT JOIN auth.users au ON au.id = u.id "
+        "ORDER BY u.created_at DESC"
+    )
     user_ids = [r["id"] for r in users]
     if not user_ids:
         return {"users": []}
@@ -69,6 +74,7 @@ async def admin_users(request: Request, user: CurrentUser = Depends(require_admi
             "created_at": u["created_at"].isoformat() if u["created_at"] else None,
             "subscription": {"status": sub["status"], "plans": {"name": sub["plan_name"], "slug": sub["plan_slug"]}} if sub else None,
             "messages_used": usg["messages_used"] if usg else 0,
+            "banned": bool(u["banned"]),
         })
     return {"users": enriched}
 
@@ -146,6 +152,43 @@ async def admin_update_user_plan(
             "plans": {"name": plan["name"], "slug": plan["slug"]},
         }
     }
+
+
+@router.patch("/users/{user_id}")
+async def admin_patch_user(
+    request: Request,
+    user_id: str,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Patch an admin-mutable field on a user. Currently supports `banned: bool`
+    which sets/clears auth.users.banned_until (permanent ban via 'infinity')."""
+    if user_id == str(user.id):
+        raise HTTPException(
+            status_code=400, detail="Non puoi modificare il tuo stesso account."
+        )
+
+    body = await request.json()
+    if "banned" not in body or not isinstance(body["banned"], bool):
+        raise HTTPException(status_code=400, detail="Campo 'banned' (bool) obbligatorio.")
+
+    db = get_db(request)
+    target = await db.fetchrow(
+        "SELECT id FROM auth.users WHERE id = $1", user_id
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Utente non trovato.")
+
+    if body["banned"]:
+        await db.execute(
+            "UPDATE auth.users SET banned_until = 'infinity'::timestamptz WHERE id = $1",
+            user_id,
+        )
+    else:
+        await db.execute(
+            "UPDATE auth.users SET banned_until = NULL WHERE id = $1",
+            user_id,
+        )
+    return {"banned": body["banned"]}
 
 
 @router.delete("/users/{user_id}", status_code=204)
