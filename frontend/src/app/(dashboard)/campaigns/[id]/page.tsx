@@ -5,16 +5,21 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 
+interface CampaignStats { total: number; sent: number; delivered: number; read: number; failed: number }
 interface CampaignDetail {
   id: string;
   name: string;
   status: string;
-  stats: { total: number; sent: number; delivered: number; read: number; failed: number };
+  stats?: CampaignStats;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
   template?: { name: string; category: string };
+  template_name?: string | null;
+  template_category?: string | null;
 }
+
+const EMPTY_STATS: CampaignStats = { total: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
 
 export default function CampaignDetailPage() {
   const { id } = useParams();
@@ -35,7 +40,12 @@ export default function CampaignDetailPage() {
 
   if (!campaign) return <div className="animate-pulse text-brand-ink-30">Caricamento...</div>;
 
-  const s = campaign.stats;
+  const s = campaign.stats ?? EMPTY_STATS;
+  const templateName = campaign.template?.name ?? campaign.template_name ?? null;
+  const createdDate = campaign.created_at ? new Date(campaign.created_at) : null;
+  const createdLabel = createdDate && !isNaN(createdDate.getTime())
+    ? createdDate.toLocaleDateString("it-IT")
+    : null;
 
   return (
     <>
@@ -45,8 +55,8 @@ export default function CampaignDetailPage() {
         <div>
           <h1 className="text-[18px] font-semibold text-brand-ink">{campaign.name}</h1>
           <p className="mt-1 text-[11px] text-brand-ink-60">
-            {campaign.template?.name && `Template: ${campaign.template.name} · `}
-            Creata il {new Date(campaign.created_at).toLocaleDateString("it-IT")}
+            {templateName && `Template: ${templateName} · `}
+            {createdLabel ? `Creata il ${createdLabel}` : "Appena creata"}
           </p>
         </div>
         {["draft", "scheduled"].includes(campaign.status) && (

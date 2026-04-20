@@ -9,6 +9,9 @@ from src.services.plan_limits import check_plan_limit
 router = APIRouter(prefix="/campaigns")
 
 
+_JSONB_COLUMNS = {"stats", "segment_query"}
+
+
 def _serialize_row(row) -> dict:
     d = dict(row)
     for k, v in d.items():
@@ -16,6 +19,11 @@ def _serialize_row(row) -> dict:
             d[k] = str(v)
         elif hasattr(v, "isoformat"):
             d[k] = v.isoformat()
+        elif k in _JSONB_COLUMNS and isinstance(v, str):
+            try:
+                d[k] = json.loads(v)
+            except (ValueError, TypeError):
+                pass
     return d
 
 
@@ -78,7 +86,24 @@ async def get_campaign(
     )
     if not row:
         raise HTTPException(status_code=404, detail="Campagna non trovata.")
-    return _serialize_row(row)
+    data = _serialize_row(row)
+    template_name = data.pop("template_name", None)
+    template_category = data.pop("template_category", None)
+    data["template"] = (
+        {"name": template_name, "category": template_category} if template_name else None
+    )
+
+    counts = await db.fetch(
+        "SELECT status, count(*)::int AS n FROM messages WHERE campaign_id = $1 GROUP BY status",
+        campaign_id,
+    )
+    live = {"total": 0, "sent": 0, "delivered": 0, "read": 0, "failed": 0}
+    for r in counts:
+        live["total"] += r["n"]
+        if r["status"] in live:
+            live[r["status"]] += r["n"]
+    data["stats"] = live
+    return data
 
 
 @router.put("/{campaign_id}")

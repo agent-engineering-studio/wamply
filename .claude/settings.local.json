@@ -40,7 +40,10 @@
       "Bash(python -c \"from src.main import app; print\\('OK'\\)\")",
       "Bash(echo \"EXIT:$?\")",
       "Bash(python -c \"from src.main import app; print\\('Agent app OK'\\)\")",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(powershell.exe -Command \"Get-NetTCPConnection -LocalPort 8200 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess\")",
+      "Bash(powershell.exe -Command \"Get-NetTCPConnection -LocalPort 8200 | Format-Table\")",
+      "Bash(docker volume *)"
     ]
   }
 }

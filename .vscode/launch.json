@@ -117,6 +117,15 @@
         "Frontend: Next.js Server"
       ],
       "stopAll": true
+    },
+    // ── Agent + Frontend (no backend) ─────────────────────
+    {
+      "name": "Agent + Frontend",
+      "configurations": [
+        "Agent: FastAPI",
+        "Frontend: Next.js Server"
+      ],
+      "stopAll": true
     }
   ]
 }

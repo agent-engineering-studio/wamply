@@ -16,6 +16,7 @@ export default function NewCampaignPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/templates").then((r) => r.json()).then((d) => setTemplates(d.templates || []));
@@ -26,18 +27,28 @@ export default function NewCampaignPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setError(null);
 
-    const res = await apiFetch("/campaigns", {
-      method: "POST",
-      body: JSON.stringify({ name, template_id: templateId || null, group_id: groupId || null }),
-    });
-    const campaign = await res.json();
+    try {
+      const res = await apiFetch("/campaigns", {
+        method: "POST",
+        body: JSON.stringify({ name, template_id: templateId || null, group_id: groupId || null }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Errore ${res.status} nella creazione della campagna.`);
+      }
+      const campaign = await res.json();
+      if (!campaign?.id) throw new Error("Risposta del server senza id campagna.");
 
-    if (sendNow && campaign.id) {
-      await apiFetch(`/campaigns/${campaign.id}/launch`, { method: "POST" });
+      if (sendNow) {
+        await apiFetch(`/campaigns/${campaign.id}/launch`, { method: "POST" });
+      }
+      router.push(`/campaigns/${campaign.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore imprevisto.");
+      setSaving(false);
     }
-
-    router.push(`/campaigns/${campaign.id}`);
   }
 
   return (
@@ -46,6 +57,11 @@ export default function NewCampaignPage() {
       <p className="mb-6 text-[11px] text-brand-ink-60">Crea e invia una campagna WhatsApp</p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700">
+            {error}
+          </div>
+        )}
         <div className="rounded-card border border-brand-ink-10 bg-white p-5 shadow-card">
           <div className="mb-4">
             <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Nome campagna</label>
@@ -57,10 +73,18 @@ export default function NewCampaignPage() {
           <div className="mb-4">
             <label className="mb-1 block text-[11.5px] font-medium text-brand-ink-60">Template</label>
             <select value={templateId} onChange={(e) => setTemplateId(e.target.value)}
-              className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none">
-              <option value="">Seleziona template...</option>
+              disabled={templates.length === 0}
+              className="w-full rounded-sm border border-brand-ink-10 px-3 py-2 text-[13px] focus:border-brand-green focus:outline-none disabled:bg-brand-ink-05 disabled:text-brand-ink-60">
+              <option value="">
+                {templates.length === 0 ? "Nessun template disponibile" : "Seleziona template..."}
+              </option>
               {templates.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.category})</option>)}
             </select>
+            {templates.length === 0 && (
+              <p className="mt-1 text-[11px] text-brand-ink-60">
+                Non hai ancora template. Creane uno per inviare campagne personalizzate.
+              </p>
+            )}
           </div>
 
           <div>
