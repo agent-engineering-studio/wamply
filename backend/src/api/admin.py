@@ -179,10 +179,21 @@ async def admin_patch_user(
         raise HTTPException(status_code=404, detail="Utente non trovato.")
 
     if body["banned"]:
-        await db.execute(
-            "UPDATE auth.users SET banned_until = 'infinity'::timestamptz WHERE id = $1",
-            user_id,
-        )
+        async with db.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "UPDATE auth.users SET banned_until = 'infinity'::timestamptz WHERE id = $1",
+                    user_id,
+                )
+                # Revoke all refresh tokens and destroy sessions so the user
+                # cannot keep using an access token already in their browser.
+                await conn.execute(
+                    "UPDATE auth.refresh_tokens SET revoked = true WHERE user_id = $1",
+                    user_id,
+                )
+                await conn.execute(
+                    "DELETE FROM auth.sessions WHERE user_id = $1", user_id
+                )
     else:
         await db.execute(
             "UPDATE auth.users SET banned_until = NULL WHERE id = $1",
