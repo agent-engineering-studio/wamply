@@ -5,7 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
-from src.services.ai_template import generate_template, improve_template
+from src.services.ai_template import (
+    check_compliance,
+    generate_template,
+    improve_template,
+    translate_template,
+)
+
+SUPPORTED_LANGUAGES = {"it", "en", "es", "de", "fr"}
 from src.services.plan_limits import (
     check_plan_limit,
     increment_ai_template_ops,
@@ -16,7 +23,7 @@ IMPROVE_CACHE_TTL = 86400  # 24h
 router = APIRouter(prefix="/templates")
 
 
-_JSONB_COLUMNS = {"components"}
+_JSONB_COLUMNS = {"components", "compliance_report"}
 
 
 def _serialize_row(row) -> dict:
@@ -175,6 +182,161 @@ async def update_template(request: Request, template_id: str, user: CurrentUser 
     if not row:
         raise HTTPException(status_code=404, detail="Template non trovato.")
     return _serialize_row(row)
+
+
+@router.post("/{template_id}/compliance-check")
+async def check_template_compliance(
+    request: Request,
+    template_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Run AI compliance check on a template body; persist the report."""
+    db = get_db(request)
+    redis = get_redis(request)
+
+    row = await db.fetchrow(
+        "SELECT id, category, language, components FROM templates "
+        "WHERE id = $1 AND user_id = $2 AND status != 'archived'",
+        template_id,
+        user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Template non trovato.")
+
+    components = row["components"]
+    if isinstance(components, str):
+        components = json.loads(components)
+    body_text = ""
+    for c in components or []:
+        if isinstance(c, dict) and c.get("type", "").lower() == "body":
+            body_text = c.get("text") or ""
+            break
+    if not body_text:
+        raise HTTPException(status_code=400, detail="Template senza body.")
+
+    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+
+    try:
+        report = await check_compliance(
+            body_text, category=row["category"], language=row["language"]
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"AI error: {e}") from e
+
+    from datetime import datetime, timezone
+
+    report_payload = {
+        **report.model_dump(),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.execute(
+        "UPDATE templates SET compliance_report = $1::jsonb, updated_at = now() "
+        "WHERE id = $2 AND user_id = $3",
+        json.dumps(report_payload),
+        template_id,
+        user.id,
+    )
+    await increment_ai_template_ops(db, redis, user.id)
+    return report_payload
+
+
+@router.post("/{template_id}/translate")
+async def translate_template_ai(
+    request: Request,
+    template_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Translate a template into multiple target languages. Each translation
+    creates a new draft template row linked via source_template_id.
+    Partial success supported: returns per-language outcome."""
+    db = get_db(request)
+    redis = get_redis(request)
+
+    body_payload = await request.json()
+    targets_raw = body_payload.get("target_languages") or []
+    if not isinstance(targets_raw, list) or not targets_raw:
+        raise HTTPException(
+            status_code=400, detail="target_languages (array) obbligatorio."
+        )
+    targets = [t for t in targets_raw if t in SUPPORTED_LANGUAGES]
+    if not targets:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Lingue supportate: {sorted(SUPPORTED_LANGUAGES)}",
+        )
+
+    row = await db.fetchrow(
+        "SELECT id, name, language, category, components FROM templates "
+        "WHERE id = $1 AND user_id = $2 AND status != 'archived'",
+        template_id,
+        user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Template non trovato.")
+
+    # Block translating into the source language.
+    targets = [t for t in targets if t != row["language"]]
+    if not targets:
+        raise HTTPException(
+            status_code=400,
+            detail="Le lingue richieste coincidono con quella del template.",
+        )
+
+    components = row["components"]
+    if isinstance(components, str):
+        components = json.loads(components)
+    source_body = ""
+    for c in components or []:
+        if isinstance(c, dict) and c.get("type", "").lower() == "body":
+            source_body = c.get("text") or ""
+            break
+    if not source_body:
+        raise HTTPException(status_code=400, detail="Template senza body.")
+
+    # Check plan up-front (uses 1 op; we'll re-check in the loop per language).
+    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+
+    results: list[dict] = []
+    for target in targets:
+        try:
+            # Per-language quota check (ensures we stop when limit reached mid-batch).
+            await check_plan_limit(db, redis, user.id, "ai_template_ops")
+            translated = await translate_template(
+                name=row["name"],
+                body=source_body,
+                source_language=row["language"],
+                target_language=target,
+            )
+            new_components = [{"type": "body", "text": translated.body}]
+            new_row = await db.fetchrow(
+                """INSERT INTO templates
+                   (user_id, name, language, category, components, status, source_template_id)
+                   VALUES ($1, $2, $3, $4, $5, 'pending_review', $6)
+                   RETURNING id""",
+                user.id,
+                translated.name,
+                target,
+                row["category"],
+                json.dumps(new_components),
+                template_id,
+            )
+            await increment_ai_template_ops(db, redis, user.id)
+            results.append(
+                {
+                    "language": target,
+                    "ok": True,
+                    "template_id": str(new_row["id"]),
+                    "name": translated.name,
+                }
+            )
+        except HTTPException as e:
+            # Quota exhausted mid-batch → stop, record remaining as failed.
+            results.append({"language": target, "ok": False, "error": e.detail})
+            break
+        except Exception as e:  # noqa: BLE001 — record failure per language
+            results.append({"language": target, "ok": False, "error": str(e)})
+
+    return {"results": results}
 
 
 @router.delete("/{template_id}", status_code=204)

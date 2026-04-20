@@ -8,10 +8,12 @@ import {
   emptyForm,
   componentsToForm,
   formToComponents,
+  type ComplianceReport,
   type TemplateFormState,
 } from "@/lib/templates/types";
 import { validateTemplate } from "@/lib/templates/validation";
 import { EditorForm } from "./_components/EditorForm";
+import { ComplianceBanner } from "./_components/ComplianceBanner";
 import { PreviewBubble } from "@/components/templates/PreviewBubble";
 
 export default function TemplateEditorPage() {
@@ -24,6 +26,7 @@ export default function TemplateEditorPage() {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
+  const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null);
 
   useEffect(() => {
     if (isNew) return;
@@ -41,6 +44,7 @@ export default function TemplateEditorPage() {
           category: t.category,
           ...componentsToForm(t.components ?? []),
         });
+        setComplianceReport(t.compliance_report ?? null);
         setLoading(false);
       })
       .catch((e) => {
@@ -105,6 +109,16 @@ export default function TemplateEditorPage() {
       {serverError && (
         <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700">
           {serverError}
+        </div>
+      )}
+
+      {!isNew && (
+        <div className="mb-4">
+          <ComplianceBanner
+            templateId={params.id}
+            report={complianceReport}
+            onUpdated={setComplianceReport}
+          />
         </div>
       )}
 

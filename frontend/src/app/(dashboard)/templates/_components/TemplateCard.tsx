@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Template, BodyComponent } from "@/lib/templates/types";
+import { TranslateDialog } from "./TranslateDialog";
 
 const CATEGORY_STYLES: Record<string, string> = {
   marketing: "bg-brand-navy-light text-brand-teal",
@@ -18,6 +19,7 @@ export function TemplateCard({
   onDelete: (id: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [translateOpen, setTranslateOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const body = template.components.find((c): c is BodyComponent => c.type === "BODY");
   const preview = body?.text ?? "";
@@ -55,6 +57,18 @@ export function TemplateCard({
             <span className="text-[10.5px] uppercase tracking-wider text-slate-500">
               {template.language}
             </span>
+            {template.compliance_report && (
+              <span
+                title={`Conformità: ${Math.round(template.compliance_report.score * 100)}%`}
+                className={`inline-block h-2 w-2 rounded-full ${
+                  template.compliance_report.risk_level === "low"
+                    ? "bg-emerald-400"
+                    : template.compliance_report.risk_level === "medium"
+                    ? "bg-amber-400"
+                    : "bg-red-400"
+                }`}
+              />
+            )}
           </div>
         </div>
 
@@ -88,9 +102,19 @@ export function TemplateCard({
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
+                  setTranslateOpen(true);
+                }}
+                className="block w-full px-3 py-1.5 text-left text-[12.5px] text-brand-teal hover:bg-brand-navy-deep"
+              >
+                🌐 Traduci…
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
                   if (confirm(`Eliminare il template "${template.name}"?`)) onDelete(template.id);
                 }}
-                className="block w-full px-3 py-1.5 text-left text-[12.5px] text-red-600 hover:bg-red-50"
+                className="block w-full px-3 py-1.5 text-left text-[12.5px] text-red-400 hover:bg-red-500/10"
               >
                 Elimina
               </button>
@@ -107,6 +131,14 @@ export function TemplateCard({
           Modifica →
         </Link>
       </div>
+
+      <TranslateDialog
+        open={translateOpen}
+        templateId={template.id}
+        templateName={template.name}
+        sourceLanguage={template.language}
+        onClose={() => setTranslateOpen(false)}
+      />
     </div>
   );
 }

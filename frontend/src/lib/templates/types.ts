@@ -38,6 +38,21 @@ export type TemplateComponent =
   | FooterComponent
   | ButtonsComponent;
 
+export interface ComplianceIssue {
+  text: string;
+  reason: string;
+  suggestion: string;
+}
+
+export type RiskLevel = "low" | "medium" | "high";
+
+export interface ComplianceReport {
+  risk_level: RiskLevel;
+  score: number;
+  issues: ComplianceIssue[];
+  checked_at: string;
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -45,6 +60,7 @@ export interface Template {
   category: TemplateCategory;
   components: TemplateComponent[];
   status: string;
+  compliance_report?: ComplianceReport | null;
   created_at: string;
   updated_at: string;
 }

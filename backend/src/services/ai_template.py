@@ -31,6 +31,27 @@ class ImproveResult(BaseModel):
     variants: list[ImproveVariant]
 
 
+RiskLevel = Literal["low", "medium", "high"]
+
+
+class ComplianceIssue(BaseModel):
+    text: str
+    reason: str
+    suggestion: str
+
+
+class ComplianceReport(BaseModel):
+    risk_level: RiskLevel
+    score: float = Field(..., ge=0.0, le=1.0)
+    issues: list[ComplianceIssue] = Field(default_factory=list)
+
+
+class TranslatedTemplate(BaseModel):
+    language: Language
+    name: str = Field(..., min_length=1, max_length=80)
+    body: str = Field(..., min_length=1, max_length=1024)
+
+
 SYSTEM_PROMPT = """Sei un copywriter esperto di WhatsApp Business marketing.
 Il tuo compito è generare un template di messaggio WhatsApp strutturato basandoti
 sulla richiesta dell'utente.
@@ -146,6 +167,169 @@ async def improve_template(body: str) -> ImproveResult:
         return ImproveResult(**parsed)
     except ValidationError as e:
         raise ValueError(f"Improve AI malformato: {e}") from e
+
+
+COMPLIANCE_SYSTEM_PROMPT = """Sei un revisore esperto di policy WhatsApp Business
+e Twilio Content Templates. Analizza il template fornito e valuta la probabilità
+che superi la review automatica/umana.
+
+POLICY PRINCIPALI DA CONTROLLARE:
+- No spam: niente promozioni aggressive, urgency artificiale, CTA multiple forzate.
+- Trasparenza: il mittente deve essere chiaramente identificabile.
+- Opt-out: i messaggi marketing devono permettere disiscrizione o rimando a gestione preferenze.
+- No claim fuorvianti: niente promesse irrealistiche, garanzie non supportate, scarcity falsa.
+- No dati sensibili: non richiedere password, OTP di terzi, dati carta di credito nel body.
+- Lingua civile: niente linguaggio offensivo, discriminatorio o allarmistico.
+- Contenuto proibito (gambling non autorizzato, farmaci, tabacco, armi): flaggare high.
+
+CATEGORY RULES:
+- "marketing" → deve includere o riferirsi a opt-out.
+- "utility" → conferme/reminder; no promozioni embedded.
+- "authentication" → solo OTP/codici; mai promo.
+
+OUTPUT (solo JSON):
+{
+  "risk_level": "low" | "medium" | "high",
+  "score": 0.0-1.0  (prob. di approvazione: 1.0 = sicuro, 0.0 = sicura rejection),
+  "issues": [
+    {
+      "text": "frase problematica (massimo 120 char)",
+      "reason": "perché viola la policy",
+      "suggestion": "come riformulare"
+    }
+  ]
+}
+
+Risk_level coerente con score:
+  score >= 0.8 → "low"
+  0.5 <= score < 0.8 → "medium"
+  score < 0.5 → "high"
+Se nessun issue: issues = []."""
+
+
+def _mock_compliance(body: str, category: str) -> ComplianceReport:
+    body_lower = body.lower()
+    issues: list[ComplianceIssue] = []
+    score = 0.9
+    if any(w in body_lower for w in ["gratis", "urgente", "ora o mai piu"]):
+        issues.append(
+            ComplianceIssue(
+                text="termini promozionali aggressivi",
+                reason="possibile percezione di spam",
+                suggestion="usa un tono piu informativo",
+            )
+        )
+        score = 0.65
+    if category == "marketing" and "disiscriv" not in body_lower and "stop" not in body_lower:
+        issues.append(
+            ComplianceIssue(
+                text="template marketing senza opt-out",
+                reason="policy Meta richiede meccanismo di opt-out",
+                suggestion="aggiungi 'Rispondi STOP per non ricevere piu messaggi'",
+            )
+        )
+        score = min(score, 0.55)
+    level: RiskLevel = "low" if score >= 0.8 else "medium" if score >= 0.5 else "high"
+    return ComplianceReport(risk_level=level, score=score, issues=issues)
+
+
+async def check_compliance(
+    body: str, category: str = "marketing", language: str = "it"
+) -> ComplianceReport:
+    """Evaluate a template body against WhatsApp/Twilio content policies."""
+    if settings.mock_llm or not settings.anthropic_api_key:
+        return _mock_compliance(body, category)
+
+    client = _get_client()
+    user_msg = (
+        f"Categoria: {category}\nLingua: {language}\n\nTemplate:\n{body}"
+    )
+    response = client.messages.create(
+        model=settings.claude_model,
+        max_tokens=900,
+        temperature=0.2,
+        system=COMPLIANCE_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    raw = "".join(
+        block.text for block in response.content if hasattr(block, "text")
+    )
+    parsed = json.loads(_extract_json(raw))
+    try:
+        return ComplianceReport(**parsed)
+    except ValidationError as e:
+        raise ValueError(f"Compliance AI malformato: {e}") from e
+
+
+TRANSLATE_SYSTEM_PROMPT = """Sei un traduttore professionista esperto di
+localizzazione di template WhatsApp Business. Traduci il template mantenendo
+intatte TUTTE le variabili (es. {{nome}}, {{data}}) — stesso numero, stessi
+nomi, stessa grafia. Adatta il tono alla cultura della lingua target.
+
+OUTPUT (solo JSON):
+{
+  "language": "<codice ISO: it|en|es|de|fr>",
+  "name": "nome template tradotto (max 80 char)",
+  "body": "corpo tradotto, variabili preservate"
+}"""
+
+
+LANGUAGE_NAMES: dict[str, str] = {
+    "it": "italiano",
+    "en": "inglese",
+    "es": "spagnolo",
+    "de": "tedesco",
+    "fr": "francese",
+}
+
+
+def _mock_translate(
+    name: str, body: str, target: Language
+) -> TranslatedTemplate:
+    prefix = {"it": "IT", "en": "EN", "es": "ES", "de": "DE", "fr": "FR"}[target]
+    return TranslatedTemplate(
+        language=target,
+        name=f"[{prefix}] {name}"[:80],
+        body=f"[mock-{target}] {body}",
+    )
+
+
+async def translate_template(
+    name: str,
+    body: str,
+    source_language: str,
+    target_language: Language,
+) -> TranslatedTemplate:
+    """Translate a template body+name into the target language, preserving variables."""
+    if settings.mock_llm or not settings.anthropic_api_key:
+        return _mock_translate(name, body, target_language)
+
+    client = _get_client()
+    target_name = LANGUAGE_NAMES.get(target_language, target_language)
+    user_msg = (
+        f"Lingua sorgente: {source_language}\n"
+        f"Lingua target: {target_language} ({target_name})\n\n"
+        f"Nome template: {name}\n\n"
+        f"Body:\n{body}"
+    )
+
+    response = client.messages.create(
+        model=settings.claude_haiku_model,
+        max_tokens=900,
+        temperature=0.3,
+        system=TRANSLATE_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    raw = "".join(
+        block.text for block in response.content if hasattr(block, "text")
+    )
+    parsed = json.loads(_extract_json(raw))
+    # Force target language even if the model ignored it.
+    parsed["language"] = target_language
+    try:
+        return TranslatedTemplate(**parsed)
+    except ValidationError as e:
+        raise ValueError(f"Translate AI malformato: {e}") from e
 
 
 async def generate_template(
