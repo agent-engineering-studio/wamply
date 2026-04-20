@@ -12,7 +12,7 @@
       "env": {
         "DATABASE_URL": "postgresql://supabase_admin:postgres@localhost:5432/postgres",
         "REDIS_URL": "redis://localhost:6379",
-        "JWT_SECRET": "super-secret-jwt-token-with-at-least-32-characters-long",
+        "JWT_SECRET": "agentengineeringstudio",
         "AGENT_SECRET": "dev-agent-secret-change-in-production",
         "ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef",
         "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
