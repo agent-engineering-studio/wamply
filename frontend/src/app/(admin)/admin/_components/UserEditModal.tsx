@@ -50,6 +50,9 @@ export function UserEditModal({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -57,6 +60,8 @@ export function UserEditModal({
       setError(null);
       setConfirmOpen(false);
       setConfirmEmail("");
+      setResetOpen(false);
+      setNewPassword("");
     }
   }, [user]);
 
@@ -112,6 +117,30 @@ export function UserEditModal({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Errore imprevisto.");
       setSaving(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!user) return;
+    setResetting(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/users/${user.id}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({ password: newPassword }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Errore ${res.status}`);
+      }
+      setResetOpen(false);
+      setNewPassword("");
+      setError(null);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore imprevisto.");
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -203,6 +232,44 @@ export function UserEditModal({
           </select>
         </div>
 
+        {resetOpen && (
+          <div className="mb-4 rounded-sm border border-amber-900/60 bg-amber-950/30 p-3">
+            <p className="mb-2 text-[12px] text-amber-200">
+              Imposta una nuova password per <strong>{user.email}</strong>. Tutte le
+              sessioni attive verranno disconnesse.
+            </p>
+            <label className="mb-1 block text-[11px] text-amber-200">Nuova password (min. 10 caratteri)</label>
+            <input
+              type="password"
+              autoFocus
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Almeno 10 caratteri"
+              className="w-full rounded-sm border border-amber-900/60 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-amber-500 focus:outline-none"
+            />
+            <div className="mt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetOpen(false);
+                  setNewPassword("");
+                }}
+                className="rounded-sm px-3 py-1.5 text-[12px] font-medium text-slate-400 hover:bg-brand-navy-deep"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resetting || newPassword.length < 10}
+                className="rounded-sm bg-amber-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {resetting ? "Salvataggio..." : "Imposta password"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {confirmOpen && (
           <div className="mb-4 rounded-sm border border-red-900/60 bg-red-950/40 p-3">
             <p className="mb-2 text-[12px] text-red-200">
@@ -225,11 +292,27 @@ export function UserEditModal({
         <div className="flex items-center justify-between gap-3">
           {!confirmOpen ? (
             isSelf ? (
-              <span className="text-[11px] italic text-slate-500">
-                Non puoi disabilitare o eliminare il tuo stesso account.
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResetOpen(true)}
+                  className="rounded-sm border border-slate-700 px-3 py-2 text-[12.5px] font-medium text-slate-300 hover:bg-brand-navy-deep"
+                >
+                  Resetta password
+                </button>
+                <span className="text-[11px] italic text-slate-500">
+                  Non puoi disabilitare o eliminare te stesso.
+                </span>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResetOpen(true)}
+                  className="rounded-sm border border-slate-700 px-3 py-2 text-[12.5px] font-medium text-slate-300 hover:bg-brand-navy-deep"
+                >
+                  Resetta password
+                </button>
                 <button
                   type="button"
                   onClick={handleToggleBan}
