@@ -22,7 +22,11 @@ def _serialize_row(row) -> dict:
 @router.get("")
 async def list_templates(request: Request, user: CurrentUser = Depends(get_current_user)):
     db = get_db(request)
-    rows = await db.fetch("SELECT * FROM templates WHERE user_id = $1 ORDER BY created_at DESC", user.id)
+    rows = await db.fetch(
+        "SELECT * FROM templates WHERE user_id = $1 AND status != 'archived' "
+        "ORDER BY created_at DESC",
+        user.id,
+    )
     return {"templates": [_serialize_row(r) for r in rows]}
 
 
@@ -47,7 +51,10 @@ async def create_template(request: Request, user: CurrentUser = Depends(get_curr
 @router.get("/{template_id}")
 async def get_template(request: Request, template_id: str, user: CurrentUser = Depends(get_current_user)):
     db = get_db(request)
-    row = await db.fetchrow("SELECT * FROM templates WHERE id = $1 AND user_id = $2", template_id, user.id)
+    row = await db.fetchrow(
+        "SELECT * FROM templates WHERE id = $1 AND user_id = $2 AND status != 'archived'",
+        template_id, user.id,
+    )
     if not row:
         raise HTTPException(status_code=404, detail="Template non trovato.")
     return _serialize_row(row)
@@ -77,3 +84,20 @@ async def update_template(request: Request, template_id: str, user: CurrentUser 
     if not row:
         raise HTTPException(status_code=404, detail="Template non trovato.")
     return _serialize_row(row)
+
+
+@router.delete("/{template_id}", status_code=204)
+async def delete_template(
+    request: Request, template_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    row = await db.fetchrow(
+        "UPDATE templates SET status = 'archived', updated_at = now() "
+        "WHERE id = $1 AND user_id = $2 AND status != 'archived' "
+        "RETURNING id",
+        template_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Template non trovato.")
+    return None
