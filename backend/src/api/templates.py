@@ -9,6 +9,9 @@ from src.services.plan_limits import check_plan_limit
 router = APIRouter(prefix="/templates")
 
 
+_JSONB_COLUMNS = {"components"}
+
+
 def _serialize_row(row) -> dict:
     d = dict(row)
     for k, v in d.items():
@@ -16,6 +19,11 @@ def _serialize_row(row) -> dict:
             d[k] = str(v)
         elif hasattr(v, "isoformat"):
             d[k] = v.isoformat()
+        elif k in _JSONB_COLUMNS and isinstance(v, str):
+            try:
+                d[k] = json.loads(v)
+            except (ValueError, TypeError):
+                pass
     return d
 
 
