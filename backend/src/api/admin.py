@@ -103,6 +103,34 @@ async def admin_campaigns(request: Request, user: CurrentUser = Depends(require_
 VALID_PLAN_SLUGS = {"starter", "professional", "enterprise"}
 
 
+async def _count_active_admins(db) -> int:
+    """Count admins that can still sign in (not banned)."""
+    return await db.fetchval(
+        "SELECT count(*) FROM users u "
+        "LEFT JOIN auth.users au ON au.id = u.id "
+        "WHERE u.role = 'admin' "
+        "AND (au.banned_until IS NULL OR au.banned_until <= now())"
+    )
+
+
+async def _target_is_admin(db, user_id: str) -> bool:
+    row = await db.fetchrow("SELECT role FROM users WHERE id = $1", user_id)
+    return bool(row) and row["role"] == "admin"
+
+
+async def _target_is_active_admin(db, user_id: str) -> bool:
+    """True if the user is admin AND not currently banned."""
+    return bool(
+        await db.fetchval(
+            "SELECT 1 FROM users u "
+            "LEFT JOIN auth.users au ON au.id = u.id "
+            "WHERE u.id = $1 AND u.role = 'admin' "
+            "AND (au.banned_until IS NULL OR au.banned_until <= now())",
+            user_id,
+        )
+    )
+
+
 @router.put("/users/{user_id}/plan")
 async def admin_update_user_plan(
     request: Request,
@@ -178,6 +206,14 @@ async def admin_patch_user(
     if not target:
         raise HTTPException(status_code=404, detail="Utente non trovato.")
 
+    if body["banned"] and await _target_is_admin(db, user_id):
+        active = await _count_active_admins(db)
+        if active <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Deve esistere almeno un amministratore attivo.",
+            )
+
     if body["banned"]:
         async with db.acquire() as conn:
             async with conn.transaction():
@@ -218,9 +254,17 @@ async def admin_delete_user(
     db = get_db(request)
     redis = get_redis(request)
 
-    target = await db.fetchrow("SELECT id FROM users WHERE id = $1", user_id)
+    target = await db.fetchrow("SELECT id, role::text FROM users WHERE id = $1", user_id)
     if not target:
         raise HTTPException(status_code=404, detail="Utente non trovato.")
+
+    if await _target_is_active_admin(db, user_id):
+        active = await _count_active_admins(db)
+        if active <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Deve esistere almeno un amministratore attivo.",
+            )
 
     async with db.acquire() as conn:
         async with conn.transaction():
