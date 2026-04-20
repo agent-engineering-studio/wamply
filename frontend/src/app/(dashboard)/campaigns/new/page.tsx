@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import { TemplatePreview } from "./_components/TemplatePreview";
 
 interface Template { id: string; name: string; category: string; }
 interface Group { id: string; name: string; }
@@ -57,7 +58,8 @@ export default function NewCampaignPage() {
       <h1 className="mb-1 text-[15px] font-semibold text-slate-100">Nuovo invio</h1>
       <p className="mb-6 text-[11px] text-slate-400">Crea e invia una campagna WhatsApp</p>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <form onSubmit={handleSubmit} className="space-y-5 lg:col-span-3">
         {error && (
           <div className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700">
             {error}
@@ -119,6 +121,11 @@ export default function NewCampaignPage() {
           {saving ? "Creazione..." : sendNow ? "Crea e invia subito" : "Crea campagna"}
         </button>
       </form>
+
+        <aside className="lg:col-span-2">
+          <TemplatePreview templateId={templateId || null} />
+        </aside>
+      </div>
     </>
   );
 }
