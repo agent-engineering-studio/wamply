@@ -90,12 +90,23 @@ export function emptyForm(): TemplateFormState {
 export function componentsToForm(
   components: TemplateComponent[]
 ): Pick<TemplateFormState, "header" | "body" | "footer" | "buttons"> {
-  const header = components.find((c): c is HeaderComponent => c.type === "HEADER") ?? null;
-  const body =
-    components.find((c): c is BodyComponent => c.type === "BODY") ??
-    ({ type: "BODY", text: "" } as BodyComponent);
-  const footer = components.find((c): c is FooterComponent => c.type === "FOOTER") ?? null;
-  const buttonsBlock = components.find((c): c is ButtonsComponent => c.type === "BUTTONS");
+  const typeOf = (c: TemplateComponent): string =>
+    String((c as { type?: string }).type ?? "").toUpperCase();
+  const headerRaw = components.find((c) => typeOf(c) === "HEADER");
+  const bodyRaw = components.find((c) => typeOf(c) === "BODY");
+  const footerRaw = components.find((c) => typeOf(c) === "FOOTER");
+  const buttonsBlock = components.find((c) => typeOf(c) === "BUTTONS") as
+    | ButtonsComponent
+    | undefined;
+  const header: HeaderComponent | null = headerRaw
+    ? { type: "HEADER", format: "TEXT", text: (headerRaw as HeaderComponent).text ?? "" }
+    : null;
+  const body: BodyComponent = bodyRaw
+    ? { type: "BODY", text: (bodyRaw as BodyComponent).text ?? "" }
+    : { type: "BODY", text: "" };
+  const footer: FooterComponent | null = footerRaw
+    ? { type: "FOOTER", text: (footerRaw as FooterComponent).text ?? "" }
+    : null;
   return {
     header,
     body,

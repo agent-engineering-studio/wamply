@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { Template, BodyComponent } from "@/lib/templates/types";
+import type { Template } from "@/lib/templates/types";
+import { bodyText } from "@/lib/templates/preview-meta";
 import { TranslateDialog } from "./TranslateDialog";
 
 const CATEGORY_STYLES: Record<string, string> = {
@@ -21,8 +22,7 @@ export function TemplateCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [translateOpen, setTranslateOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const body = template.components.find((c): c is BodyComponent => c.type === "BODY");
-  const preview = body?.text ?? "";
+  const preview = bodyText(template.components);
   const date = new Date(template.created_at).toLocaleDateString("it-IT");
 
   useEffect(() => {

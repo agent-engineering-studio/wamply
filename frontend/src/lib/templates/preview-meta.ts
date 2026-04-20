@@ -1,13 +1,16 @@
-import type {
-  TemplateComponent,
-  HeaderComponent,
-  BodyComponent,
-} from "./types";
+import type { TemplateComponent } from "./types";
 import { extractVariables } from "./variables";
 
+function typeOf(c: TemplateComponent): string {
+  return String((c as { type?: string }).type ?? "").toUpperCase();
+}
+
+function textOf(c: TemplateComponent | undefined): string {
+  return (c as { text?: string } | undefined)?.text ?? "";
+}
+
 export function bodyText(components: TemplateComponent[]): string {
-  const body = components.find((c): c is BodyComponent => c.type === "BODY");
-  return body?.text ?? "";
+  return textOf(components.find((c) => typeOf(c) === "BODY"));
 }
 
 export function bodyLength(components: TemplateComponent[]): number {
@@ -15,10 +18,10 @@ export function bodyLength(components: TemplateComponent[]): number {
 }
 
 export function collectVariables(components: TemplateComponent[]): string[] {
-  const header = components.find((c): c is HeaderComponent => c.type === "HEADER");
-  const body = components.find((c): c is BodyComponent => c.type === "BODY");
-  const headerVars = header ? extractVariables(header.text) : [];
-  const bodyVars = body ? extractVariables(body.text) : [];
+  const headerText = textOf(components.find((c) => typeOf(c) === "HEADER"));
+  const bodyT = bodyText(components);
+  const headerVars = headerText ? extractVariables(headerText) : [];
+  const bodyVars = bodyT ? extractVariables(bodyT) : [];
   const seen = new Set<string>();
   const result: string[] = [];
   for (const v of [...headerVars, ...bodyVars]) {
