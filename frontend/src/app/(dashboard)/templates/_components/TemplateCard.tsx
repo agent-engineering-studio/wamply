@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Template, BodyComponent } from "@/lib/templates/types";
 
 const CATEGORY_STYLES: Record<string, string> = {
@@ -18,9 +18,26 @@ export function TemplateCard({
   onDelete: (id: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const body = template.components.find((c): c is BodyComponent => c.type === "BODY");
   const preview = body?.text ?? "";
   const date = new Date(template.created_at).toLocaleDateString("it-IT");
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   return (
     <div className="group relative rounded-card border border-brand-ink-10 bg-white p-4 shadow-card transition hover:shadow-md">
@@ -41,12 +58,14 @@ export function TemplateCard({
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             className="rounded-sm p-1 text-brand-ink-30 hover:bg-brand-ink-05 hover:text-brand-ink"
             aria-label="Azioni"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
               <circle cx="5" cy="12" r="1.5" />
@@ -56,8 +75,8 @@ export function TemplateCard({
           </button>
           {menuOpen && (
             <div
+              role="menu"
               className="absolute right-0 top-7 z-10 w-36 rounded-sm border border-brand-ink-10 bg-white py-1 shadow-card"
-              onMouseLeave={() => setMenuOpen(false)}
             >
               <Link
                 href={`/templates/${template.id}`}

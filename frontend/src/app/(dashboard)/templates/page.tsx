@@ -29,11 +29,16 @@ export default function TemplatesPage() {
   }, []);
 
   async function handleDelete(id: string) {
-    const prev = templates;
-    setTemplates((t) => (t ? t.filter((x) => x.id !== id) : t));
-    const res = await apiFetch(`/templates/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      setTemplates(prev ?? null);
+    let snapshot: Template[] | null = null;
+    setTemplates((t) => {
+      snapshot = t;
+      return t ? t.filter((x) => x.id !== id) : t;
+    });
+    try {
+      const res = await apiFetch(`/templates/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Errore ${res.status}`);
+    } catch {
+      setTemplates(snapshot);
       alert("Errore durante l'eliminazione del template.");
     }
   }
