@@ -34,6 +34,17 @@ async def admin_overview(request: Request, user: CurrentUser = Depends(require_a
     }
 
 
+@router.get("/plans")
+async def admin_plans(request: Request, user: CurrentUser = Depends(require_admin)):
+    db = get_db(request)
+    rows = await db.fetch(
+        "SELECT id, name, slug, price_cents, max_campaigns_month, max_contacts, "
+        "max_messages_month, max_templates, max_team_members "
+        "FROM plans WHERE active = true ORDER BY price_cents ASC"
+    )
+    return {"plans": [{**dict(r), "id": str(r["id"])} for r in rows]}
+
+
 @router.get("/users")
 async def admin_users(request: Request, user: CurrentUser = Depends(require_admin)):
     db = get_db(request)
