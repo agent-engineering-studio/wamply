@@ -73,13 +73,28 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Lazy helper: fetches user.role once if needed
+  let cachedRole: string | null | undefined = undefined;
+  async function homeForUser(): Promise<string> {
+    if (!user) return "/login";
+    if (cachedRole === undefined) {
+      const { data: row } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      cachedRole = (row?.role as string | undefined) ?? null;
+    }
+    return cachedRole === "admin" ? "/admin" : "/dashboard";
+  }
+
   // ── Confirm-email page: only for unconfirmed users ─────
   if (path.startsWith("/confirm-email")) {
     if (!user) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     if (user.email_confirmed_at) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL(await homeForUser(), request.url));
     }
     return response;
   }
@@ -89,13 +104,17 @@ export async function middleware(request: NextRequest) {
 
   // ── Landing page: redirect authenticated users ────────
   if (path === "/" && user) {
-    return NextResponse.redirect(new URL(needsConfirmation ? "/confirm-email" : "/dashboard", request.url));
+    return NextResponse.redirect(
+      new URL(needsConfirmation ? "/confirm-email" : await homeForUser(), request.url),
+    );
   }
 
   // ── Auth pages: redirect already-authenticated users ──
   const isAuth = path.startsWith("/login") || path.startsWith("/register");
   if (isAuth && user) {
-    return NextResponse.redirect(new URL(needsConfirmation ? "/confirm-email" : "/dashboard", request.url));
+    return NextResponse.redirect(
+      new URL(needsConfirmation ? "/confirm-email" : await homeForUser(), request.url),
+    );
   }
 
   return response;

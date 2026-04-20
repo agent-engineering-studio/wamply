@@ -32,12 +32,14 @@ function buildInitials(fullName: string, email: string): string {
 export function UserEditModal({
   user,
   plans,
+  currentUserId,
   onClose,
   onSaved,
   onDeleted,
 }: {
   user: AdminUser | null;
   plans: Plan[];
+  currentUserId: string | null;
   onClose: () => void;
   onSaved: (updated: AdminUser) => void;
   onDeleted?: (userId: string) => void;
@@ -133,6 +135,7 @@ export function UserEditModal({
 
   const initials = buildInitials(user.full_name ?? "", user.email);
   const canConfirmDelete = confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
+  const isSelf = !!currentUserId && user.id === currentUserId;
 
   return (
     <div
@@ -221,29 +224,35 @@ export function UserEditModal({
 
         <div className="flex items-center justify-between gap-3">
           {!confirmOpen ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleToggleBan}
-                disabled={saving}
-                title={user.banned ? "Riattiva l'account" : "Disabilita l'account (reversibile)"}
-                className={`rounded-sm border px-3 py-2 text-[12.5px] font-medium disabled:opacity-40 ${
-                  user.banned
-                    ? "border-amber-600/60 text-amber-400 hover:bg-amber-950/40"
-                    : "border-slate-700 text-slate-300 hover:bg-brand-navy-deep"
-                }`}
-              >
-                {user.banned ? "Riattiva" : "Disabilita"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                disabled={!onDeleted}
-                className="rounded-sm border border-red-900/60 px-3 py-2 text-[12.5px] font-medium text-red-400 hover:bg-red-950/40 disabled:opacity-40"
-              >
-                Elimina utente
-              </button>
-            </div>
+            isSelf ? (
+              <span className="text-[11px] italic text-slate-500">
+                Non puoi disabilitare o eliminare il tuo stesso account.
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleBan}
+                  disabled={saving}
+                  title={user.banned ? "Riattiva l'account" : "Disabilita l'account (reversibile)"}
+                  className={`rounded-sm border px-3 py-2 text-[12.5px] font-medium disabled:opacity-40 ${
+                    user.banned
+                      ? "border-amber-600/60 text-amber-400 hover:bg-amber-950/40"
+                      : "border-slate-700 text-slate-300 hover:bg-brand-navy-deep"
+                  }`}
+                >
+                  {user.banned ? "Riattiva" : "Disabilita"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={!onDeleted}
+                  className="rounded-sm border border-red-900/60 px-3 py-2 text-[12.5px] font-medium text-red-400 hover:bg-red-950/40 disabled:opacity-40"
+                >
+                  Elimina utente
+                </button>
+              </div>
+            )
           ) : (
             <button
               type="button"

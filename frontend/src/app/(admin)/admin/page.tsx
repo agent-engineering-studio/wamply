@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { createClient } from "@/lib/supabase/client";
 import { UserEditModal, type AdminUser, type Plan } from "./_components/UserEditModal";
 
 interface Overview {
@@ -33,6 +34,7 @@ export default function AdminPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "users" | "campaigns">("overview");
 
   useEffect(() => {
@@ -47,6 +49,9 @@ export default function AdminPage() {
       setCampaigns(c.campaigns || []);
       setPlans(p.plans || []);
     });
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
   if (!overview) return <div className="animate-pulse text-slate-500">Caricamento...</div>;
@@ -161,6 +166,7 @@ export default function AdminPage() {
       <UserEditModal
         user={editingUser}
         plans={plans}
+        currentUserId={currentUserId}
         onClose={() => setEditingUser(null)}
         onSaved={(updated) =>
           setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))

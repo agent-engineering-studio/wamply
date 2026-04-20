@@ -43,7 +43,16 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    let dest = "/dashboard";
+    if (user) {
+      const { data: row } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (row?.role === "admin") dest = "/admin";
+    }
+    router.push(dest);
     router.refresh();
   }
 
