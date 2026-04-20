@@ -146,3 +146,32 @@ async def admin_update_user_plan(
             "plans": {"name": plan["name"], "slug": plan["slug"]},
         }
     }
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def admin_delete_user(
+    request: Request,
+    user_id: str,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Hard-delete a user: wipes public.users (CASCADE removes app data)
+    then auth.users so GoTrue can no longer authenticate the account."""
+    if user_id == str(user.id):
+        raise HTTPException(
+            status_code=400, detail="Non puoi eliminare il tuo stesso account."
+        )
+
+    db = get_db(request)
+    redis = get_redis(request)
+
+    target = await db.fetchrow("SELECT id FROM users WHERE id = $1", user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Utente non trovato.")
+
+    async with db.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("DELETE FROM public.users WHERE id = $1", user_id)
+            await conn.execute("DELETE FROM auth.users WHERE id = $1", user_id)
+
+    await redis.delete(f"plan:{user_id}")
+    return None
