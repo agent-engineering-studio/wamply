@@ -43,7 +43,8 @@
       "Bash(echo \"Exit: $?\")",
       "Bash(powershell.exe -Command \"Get-NetTCPConnection -LocalPort 8200 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess\")",
       "Bash(powershell.exe -Command \"Get-NetTCPConnection -LocalPort 8200 | Format-Table\")",
-      "Bash(docker volume *)"
+      "Bash(docker volume *)",
+      "Bash(backend/.venv/Scripts/python -c \"import ast; ast.parse\\(open\\('backend/src/api/templates.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
