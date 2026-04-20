@@ -218,7 +218,7 @@ async def admin_patch_user(
         async with db.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(
-                    "UPDATE auth.users SET banned_until = 'infinity'::timestamptz WHERE id = $1",
+                    "UPDATE auth.users SET banned_until = '9999-12-31 23:59:59+00'::timestamptz WHERE id = $1",
                     user_id,
                 )
                 # Revoke all refresh tokens and destroy sessions so the user
@@ -236,6 +236,46 @@ async def admin_patch_user(
             user_id,
         )
     return {"banned": body["banned"]}
+
+
+@router.post("/users/{user_id}/reset-password", status_code=204)
+async def admin_reset_user_password(
+    request: Request,
+    user_id: str,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Set a new password for the target user by updating
+    auth.users.encrypted_password via bcrypt. Revokes all their existing
+    sessions so the next login must use the new password."""
+    body = await request.json()
+    new_password = body.get("password")
+    if not isinstance(new_password, str) or len(new_password) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Password deve essere almeno 10 caratteri.",
+        )
+
+    db = get_db(request)
+    target = await db.fetchrow("SELECT id FROM auth.users WHERE id = $1", user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Utente non trovato.")
+
+    async with db.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE auth.users SET encrypted_password = crypt($1, gen_salt('bf')), "
+                "updated_at = now() WHERE id = $2",
+                new_password,
+                user_id,
+            )
+            await conn.execute(
+                "UPDATE auth.refresh_tokens SET revoked = true WHERE user_id = $1",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM auth.sessions WHERE user_id = $1", user_id
+            )
+    return None
 
 
 @router.delete("/users/{user_id}", status_code=204)
