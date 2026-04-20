@@ -81,7 +81,7 @@ async def generate_template_ai(
         generated.name,
         generated.language,
         generated.category,
-        json.dumps([{"type": "body", "text": generated.body}]),
+        json.dumps([{"type": "BODY", "text": generated.body}]),
     )
     await increment_ai_template_ops(db, redis, user.id)
 
@@ -307,7 +307,7 @@ async def translate_template_ai(
                 source_language=row["language"],
                 target_language=target,
             )
-            new_components = [{"type": "body", "text": translated.body}]
+            new_components = [{"type": "BODY", "text": translated.body}]
             new_row = await db.fetchrow(
                 """INSERT INTO templates
                    (user_id, name, language, category, components, status, source_template_id)
