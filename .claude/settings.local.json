@@ -49,7 +49,10 @@
       "Bash(pip index *)",
       "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); print\\('twilio \\(pypi\\):', d['info']['version']\\)\")",
       "Bash(python *)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(backend/.venv/Scripts/python -c \"import ast; ast.parse\\(open\\('backend/src/api/admin.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(c:/Users/GiuseppeZileni/Git/wamply/backend/.venv/Scripts/python -c 'import ast; ast.parse\\(open\\('\\\\''c:/Users/GiuseppeZileni/Git/wamply/backend/src/api/admin.py'\\\\''\\).read\\(\\)\\); print\\('\\\\''OK'\\\\''\\)')",
+      "Bash(c:/Users/GiuseppeZileni/Git/wamply/backend/.venv/Scripts/python -c \"import ast; ast.parse\\(open\\('c:/Users/GiuseppeZileni/Git/wamply/backend/src/api/admin.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
