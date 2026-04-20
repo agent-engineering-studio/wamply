@@ -1,10 +1,10 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.permissions import require_admin
 from src.auth.jwt import CurrentUser
-from src.dependencies import get_db
+from src.dependencies import get_db, get_redis
 
 router = APIRouter(prefix="/admin")
 
@@ -92,3 +92,57 @@ async def admin_campaigns(request: Request, user: CurrentUser = Depends(require_
             "user": {"email": r["user_email"], "full_name": r["user_full_name"]},
         })
     return {"campaigns": campaigns}
+
+
+VALID_PLAN_SLUGS = {"starter", "professional", "enterprise"}
+
+
+@router.put("/users/{user_id}/plan")
+async def admin_update_user_plan(
+    request: Request,
+    user_id: str,
+    user: CurrentUser = Depends(require_admin),
+):
+    db = get_db(request)
+    redis = get_redis(request)
+    body = await request.json()
+    plan_slug = body.get("plan_slug")
+
+    if not plan_slug or plan_slug not in VALID_PLAN_SLUGS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"plan_slug obbligatorio, valori ammessi: {sorted(VALID_PLAN_SLUGS)}",
+        )
+
+    plan = await db.fetchrow(
+        "SELECT id, name, slug FROM plans WHERE slug = $1 AND active = true",
+        plan_slug,
+    )
+    if not plan:
+        raise HTTPException(status_code=404, detail="Piano non trovato.")
+
+    target = await db.fetchrow("SELECT id FROM users WHERE id = $1", user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Utente non trovato.")
+
+    updated = await db.fetchrow(
+        "UPDATE subscriptions SET plan_id = $1, status = 'active', updated_at = now() "
+        "WHERE user_id = $2 AND status = 'active' RETURNING id",
+        plan["id"],
+        user_id,
+    )
+    if not updated:
+        await db.execute(
+            "INSERT INTO subscriptions (user_id, plan_id, status) VALUES ($1, $2, 'active')",
+            user_id,
+            plan["id"],
+        )
+
+    await redis.delete(f"plan:{user_id}")
+
+    return {
+        "subscription": {
+            "status": "active",
+            "plans": {"name": plan["name"], "slug": plan["slug"]},
+        }
+    }
