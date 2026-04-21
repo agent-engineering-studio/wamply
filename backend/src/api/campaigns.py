@@ -5,8 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
 from src.services.plan_limits import check_plan_limit
+from src.services.ai_credits import reserve_credits, commit_credits, resolve_api_key
+from src.services.ai_campaigns import (
+    personalize_for_contact,
+    plan_campaign,
+    extract_body_text,
+)
 
 router = APIRouter(prefix="/campaigns")
+
+PREVIEW_CONTACT_LIMIT = 5  # upper bound to protect credits/latency
 
 
 _JSONB_COLUMNS = {"stats", "segment_query"}
@@ -159,3 +167,184 @@ async def launch_campaign(
         campaign_id,
     )
     return {"success": True, "campaign_id": str(row["id"]), "launched": True}
+
+
+# ── AI: preview personalizzazione ────────────────────────────
+
+@router.post("/preview-personalization")
+async def preview_personalization(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Generate N (≤5) personalized messages for sample contacts to preview
+    what the campaign will look like before launch.
+
+    Each personalization call is charged as 1 'personalize_message' credit
+    (0.5c). Cached upstream: no — preview is always fresh, user may iterate."""
+    body_payload = await request.json()
+    template_id = body_payload.get("template_id")
+    contact_ids = body_payload.get("contact_ids") or []
+
+    if not template_id:
+        raise HTTPException(status_code=400, detail="template_id obbligatorio.")
+    if not isinstance(contact_ids, list) or not contact_ids:
+        raise HTTPException(status_code=400, detail="contact_ids (array) obbligatorio.")
+
+    contact_ids = contact_ids[:PREVIEW_CONTACT_LIMIT]
+
+    db = get_db(request)
+    redis = get_redis(request)
+
+    tpl = await db.fetchrow(
+        "SELECT components FROM templates WHERE id = $1 AND user_id = $2 "
+        "AND status != 'archived'",
+        template_id,
+        user.id,
+    )
+    if not tpl:
+        raise HTTPException(status_code=404, detail="Template non trovato.")
+    body_text = extract_body_text(tpl["components"])
+    if not body_text:
+        raise HTTPException(status_code=400, detail="Template senza body.")
+
+    contacts = await db.fetch(
+        "SELECT id, name, phone, language, tags, variables "
+        "FROM contacts WHERE id = ANY($1) AND user_id = $2",
+        contact_ids,
+        user.id,
+    )
+    if not contacts:
+        raise HTTPException(status_code=404, detail="Nessun contatto trovato.")
+
+    # Resolve the key once, reserve+commit credits per contact.
+    api_key, _ = await resolve_api_key(db, str(user.id))
+
+    results: list[dict] = []
+    for contact in contacts:
+        contact_dict = {
+            "id": str(contact["id"]),
+            "name": contact["name"],
+            "phone": contact["phone"],
+            "language": contact["language"],
+            "tags": contact["tags"] or [],
+            "variables": contact["variables"] or {},
+        }
+        try:
+            reservation = await reserve_credits(
+                db, redis, str(user.id), "personalize_message"
+            )
+            text, tin, tout = await personalize_for_contact(
+                body_text, contact_dict, api_key
+            )
+            await commit_credits(db, redis, reservation, tin, tout)
+            results.append({
+                "contact_id": contact_dict["id"],
+                "contact_name": contact_dict["name"] or contact_dict["phone"],
+                "ok": True,
+                "text": text,
+            })
+        except HTTPException as e:
+            # Credits exhausted mid-batch → stop, mark remaining as skipped.
+            results.append({
+                "contact_id": contact_dict["id"],
+                "contact_name": contact_dict["name"] or contact_dict["phone"],
+                "ok": False,
+                "error": e.detail,
+            })
+            break
+        except Exception as e:  # noqa: BLE001 — per-contact error recovery
+            results.append({
+                "contact_id": contact_dict["id"],
+                "contact_name": contact_dict["name"] or contact_dict["phone"],
+                "ok": False,
+                "error": str(e),
+            })
+
+    return {"results": results}
+
+
+# ── AI: strategic campaign planner ──────────────────────────
+
+@router.post("/planner")
+async def planner(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Strategic campaign planner. Costs 5 credits (Opus, silent routing).
+
+    Input: {objective: str}. Wamply gathers the user's contact aggregates
+    and template list as context and asks Claude for segmentation +
+    template + timing suggestions."""
+    body_payload = await request.json()
+    objective = (body_payload.get("objective") or "").strip()
+    if not objective:
+        raise HTTPException(status_code=400, detail="objective obbligatorio.")
+    if len(objective) > 1000:
+        raise HTTPException(status_code=400, detail="objective troppo lungo (max 1000 caratteri).")
+
+    db = get_db(request)
+    redis = get_redis(request)
+
+    # Gather context (cheap aggregates, no PII to Claude)
+    total_contacts = await db.fetchval(
+        "SELECT count(*) FROM contacts WHERE user_id = $1 AND opt_in = true",
+        user.id,
+    )
+    tag_rows = await db.fetch(
+        "SELECT unnest(tags) AS tag, count(*) AS c FROM contacts "
+        "WHERE user_id = $1 AND opt_in = true GROUP BY tag ORDER BY c DESC LIMIT 20",
+        user.id,
+    )
+    lang_rows = await db.fetch(
+        "SELECT language, count(*) AS c FROM contacts "
+        "WHERE user_id = $1 AND opt_in = true GROUP BY language ORDER BY c DESC",
+        user.id,
+    )
+    tpl_rows = await db.fetch(
+        "SELECT id, name, category, language FROM templates "
+        "WHERE user_id = $1 AND status != 'archived' ORDER BY created_at DESC LIMIT 20",
+        user.id,
+    )
+    recent_rows = await db.fetch(
+        "SELECT name, status::text, stats FROM campaigns "
+        "WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5",
+        user.id,
+    )
+
+    context_data = {
+        "total_contacts": int(total_contacts or 0),
+        "contacts_by_tag": [
+            {"tag": r["tag"], "count": int(r["c"])} for r in tag_rows if r["tag"]
+        ],
+        "contacts_by_language": [
+            {"language": r["language"], "count": int(r["c"])} for r in lang_rows
+        ],
+        "available_templates": [
+            {
+                "id": str(r["id"]),
+                "name": r["name"],
+                "category": r["category"],
+                "language": r["language"],
+            }
+            for r in tpl_rows
+        ],
+        "recent_campaigns": [
+            {
+                "name": r["name"],
+                "status": r["status"],
+                "stats": json.loads(r["stats"]) if isinstance(r["stats"], str) else (r["stats"] or {}),
+            }
+            for r in recent_rows
+        ],
+    }
+
+    reservation = await reserve_credits(db, redis, str(user.id), "campaign_planner")
+    api_key, _ = await resolve_api_key(db, str(user.id))
+
+    try:
+        suggestion, tin, tout = await plan_campaign(objective, context_data, api_key)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"Planner error: {e}") from e
+
+    await commit_credits(db, redis, reservation, tin, tout)
+    return suggestion.model_dump()

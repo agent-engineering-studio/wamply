@@ -7,6 +7,7 @@ from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db
 from src.services.billing import (
     create_checkout_session,
+    create_portal_session,
     handle_stripe_webhook,
 )
 from src.services.credit_topup import (
@@ -44,6 +45,30 @@ async def checkout(
         raise HTTPException(status_code=503, detail=str(e))
 
     return {"checkout_url": url}
+
+
+@router.post("/portal")
+async def portal(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Create a Stripe Billing Portal session and return its URL.
+
+    Self-service for plan changes, cancellation, payment method,
+    invoices. Requires the user to already have a Stripe customer
+    (i.e. at least one past Checkout or manually linked).
+    """
+    db = get_db(request)
+    try:
+        url = await create_portal_session(
+            db=db,
+            user_id=str(user.id),
+            user_email=user.email,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return {"portal_url": url}
 
 
 @router.post("/webhook")

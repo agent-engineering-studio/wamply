@@ -10,6 +10,8 @@ interface Subscription {
   current_period_start: string | null;
   current_period_end: string | null;
   trial_days_remaining: number | null;
+  stripe_subscription_id?: string | null;
+  cancel_at_period_end?: boolean;
 }
 
 interface Plan {
@@ -68,6 +70,8 @@ function BillingContent() {
   const [error, setError] = useState<string | null>(null);
 
   const checkoutResult = searchParams.get("checkout");
+  const portalReturn = searchParams.get("portal") === "return";
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -98,6 +102,19 @@ function BillingContent() {
     window.location.href = body.checkout_url;
   }
 
+  async function handleManage() {
+    setPortalLoading(true);
+    setError(null);
+    const res = await apiFetch("/billing/portal", { method: "POST" });
+    const body = await res.json();
+    if (!res.ok) {
+      setError(body.detail || "Impossibile aprire il portale di gestione.");
+      setPortalLoading(false);
+      return;
+    }
+    window.location.href = body.portal_url;
+  }
+
   if (loading) {
     return <div className="animate-pulse rounded-card bg-brand-navy-light p-8 text-slate-500">Caricamento...</div>;
   }
@@ -116,6 +133,11 @@ function BillingContent() {
       {checkoutResult === "cancelled" && (
         <div className="rounded-card border border-slate-700 bg-brand-navy-light p-4 text-[13px] text-slate-300">
           Checkout annullato. Nessuna spesa è stata effettuata.
+        </div>
+      )}
+      {portalReturn && (
+        <div className="rounded-card border border-slate-700 bg-brand-navy-light p-4 text-[13px] text-slate-300">
+          Modifiche al tuo abbonamento registrate. L&apos;aggiornamento può richiedere qualche secondo.
         </div>
       )}
       {error && (
@@ -139,19 +161,41 @@ function BillingContent() {
                 {!isTrialing && !isFree && !isPastDue && sub.status === "active" && "Attivo"}
               </div>
             </div>
-            {sub.current_period_end && !isFree && (
-              <div className="text-right text-[12px] text-slate-400">
-                <div>Prossimo rinnovo</div>
-                <div className="text-slate-200">
-                  {new Date(sub.current_period_end).toLocaleDateString("it-IT", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
+            <div className="flex items-center gap-3">
+              {sub.current_period_end && !isFree && (
+                <div className="text-right text-[12px] text-slate-400">
+                  <div>{sub.cancel_at_period_end ? "Accesso fino al" : "Prossimo rinnovo"}</div>
+                  <div className="text-slate-200">
+                    {new Date(sub.current_period_end).toLocaleDateString("it-IT", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+              {sub.stripe_subscription_id && !isFree && (
+                <button
+                  type="button"
+                  onClick={handleManage}
+                  disabled={portalLoading}
+                  className="shrink-0 rounded-pill border border-slate-700 px-3.5 py-1.5 text-[12px] font-medium text-slate-100 hover:bg-brand-navy-deep disabled:opacity-50"
+                >
+                  {portalLoading ? "Apertura..." : "Gestisci abbonamento"}
+                </button>
+              )}
+            </div>
           </div>
+
+          {sub.cancel_at_period_end && (
+            <div className="mt-4 rounded-sm border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] text-amber-200">
+              <div className="font-medium">Cancellazione programmata</div>
+              <div className="mt-0.5 text-amber-200/80">
+                Il tuo abbonamento verrà disattivato alla fine del periodo pagato. Puoi riattivarlo in qualsiasi momento
+                dal portale di gestione.
+              </div>
+            </div>
+          )}
         </div>
       )}
 

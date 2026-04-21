@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { TemplatePreview } from "./_components/TemplatePreview";
+import { PersonalizationPreview } from "./_components/PersonalizationPreview";
+import { CampaignPlanner } from "./_components/CampaignPlanner";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 interface Template { id: string; name: string; category: string; }
 interface Group { id: string; name: string; }
@@ -19,6 +22,8 @@ export default function NewCampaignPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { status: agentStatus } = useAgentStatus();
+  const aiEnabled = !!agentStatus?.active;
 
   useEffect(() => {
     apiFetch("/templates").then((r) => r.json()).then((d) => setTemplates(d.templates || []));
@@ -74,9 +79,10 @@ export default function NewCampaignPage() {
           </div>
 
           <div className="mb-4">
-            <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Template</label>
-            <select value={templateId} onChange={(e) => setTemplateId(e.target.value)}
+            <label htmlFor="campaign-template" className="mb-1 block text-[11.5px] font-medium text-slate-400">Template</label>
+            <select id="campaign-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}
               disabled={templates.length === 0}
+              aria-label="Template della campagna"
               className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none disabled:bg-brand-navy-deep disabled:text-slate-400">
               <option value="">
                 {templates.length === 0 ? "Nessun template disponibile" : "Seleziona template..."}
@@ -109,12 +115,13 @@ export default function NewCampaignPage() {
           </div>
         </div>
 
-        <div className="rounded-card border border-brand-teal/25 bg-brand-navy-light p-4">
-          <div className="text-[12px] font-medium text-brand-teal">🤖 Agent AI attivo</div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Claude personalizzerà ogni messaggio per ciascun destinatario.
-          </div>
-        </div>
+        {/* AI: planner (obiettivo → suggerimento) e anteprima personalizzazione */}
+        <CampaignPlanner
+          templates={templates}
+          aiEnabled={aiEnabled}
+          onApplyTemplate={(id) => setTemplateId(id)}
+        />
+        <PersonalizationPreview templateId={templateId || null} aiEnabled={aiEnabled} />
 
         <button type="submit" disabled={saving || !name}
           className="w-full rounded-sm bg-brand-teal py-3 text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(37,211,102,.3)] hover:bg-brand-teal-dark disabled:opacity-50">

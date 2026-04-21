@@ -44,6 +44,33 @@ async def _get_or_create_customer(db: asyncpg.Pool, user_id: str, email: str) ->
     return customer.id
 
 
+async def create_portal_session(
+    db: asyncpg.Pool,
+    user_id: str,
+    user_email: str,
+) -> str:
+    """Create a Stripe Billing Portal session and return its URL.
+
+    The Portal lets the user self-manage subscription (upgrade/downgrade/cancel),
+    payment method, billing address, and download invoices. All operations
+    fire `customer.subscription.updated` which our webhook already syncs.
+
+    Requires the Portal to be configured in the Stripe Dashboard (test + live):
+      Settings → Billing → Customer portal → activate.
+    The Portal's feature set is configured there, NOT here.
+    """
+    if not stripe.api_key:
+        raise RuntimeError("STRIPE_SECRET_KEY non configurato.")
+
+    customer_id = await _get_or_create_customer(db, user_id, user_email)
+
+    session = stripe.billing_portal.Session.create(
+        customer=customer_id,
+        return_url=f"{APP_URL}/settings/billing?portal=return",
+    )
+    return session.url
+
+
 async def create_checkout_session(
     db: asyncpg.Pool,
     user_id: str,

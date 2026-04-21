@@ -2,7 +2,7 @@
 
 > **Scopo di questo documento.** Riassumere il lavoro svolto e concordato in una sessione Claude Code lunga (2026-04-21) su: Trial 14gg, Stripe Billing, piano crediti AI con routing silente Claude, BYOK, top-up crediti, dashboard user/admin. Serve a far partire una nuova sessione con il contesto pieno, senza dover rileggere la conversazione.
 >
-> Lo stato del codice al momento della scrittura è **parzialmente implementato**. Le sezioni sotto distinguono chiaramente cosa è `FATTO`, cosa è `DECISO-DA-FARE`, cosa è `DA-DECIDERE`.
+> Lo stato del codice al momento della scrittura è **parzialmente implementato**. Le sezioni sotto distinguono chiaramente cosa è `FATTO`, cosa è `DECISO-DA-FARE (da segnare come FATTO solo dopo test manuale)`, cosa è `DA-DECIDERE`.
 
 ---
 
@@ -498,21 +498,21 @@ Alternativa: sub-nav dentro `/settings`. Vado con **voce sidebar dedicata** per 
 
 Ordine aggiornato con il top-up e la nuova pagina crediti:
 
-**Task 1 — Schema crediti (migration 020)** — DA-FARE
+**Task 1 — Schema crediti (migration 020)** — ✅ IMPLEMENTATO (applicato al DB: plans.ai_credits_month seed, usage_counters.ai_credits_used, ai_usage_ledger, subscriptions warning flags)
 - Colonna `ai_credits_month` su plans + seed
 - Colonna `ai_credits_used` su usage_counters
 - Tabella `ai_usage_ledger`
 - Campi idempotenza warning su subscriptions
 - Testabile: DB aggiornato, nessuna logica cambiata
 
-**Task 2 — Credit service + routing backend** — DA-FARE
+**Task 2 — Credit service + routing backend** — ✅ IMPLEMENTATO (backend/src/services/ai_models.py + ai_credits.py; 4 endpoint template refactored con reserve_credits/commit_credits; /settings/agent-status espone crediti)
 - `backend/src/services/ai_models.py` — costanti modelli
 - `backend/src/services/ai_credits.py` — `resolve_api_key`, `resolve_model_for_operation`, `consume_credits` (piano-first stub topup), `commit_credits`
 - Wrapping dei 4 endpoint template in `ai_template.py` (generate/improve/compliance/translate)
 - Aggiornamento `/settings/agent-status` con `ai_credits_remaining`, `ai_credits_used`, `ai_credits_limit`, `source`
 - Testabile: template AI bloccano su exhausted, scrivono ledger, usano modello corretto (sonnet per improve, opus per compliance, haiku per translate)
 
-**Task 3 — Chat agent credit-aware** — DA-FARE
+**Task 3 — Chat agent credit-aware** — ✅ IMPLEMENTATO (agent/src/services/ai_models.py + ai_credits.py + chat_history.py; handle_chat usa resolve_api_key, reserve/commit, Redis history 10 turn TTL 24h, regex planner intent → Opus)
 - `_resolve_api_key`, `_get_client` per-user
 - Regex intent detection "campagna" → Opus
 - Pre/post flight credit accounting
@@ -520,7 +520,7 @@ Ordine aggiornato con il top-up e la nuova pagina crediti:
 - Gate feature `agent_ai`
 - Testabile: chat funziona BYOK+system_key, memory persistente, model routing
 
-**Task 4 — Schema top-up (migration 021) + endpoint** — DA-FARE
+**Task 4 — Schema top-up (migration 021) + endpoint** — ✅ IMPLEMENTATO (tabelle ai_credit_balance + ai_credit_purchases; services/credit_topup.py; endpoint /billing/topup/{packs,checkout,history}; webhook checkout.session.completed discrimina type=topup; plan-first+topup-fallback in commit_credits)
 - `ai_credit_balance`, `ai_credit_purchases`
 - Endpoint `POST /billing/topup/checkout`
 - Webhook handler esteso per `metadata.type="topup"`
@@ -528,38 +528,38 @@ Ordine aggiornato con il top-up e la nuova pagina crediti:
 - Estensione `consume_credits` con logica piano-first topup-fallback
 - Testabile: acquisto completato aggiunge credits, webhook sincronizza
 
-**Task 5 — UI pagina crediti** — DA-FARE
+**Task 5 — UI pagina crediti** — ✅ IMPLEMENTATO (/settings/credits con CreditsBalanceCard + TopupPackGrid + UsageBreakdown + PurchaseHistory + CreditsFAQ; voce sidebar "Crediti AI"; CreditsBanner globale 80%/100%; endpoint /billing/usage/breakdown)
 - `frontend/src/app/(dashboard)/settings/credits/page.tsx`
 - Componenti: `CreditsBalanceCard`, `TopupPackGrid`, `UsageBreakdown`, `PurchaseHistory`, `CreditsFAQ`
 - Nuova voce sidebar "Crediti AI"
 - Aggiornamenti `TrialBanner`/`AIKeyBanner` con CTA "Ricarica crediti"
 - Testabile: user vede saldo, compra pack, vede storico
 
-**Task 6 — Email warning 80% + reminder esaurimento** — DA-FARE
+**Task 6 — Email warning 80% + reminder esaurimento** — ✅ IMPLEMENTATO (template dark ai-credits-warning-80.html + ai-credits-exhausted.html; services/ai_credit_reminders.py; background loop in main.py tick 1h; flag idempotency con reset auto a rollover mese)
 - Template `backend/templates/emails/ai-credits-warning-80.html`
 - Template `backend/templates/emails/ai-credits-exhausted.html`
 - Estensione background task o nuovo loop
 - Testabile: a 80% arriva email, a 100% arriva email
 
-**Task 7 — AI nelle campagne (Task B)** — DA-FARE
+**Task 7 — AI nelle campagne (Task B)** — ✅ IMPLEMENTATO (services/ai_campaigns.py; endpoint POST /campaigns/preview-personalization + /campaigns/planner; wizard con PersonalizationPreview + CampaignPlanner; routing silente Haiku per personalize / Opus per planner)
 - Nuovo endpoint `POST /campaigns/preview-personalization` (Haiku, 0.5 credit/msg preview)
 - Nuovo endpoint `POST /campaigns/planner` (Opus, 5 credits) — dato obiettivo + contatti, propone segmento+template+timing
 - Wizard `/campaigns/new` con step "AI Planning"
 - Dialog preview personalizzazione (5 contatti sample)
 
-**Task 8 — Admin dashboard AI + Revenue** — DA-FARE
+**Task 8 — Admin dashboard AI + Revenue** — ✅ IMPLEMENTATO (endpoint /admin/ai/costs + /admin/ai/revenue; tab admin "AI Costs" con KPI/chart timeline/breakdown model+operation/top 10 utenti; tab "AI Revenue" con MRR/topup/pacchetto/heavy buyers candidati upgrade)
 - Tab `/admin` "AI Costs" — aggregazione ledger (cost USD, user top10, chart timeline)
 - Tab `/admin` "AI Revenue" — subscription vs top-up revenue, top-spender
 - Filtri data/source/model
 - Alert heavy top-up (3+ in 30gg)
 
-**Task 9 — Home page copy update** — DA-FARE
+**Task 9 — Home page copy update** — ✅ GIÀ FATTO prima dell'implementazione (migrazione a next-intl completata in parallelo: messages/it.json + en.json con sezioni aiSpotlight + autoSelection + FAQ sui crediti; banner SVG "200 crediti AI" Pro + "1.500 crediti AI + BYOK illimitato" Enterprise)
 - Ricalibrazione plan cards con "200 crediti"/"1.500 crediti"
 - Nuova sezione "AI Auto-Selection"
 - FAQ con 3 domande su crediti
 - Banner image refresh (contenuto grafico, non codice)
 
-**Task 10 — Stripe sotto-task 2** (futura) — Customer Portal + proration + cancel
+**Task 10 — Stripe sotto-task 2** — ✅ IMPLEMENTATO (services/billing.create_portal_session; endpoint POST /billing/portal; pulsante "Gestisci abbonamento" in BillingClient; banner "Cancellazione programmata" se cancel_at_period_end; messaggio return `?portal=return`; /settings/subscription espone cancel_at_period_end + stripe_subscription_id; README con guida attivazione Portal su dashboard Stripe. Proration: delegata a Stripe `create_prorations` in config Portal; cancel: `at_period_end` in config Portal; webhook `customer.subscription.updated` già sincronizza tutto.)
 **Task 11 — Stripe sotto-task 3** (futura) — SdI italiana + Stripe Tax
 
 ---

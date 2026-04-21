@@ -209,6 +209,8 @@ async def get_subscription(request: Request, user: CurrentUser = Depends(get_cur
         """SELECT s.status::text AS status,
                   s.current_period_start,
                   s.current_period_end,
+                  s.cancel_at_period_end,
+                  s.stripe_subscription_id,
                   p.name  AS plan_name,
                   p.slug  AS plan_slug
            FROM subscriptions s
@@ -231,6 +233,8 @@ async def get_subscription(request: Request, user: CurrentUser = Depends(get_cur
             "plan": {"name": row["plan_name"], "slug": row["plan_slug"]},
             "current_period_start": row["current_period_start"].isoformat() if row["current_period_start"] else None,
             "current_period_end": row["current_period_end"].isoformat() if row["current_period_end"] else None,
+            "cancel_at_period_end": bool(row["cancel_at_period_end"]),
+            "stripe_subscription_id": row["stripe_subscription_id"],
             "trial_days_remaining": days_remaining,
         }
     }

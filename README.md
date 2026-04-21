@@ -518,6 +518,31 @@ Nel frattempo, contatta il supporto a <https://agentengineering.it> per:
 - Cancellare l'abbonamento
 - Passare da mensile a annuale
 
+### Customer Portal (self-service abbonamento)
+
+Il **Billing Portal** di Stripe permette all'utente di gestire in autonomia il proprio abbonamento senza contattare il supporto: cambio piano, cancellazione, aggiornamento carta, download fatture.
+
+**Setup (una tantum, sia test che live):**
+
+1. Dashboard Stripe → **Settings → Billing → Customer portal** → clicca **Activate**.
+2. Configura le feature da mostrare agli utenti:
+   - ✅ **Invoice history** — sempre abilitato
+   - ✅ **Update payment method**
+   - ✅ **Cancel subscriptions** → scegli **"At end of billing period"** (coerente con policy Wamply)
+   - ✅ **Switch plans** → seleziona i tre Product attivi (Starter, Professional, Enterprise). Abilita **Prorations** (create_prorations).
+   - ❌ **Update customer info → email** — disabilitato: email = identity utente, va gestita da Wamply.
+   - ✅ **Update billing address** + **Tax ID**
+3. Salva.
+
+**Come funziona lato utente:**
+
+- Su `/settings/billing` compare il pulsante **"Gestisci abbonamento"** (visibile solo se la subscription ha un `stripe_subscription_id`, cioè dopo almeno un pagamento).
+- Click → l'utente viene reindirizzato al Portal Stripe.
+- Qualsiasi modifica fatta nel Portal (upgrade, cancel, aggiornamento carta) triggera eventi `customer.subscription.updated` / `customer.subscription.deleted` che il webhook Wamply già sincronizza in DB (`plan_id`, `status`, `cancel_at_period_end`).
+- Al return, l'utente atterra su `/settings/billing?portal=return` con un messaggio di conferma.
+
+**Test locale:** con `stripe listen` attivo, fai un checkout, poi clicca "Gestisci abbonamento", modifica il piano. Il webhook sincronizza automaticamente e la UI aggiorna al prossimo reload.
+
 ### Setup produzione
 
 1. Passa dashboard Stripe in **Live mode**, crea le stesse Product+Price con id diversi (`price_...` live).
@@ -532,6 +557,7 @@ Nel frattempo, contatta il supporto a <https://agentengineering.it> per:
    - `invoice.payment_failed`
 5. Copia il **Signing secret** del webhook endpoint (inizia con `whsec_...`) in `STRIPE_WEBHOOK_SECRET`.
 6. Configura **Dunning** (Settings → Billing → Revenue recovery): abilita Smart Retries, imposta email di sollecito.
+7. Attiva il **Customer Portal** anche in Live mode (le feature sono separate tra test e live). Vedi sezione "Customer Portal" sopra.
 
 ### Troubleshooting
 

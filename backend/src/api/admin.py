@@ -370,3 +370,281 @@ async def admin_update_user_role(
         user_id,
     )
     return {"role": new_role}
+
+
+# ── AI Costs dashboard ────────────────────────────────────────
+
+@router.get("/ai/costs")
+async def admin_ai_costs(
+    request: Request,
+    user: CurrentUser = Depends(require_staff),
+    days: int = 30,
+):
+    """Aggregates from ai_usage_ledger for the last N days (default 30).
+
+    Returns KPIs, breakdown by model, by operation, timeline per day,
+    and top 10 users by credits consumed (system_key only — BYOK users
+    don't cost us anything, but we track them separately for analytics).
+    """
+    days = max(1, min(days, 365))
+    db = get_db(request)
+
+    # Total KPIs (system_key only = our Anthropic spend)
+    kpis = await db.fetchrow(
+        f"""SELECT
+              COALESCE(SUM(credits), 0)::numeric(12,2)              AS total_credits,
+              COALESCE(SUM(estimated_cost_usd), 0)::numeric(12,4)   AS total_cost_usd,
+              COALESCE(SUM(tokens_in), 0)                           AS total_tokens_in,
+              COALESCE(SUM(tokens_out), 0)                          AS total_tokens_out,
+              COUNT(*)                                              AS total_calls,
+              COUNT(DISTINCT user_id)                               AS active_users
+           FROM ai_usage_ledger
+           WHERE source = 'system_key'
+             AND created_at >= now() - interval '{days} days'"""
+    )
+
+    # BYOK stats (not our cost, but useful to see who's using what)
+    byok = await db.fetchrow(
+        f"""SELECT
+              COUNT(*)                                              AS total_calls,
+              COUNT(DISTINCT user_id)                               AS active_users,
+              COALESCE(SUM(tokens_in), 0)                           AS tokens_in,
+              COALESCE(SUM(tokens_out), 0)                          AS tokens_out
+           FROM ai_usage_ledger
+           WHERE source = 'byok'
+             AND created_at >= now() - interval '{days} days'"""
+    )
+
+    # By model
+    by_model = await db.fetch(
+        f"""SELECT
+              model,
+              COUNT(*)                                              AS calls,
+              COALESCE(SUM(credits), 0)::numeric(12,2)              AS credits,
+              COALESCE(SUM(estimated_cost_usd), 0)::numeric(12,4)   AS cost_usd
+           FROM ai_usage_ledger
+           WHERE source = 'system_key'
+             AND created_at >= now() - interval '{days} days'
+           GROUP BY model
+           ORDER BY cost_usd DESC"""
+    )
+
+    # By operation
+    by_operation = await db.fetch(
+        f"""SELECT
+              operation,
+              COUNT(*)                                              AS calls,
+              COALESCE(SUM(credits), 0)::numeric(12,2)              AS credits,
+              COALESCE(SUM(estimated_cost_usd), 0)::numeric(12,4)   AS cost_usd
+           FROM ai_usage_ledger
+           WHERE source = 'system_key'
+             AND created_at >= now() - interval '{days} days'
+           GROUP BY operation
+           ORDER BY credits DESC"""
+    )
+
+    # Daily timeline (for chart)
+    timeline = await db.fetch(
+        f"""SELECT
+              date_trunc('day', created_at)::date                   AS day,
+              COALESCE(SUM(credits), 0)::numeric(12,2)              AS credits,
+              COALESCE(SUM(estimated_cost_usd), 0)::numeric(12,4)   AS cost_usd
+           FROM ai_usage_ledger
+           WHERE source = 'system_key'
+             AND created_at >= now() - interval '{days} days'
+           GROUP BY day
+           ORDER BY day ASC"""
+    )
+
+    # Top 10 users
+    top_users = await db.fetch(
+        f"""SELECT
+              l.user_id,
+              u.email,
+              u.full_name,
+              COUNT(*)                                              AS calls,
+              COALESCE(SUM(l.credits), 0)::numeric(12,2)            AS credits,
+              COALESCE(SUM(l.estimated_cost_usd), 0)::numeric(12,4) AS cost_usd
+           FROM ai_usage_ledger l
+           JOIN users u ON u.id = l.user_id
+           WHERE l.source = 'system_key'
+             AND l.created_at >= now() - interval '{days} days'
+           GROUP BY l.user_id, u.email, u.full_name
+           ORDER BY credits DESC
+           LIMIT 10"""
+    )
+
+    return {
+        "days": days,
+        "system_key": {
+            "total_credits": float(kpis["total_credits"]),
+            "total_cost_usd": float(kpis["total_cost_usd"]),
+            "total_tokens_in": int(kpis["total_tokens_in"]),
+            "total_tokens_out": int(kpis["total_tokens_out"]),
+            "total_calls": int(kpis["total_calls"]),
+            "active_users": int(kpis["active_users"]),
+        },
+        "byok": {
+            "total_calls": int(byok["total_calls"]),
+            "active_users": int(byok["active_users"]),
+            "tokens_in": int(byok["tokens_in"]),
+            "tokens_out": int(byok["tokens_out"]),
+        },
+        "by_model": [
+            {
+                "model": r["model"],
+                "calls": int(r["calls"]),
+                "credits": float(r["credits"]),
+                "cost_usd": float(r["cost_usd"]),
+            }
+            for r in by_model
+        ],
+        "by_operation": [
+            {
+                "operation": r["operation"],
+                "calls": int(r["calls"]),
+                "credits": float(r["credits"]),
+                "cost_usd": float(r["cost_usd"]),
+            }
+            for r in by_operation
+        ],
+        "timeline": [
+            {
+                "day": r["day"].isoformat() if r["day"] else None,
+                "credits": float(r["credits"]),
+                "cost_usd": float(r["cost_usd"]),
+            }
+            for r in timeline
+        ],
+        "top_users": [
+            {
+                "user_id": str(r["user_id"]),
+                "email": r["email"],
+                "full_name": r["full_name"],
+                "calls": int(r["calls"]),
+                "credits": float(r["credits"]),
+                "cost_usd": float(r["cost_usd"]),
+            }
+            for r in top_users
+        ],
+    }
+
+
+@router.get("/ai/revenue")
+async def admin_ai_revenue(
+    request: Request,
+    user: CurrentUser = Depends(require_staff),
+    days: int = 30,
+):
+    """Revenue breakdown between subscription (recurring) and top-up (one-shot).
+
+    MRR: sum of active subscriptions' plan price.
+    Top-up revenue: completed ai_credit_purchases in the window.
+    Includes 'heavy top-up buyers' (>=3 purchases in window) to suggest
+    upgrades to Enterprise.
+    """
+    days = max(1, min(days, 365))
+    db = get_db(request)
+
+    # MRR (current snapshot, not windowed)
+    mrr_row = await db.fetchrow(
+        """SELECT COALESCE(SUM(p.price_cents), 0) AS mrr_cents
+           FROM subscriptions s JOIN plans p ON p.id = s.plan_id
+           WHERE s.status = 'active' AND p.slug != 'free'"""
+    )
+
+    # Subscription MRR by plan
+    mrr_by_plan = await db.fetch(
+        """SELECT p.name, p.slug, COUNT(*) AS subs, p.price_cents,
+                  (COUNT(*) * p.price_cents)::integer AS total_cents
+           FROM subscriptions s JOIN plans p ON p.id = s.plan_id
+           WHERE s.status = 'active' AND p.slug != 'free'
+           GROUP BY p.name, p.slug, p.price_cents
+           ORDER BY p.price_cents ASC"""
+    )
+
+    # Top-up revenue (completed purchases in window)
+    topup_kpis = await db.fetchrow(
+        f"""SELECT
+              COALESCE(SUM(amount_cents), 0)::integer                AS total_cents,
+              COUNT(*)                                               AS purchases,
+              COUNT(DISTINCT user_id)                                AS buyers,
+              COALESCE(SUM(credits_purchased), 0)::integer           AS credits_sold
+           FROM ai_credit_purchases
+           WHERE status = 'completed'
+             AND completed_at >= now() - interval '{days} days'"""
+    )
+
+    # Top-up by pack
+    topup_by_pack = await db.fetch(
+        f"""SELECT
+              pack_slug,
+              COUNT(*)                                               AS purchases,
+              COALESCE(SUM(amount_cents), 0)::integer                AS total_cents,
+              COALESCE(SUM(credits_purchased), 0)::integer           AS credits
+           FROM ai_credit_purchases
+           WHERE status = 'completed'
+             AND completed_at >= now() - interval '{days} days'
+           GROUP BY pack_slug
+           ORDER BY total_cents DESC"""
+    )
+
+    # Heavy buyers — 3+ purchases in window = candidate for upgrade suggestion
+    heavy_buyers = await db.fetch(
+        f"""SELECT
+              u.id AS user_id,
+              u.email,
+              u.full_name,
+              COUNT(*)                                               AS purchases,
+              COALESCE(SUM(acp.amount_cents), 0)::integer            AS total_cents
+           FROM ai_credit_purchases acp
+           JOIN users u ON u.id = acp.user_id
+           WHERE acp.status = 'completed'
+             AND acp.completed_at >= now() - interval '{days} days'
+           GROUP BY u.id, u.email, u.full_name
+           HAVING COUNT(*) >= 3
+           ORDER BY purchases DESC, total_cents DESC
+           LIMIT 20"""
+    )
+
+    return {
+        "days": days,
+        "subscription": {
+            "mrr_cents": int(mrr_row["mrr_cents"]),
+            "by_plan": [
+                {
+                    "name": r["name"],
+                    "slug": r["slug"],
+                    "subs": int(r["subs"]),
+                    "price_cents": int(r["price_cents"]),
+                    "total_cents": int(r["total_cents"]),
+                }
+                for r in mrr_by_plan
+            ],
+        },
+        "topup": {
+            "total_cents": int(topup_kpis["total_cents"]),
+            "purchases": int(topup_kpis["purchases"]),
+            "buyers": int(topup_kpis["buyers"]),
+            "credits_sold": int(topup_kpis["credits_sold"]),
+            "by_pack": [
+                {
+                    "pack_slug": r["pack_slug"],
+                    "purchases": int(r["purchases"]),
+                    "total_cents": int(r["total_cents"]),
+                    "credits": int(r["credits"]),
+                }
+                for r in topup_by_pack
+            ],
+        },
+        "heavy_buyers": [
+            {
+                "user_id": str(r["user_id"]),
+                "email": r["email"],
+                "full_name": r["full_name"],
+                "purchases": int(r["purchases"]),
+                "total_cents": int(r["total_cents"]),
+            }
+            for r in heavy_buyers
+        ],
+    }

@@ -354,37 +354,10 @@ async def commit_credits(
     # Invalidate plan cache so subsequent requests see fresh usage.
     await redis.delete(f"plan:{reservation.user_id}")
 
-    # 80% threshold warning (idempotent, not sent again until new period).
-    if reservation.sub_id:
-        await _maybe_fire_80_warning(db, reservation)
-
-
-async def _maybe_fire_80_warning(
-    db: asyncpg.Pool,
-    reservation: CreditReservation,
-) -> None:
-    """If user crossed 80% of monthly budget for the first time this period,
-    mark the timestamp on `subscriptions`. Email sending happens in the
-    background task — here we only flag it so the loop picks it up."""
-    sub = await db.fetchrow(
-        "SELECT s.ai_credits_80_warning_sent_at, p.ai_credits_month "
-        "FROM subscriptions s JOIN plans p ON p.id = s.plan_id "
-        "WHERE s.id = $1",
-        reservation.sub_id,
-    )
-    if not sub or not sub["ai_credits_month"] or sub["ai_credits_month"] == -1:
-        return
-    if sub["ai_credits_80_warning_sent_at"]:
-        return  # already sent this period
-
-    used_now = await _get_current_usage(db, reservation.user_id)
-    threshold = 0.8 * int(sub["ai_credits_month"])
-    if used_now >= threshold:
-        await db.execute(
-            "UPDATE subscriptions SET ai_credits_80_warning_sent_at = now() "
-            "WHERE id = $1",
-            reservation.sub_id,
-        )
+    # Threshold events are detected + emailed by the background loop
+    # in `ai_credit_reminders.run_credit_reminders()` — the flags on
+    # subscriptions (ai_credits_80_warning_sent_at, ai_credits_100_reached_at)
+    # serve as idempotency markers updated AFTER the email is sent.
 
 
 # ── Status query ─────────────────────────────────────────────
