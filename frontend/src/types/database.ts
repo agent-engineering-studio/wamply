@@ -1,4 +1,4 @@
-export type UserRole = "user" | "admin";
+export type UserRole = "user" | "collaborator" | "admin";
 export type TemplateCategory = "marketing" | "utility" | "authentication";
 export type CampaignStatus = "draft" | "scheduled" | "running" | "paused" | "completed" | "failed";
 export type MessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";

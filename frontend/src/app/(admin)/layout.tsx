@@ -1,3 +1,5 @@
+import { LogoutButton } from "./_components/LogoutButton";
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-brand-navy-deep">
@@ -16,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <span className="text-[14px] font-semibold text-white">Wamply Admin</span>
         <span className="rounded-pill bg-brand-teal/20 px-2 py-0.5 text-[10px] font-semibold text-brand-teal">Admin</span>
         <a href="/" className="ml-auto text-[12px] text-white/60 hover:text-white transition-colors">&larr; Torna alla dashboard</a>
+        <LogoutButton />
       </div>
       <div className="mx-auto max-w-6xl px-6 py-6">{children}</div>
     </div>

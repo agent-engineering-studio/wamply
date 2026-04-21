@@ -56,19 +56,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/confirm-email", request.url));
   }
 
-  // ── Admin routes: require admin role ──────────────────
+  // ── Admin routes: require admin or collaborator role ──
   if (path.startsWith("/admin")) {
     if (!user) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    // Check role from user metadata or DB
     const { data: dbUser } = await supabase
       .from("users")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    if (dbUser?.role !== "admin") {
+    if (dbUser?.role !== "admin" && dbUser?.role !== "collaborator") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
@@ -85,15 +84,16 @@ export async function middleware(request: NextRequest) {
         .single();
       cachedRole = (row?.role as string | undefined) ?? null;
     }
-    return cachedRole === "admin" ? "/admin" : "/dashboard";
+    return cachedRole === "admin" || cachedRole === "collaborator" ? "/admin" : "/dashboard";
   }
 
-  // ── Confirm-email page: only for unconfirmed users ─────
+  // ── Confirm-email page: for unconfirmed users, or post-signup with ?email= ─
   if (path.startsWith("/confirm-email")) {
-    if (!user) {
+    const hasEmailParam = request.nextUrl.searchParams.has("email");
+    if (!user && !hasEmailParam) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    if (user.email_confirmed_at) {
+    if (user?.email_confirmed_at) {
       return NextResponse.redirect(new URL(await homeForUser(), request.url));
     }
     return response;

@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.auth.permissions import require_admin
+from src.auth.permissions import require_admin, require_staff
 from src.auth.jwt import CurrentUser
 from src.dependencies import get_db, get_redis
 
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/admin")
 
 
 @router.get("/overview")
-async def admin_overview(request: Request, user: CurrentUser = Depends(require_admin)):
+async def admin_overview(request: Request, user: CurrentUser = Depends(require_staff)):
     db = get_db(request)
     total_users = await db.fetchval("SELECT count(*) FROM users")
     subs = await db.fetch(
@@ -35,7 +35,7 @@ async def admin_overview(request: Request, user: CurrentUser = Depends(require_a
 
 
 @router.get("/plans")
-async def admin_plans(request: Request, user: CurrentUser = Depends(require_admin)):
+async def admin_plans(request: Request, user: CurrentUser = Depends(require_staff)):
     db = get_db(request)
     rows = await db.fetch(
         "SELECT id, name, slug, price_cents, max_campaigns_month, max_contacts, "
@@ -46,11 +46,12 @@ async def admin_plans(request: Request, user: CurrentUser = Depends(require_admi
 
 
 @router.get("/users")
-async def admin_users(request: Request, user: CurrentUser = Depends(require_admin)):
+async def admin_users(request: Request, user: CurrentUser = Depends(require_staff)):
     db = get_db(request)
     users = await db.fetch(
         "SELECT u.id, u.email, u.role::text, u.full_name, u.created_at, "
-        "  (au.banned_until IS NOT NULL AND au.banned_until > now()) AS banned "
+        "  (au.banned_until IS NOT NULL AND au.banned_until > now()) AS banned, "
+        "  (au.email_confirmed_at IS NOT NULL) AS email_confirmed "
         "FROM users u LEFT JOIN auth.users au ON au.id = u.id "
         "ORDER BY u.created_at DESC"
     )
@@ -75,19 +76,22 @@ async def admin_users(request: Request, user: CurrentUser = Depends(require_admi
             "subscription": {"status": sub["status"], "plans": {"name": sub["plan_name"], "slug": sub["plan_slug"]}} if sub else None,
             "messages_used": usg["messages_used"] if usg else 0,
             "banned": bool(u["banned"]),
+            "email_confirmed": bool(u["email_confirmed"]),
         })
     return {"users": enriched}
 
 
 @router.get("/campaigns")
-async def admin_campaigns(request: Request, user: CurrentUser = Depends(require_admin)):
+async def admin_campaigns(request: Request, user: CurrentUser = Depends(require_staff)):
     db = get_db(request)
     rows = await db.fetch(
-        """SELECT c.id, c.name, c.status, c.stats, c.started_at,
-                  u.email as user_email, u.full_name as user_full_name
-           FROM campaigns c JOIN users u ON u.id = c.user_id
-           WHERE c.status IN ('running', 'scheduled')
-           ORDER BY c.started_at DESC NULLS LAST"""
+        """SELECT c.id, c.name, c.status::text, c.stats, c.started_at, c.completed_at, c.created_at,
+                  u.email as user_email, u.full_name as user_full_name,
+                  t.name as template_name
+           FROM campaigns c
+           JOIN users u ON u.id = c.user_id
+           LEFT JOIN templates t ON t.id = c.template_id
+           ORDER BY c.created_at DESC NULLS LAST"""
     )
     campaigns = []
     for r in rows:
@@ -95,7 +99,10 @@ async def admin_campaigns(request: Request, user: CurrentUser = Depends(require_
             "id": str(r["id"]), "name": r["name"], "status": r["status"],
             "stats": r["stats"],
             "started_at": r["started_at"].isoformat() if r["started_at"] else None,
+            "completed_at": r["completed_at"].isoformat() if r["completed_at"] else None,
+            "created_at": r["created_at"].isoformat() if r["created_at"] else None,
             "user": {"email": r["user_email"], "full_name": r["user_full_name"]},
+            "template": {"name": r["template_name"]} if r["template_name"] else None,
         })
     return {"campaigns": campaigns}
 
@@ -242,7 +249,7 @@ async def admin_patch_user(
 async def admin_reset_user_password(
     request: Request,
     user_id: str,
-    user: CurrentUser = Depends(require_admin),
+    user: CurrentUser = Depends(require_staff),
 ):
     """Set a new password for the target user by updating
     auth.users.encrypted_password via bcrypt. Revokes all their existing
@@ -313,3 +320,46 @@ async def admin_delete_user(
 
     await redis.delete(f"plan:{user_id}")
     return None
+
+
+VALID_ROLES = {"user", "collaborator", "admin"}
+
+
+@router.patch("/users/{user_id}/role")
+async def admin_update_user_role(
+    request: Request,
+    user_id: str,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Change the target user's role. Admin-only. Prevents demoting the last
+    active admin."""
+    if user_id == str(user.id):
+        raise HTTPException(status_code=400, detail="Non puoi modificare il tuo ruolo.")
+
+    body = await request.json()
+    new_role = body.get("role")
+    if new_role not in VALID_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"role obbligatorio, valori ammessi: {sorted(VALID_ROLES)}",
+        )
+
+    db = get_db(request)
+    target = await db.fetchrow("SELECT role::text FROM users WHERE id = $1", user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Utente non trovato.")
+
+    if target["role"] == "admin" and new_role != "admin":
+        active = await _count_active_admins(db)
+        if active <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Deve esistere almeno un amministratore attivo.",
+            )
+
+    await db.execute(
+        "UPDATE users SET role = $1::user_role, updated_at = now() WHERE id = $2",
+        new_role,
+        user_id,
+    )
+    return {"role": new_role}

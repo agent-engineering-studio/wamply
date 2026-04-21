@@ -52,7 +52,21 @@
       "Bash(npx vitest *)",
       "Bash(backend/.venv/Scripts/python -c \"import ast; ast.parse\\(open\\('backend/src/api/admin.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
       "Bash(c:/Users/GiuseppeZileni/Git/wamply/backend/.venv/Scripts/python -c 'import ast; ast.parse\\(open\\('\\\\''c:/Users/GiuseppeZileni/Git/wamply/backend/src/api/admin.py'\\\\''\\).read\\(\\)\\); print\\('\\\\''OK'\\\\''\\)')",
-      "Bash(c:/Users/GiuseppeZileni/Git/wamply/backend/.venv/Scripts/python -c \"import ast; ast.parse\\(open\\('c:/Users/GiuseppeZileni/Git/wamply/backend/src/api/admin.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
+      "Bash(c:/Users/GiuseppeZileni/Git/wamply/backend/.venv/Scripts/python -c \"import ast; ast.parse\\(open\\('c:/Users/GiuseppeZileni/Git/wamply/backend/src/api/admin.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(xargs grep *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec wcm-supabase-auth sh -c 'ls -la /etc/gotrue/templates/ && echo \"---\" && env | grep -E \"MAILER_TEMPLATES|MAILER_SUBJECTS\"')",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec wcm-supabase-auth sh -c 'head -c 400 /etc/gotrue/templates/confirmation.html')",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec wcm-supabase-db psql -U supabase_admin -d postgres -c \"select count\\(*\\) as migrations from supabase_migrations.schema_migrations; select count\\(*\\) as public_users from public.users; select count\\(*\\) as plans from public.plans;\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"select count\\(*\\) from public.users; select count\\(*\\) from public.plans;\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec wcm-supabase-auth grep -c \"Codice di conferma\" /etc/gotrue/templates/confirmation.html)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -f /tmp/017.sql -c \"ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'collaborator';\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec wcm-supabase-auth *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"select unnest\\(enum_range\\(null::user_role\\)\\);\")",
+      "Bash(mkdir -p C:/Users/GiuseppeZileni/Git/wamply/frontend/public/email-templates)",
+      "Bash(mkdir -p C:/Users/GiuseppeZileni/Git/wamply/frontend/src/app/callback)",
+      "Bash(docker network *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"select extname from pg_extension where extname='pg_cron';\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"select name from pg_available_extensions where name in \\('pg_cron','pg_net'\\);\")"
     ]
   }
 }

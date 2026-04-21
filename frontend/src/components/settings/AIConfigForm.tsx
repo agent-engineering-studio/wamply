@@ -116,7 +116,7 @@ export function AIConfigForm() {
               <div className={`text-[13px] font-semibold ${agentStatus.active ? "text-brand-teal" : "text-slate-400"}`}>
                 Agent AI {agentStatus.active ? "attivo" : "non disponibile"}
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11.5px] text-slate-300">
                 {agentStatus.active && agentStatus.reason === "byok" && "Usa la tua API Key personale"}
                 {agentStatus.active && agentStatus.reason === "plan" && "Incluso nel tuo piano di abbonamento"}
                 {!agentStatus.active && !agentStatus.plan_has_agent && "Il tuo piano non include l'agent AI. Inserisci la tua API Key Claude per attivarlo."}
@@ -131,14 +131,14 @@ export function AIConfigForm() {
       {/* AI Config Form */}
       <form onSubmit={handleSubmit} className="space-y-5 rounded-card border border-slate-800 bg-brand-navy-light p-6 shadow-card">
         {message && (
-          <div className={`rounded-lg p-3 text-[12px] ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+          <div className={`rounded-sm border p-3 text-[12px] ${message.type === "success" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-rose-500/30 bg-rose-500/10 text-rose-300"}`}>
             {message.text}
           </div>
         )}
 
         {/* API Key Section */}
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-200">
             API Key Claude (Anthropic)
           </label>
           {config?.has_api_key ? (
@@ -147,7 +147,7 @@ export function AIConfigForm() {
                 sk-ant-•••••••••• (configurata)
               </div>
               <button type="button" onClick={handleRemoveKey} disabled={saving}
-                className="rounded-sm border border-red-200 px-3 py-2 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">
+                className="rounded-sm border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11.5px] font-medium text-rose-300 hover:bg-rose-500/20 disabled:opacity-50">
                 Rimuovi
               </button>
             </div>
@@ -157,19 +157,19 @@ export function AIConfigForm() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="sk-ant-..."
-              className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+              className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
             />
           )}
-          <p className="mt-1 text-[10px] text-slate-500">
+          <p className="mt-1.5 text-[11px] text-slate-400">
             Inserisci la tua chiave per attivare l&apos;agent AI. La chiave viene criptata e non sarà mai visibile.
           </p>
         </div>
 
         {/* Model */}
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Modello</label>
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-200">Modello</label>
           <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none">
+            className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-brand-teal focus:outline-none">
             {MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
@@ -177,22 +177,22 @@ export function AIConfigForm() {
         {/* Temperature + Max Tokens */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-[11.5px] font-medium text-slate-400">
+            <label className="mb-1.5 block text-[12px] font-medium text-slate-200">
               Temperatura: {temperature}
             </label>
             <input type="range" min="0" max="1" step="0.1" value={temperature}
               onChange={(e) => setTemperature(Number(e.target.value))}
               className="w-full accent-brand-teal" />
-            <div className="mt-1 flex justify-between text-[10px] text-slate-500">
+            <div className="mt-1.5 flex justify-between text-[10.5px] text-slate-400">
               <span>Preciso</span>
               <span>Creativo</span>
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Max Token</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-slate-200">Max Token</label>
             <input type="number" min={50} max={4096} value={maxTokens}
               onChange={(e) => setMaxTokens(Number(e.target.value))}
-              className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none" />
+              className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-brand-teal focus:outline-none" />
           </div>
         </div>
 

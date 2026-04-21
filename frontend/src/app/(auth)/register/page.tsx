@@ -69,7 +69,7 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/confirm-email");
+    router.push(`/confirm-email?email=${encodeURIComponent(email)}`);
   }
 
   return (
