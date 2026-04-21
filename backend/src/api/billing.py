@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
@@ -6,6 +8,12 @@ from src.dependencies import get_db
 from src.services.billing import (
     create_checkout_session,
     handle_stripe_webhook,
+)
+from src.services.credit_topup import (
+    can_purchase_topup,
+    create_topup_checkout_session,
+    get_purchase_history,
+    list_packs,
 )
 
 router = APIRouter(prefix="/billing")
@@ -54,3 +62,90 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=503, detail=str(e))
 
     return JSONResponse(result)
+
+
+# ── Top-up credits ────────────────────────────────────────────
+
+@router.get("/topup/packs")
+async def topup_packs():
+    """Public catalog of top-up credit packs for the billing UI."""
+    return {"packs": list_packs()}
+
+
+@router.post("/topup/checkout")
+async def topup_checkout(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Create a Stripe Checkout Session for a credit pack and return its URL."""
+    body = await request.json()
+    pack_slug = body.get("pack_slug")
+
+    db = get_db(request)
+
+    ok, reason = await can_purchase_topup(db, str(user.id))
+    if not ok:
+        raise HTTPException(status_code=403, detail=reason or "Top-up non consentito.")
+
+    app_url = os.getenv("APP_URL", "http://localhost:3000")
+    try:
+        url = await create_topup_checkout_session(
+            db=db,
+            user_id=str(user.id),
+            user_email=user.email,
+            pack_slug=pack_slug,
+            app_url=app_url,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return {"checkout_url": url}
+
+
+@router.get("/topup/history")
+async def topup_history(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Purchase history for the authenticated user (credits UI)."""
+    db = get_db(request)
+    history = await get_purchase_history(db, str(user.id))
+    return {"purchases": history}
+
+
+@router.get("/usage/breakdown")
+async def usage_breakdown(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Per-operation credit consumption in the current calendar month.
+
+    Aggregates the ledger to power the 'Consumo questo mese' section
+    of the credits dashboard. Excludes BYOK rows since those don't
+    count against the user's budget.
+    """
+    db = get_db(request)
+    rows = await db.fetch(
+        """SELECT operation, SUM(credits)::numeric(10,2) AS credits_used, COUNT(*) AS count
+           FROM ai_usage_ledger
+           WHERE user_id = $1
+             AND source = 'system_key'
+             AND date_trunc('month', created_at) = date_trunc('month', now())
+           GROUP BY operation
+           ORDER BY credits_used DESC""",
+        user.id,
+    )
+    total = sum(float(r["credits_used"]) for r in rows)
+    return {
+        "total_credits": total,
+        "by_operation": [
+            {
+                "operation": r["operation"],
+                "credits": float(r["credits_used"]),
+                "count": int(r["count"]),
+            }
+            for r in rows
+        ],
+    }

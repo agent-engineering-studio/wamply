@@ -120,18 +120,19 @@ async def update_ai(request: Request, user: CurrentUser = Depends(get_current_us
 
 @router.get("/agent-status")
 async def get_agent_status(request: Request, user: CurrentUser = Depends(get_current_user)):
-    """Returns whether the AI agent is available for this user and why."""
+    """Returns whether the AI agent is available for this user and why,
+    plus the current AI credits usage for system-key users."""
     db = get_db(request)
 
     # Check if user has BYOK key
     ai_row = await db.fetchrow("SELECT encrypted_api_key FROM ai_config WHERE user_id = $1", user.id)
     has_byok = ai_row is not None and ai_row["encrypted_api_key"] is not None
 
-    # Check if plan includes agent_ai feature
+    # Check if plan includes agent_ai feature (accept 'trialing' too)
     plan_row = await db.fetchrow(
         """SELECT p.features FROM subscriptions s
            JOIN plans p ON p.id = s.plan_id
-           WHERE s.user_id = $1 AND s.status = 'active'""",
+           WHERE s.user_id = $1 AND s.status IN ('active', 'trialing')""",
         user.id,
     )
     plan_has_agent = False
@@ -149,12 +150,20 @@ async def get_agent_status(request: Request, user: CurrentUser = Depends(get_cur
     # Agent is active if: BYOK set OR (plan allows + system key exists)
     active = has_byok or (plan_has_agent and system_key_set)
 
+    # Credits status (empty for inactive users, non-counted for BYOK)
+    from src.services.ai_credits import get_credits_status
+    credits = await get_credits_status(db, str(user.id))
+
     return {
         "active": active,
         "reason": "byok" if has_byok else ("plan" if (plan_has_agent and system_key_set) else "inactive"),
         "has_byok": has_byok,
         "plan_has_agent": plan_has_agent,
         "system_key_set": system_key_set,
+        "ai_credits_limit": credits["ai_credits_limit"],
+        "ai_credits_used": credits["ai_credits_used"],
+        "ai_credits_remaining": credits["ai_credits_remaining"],
+        "source": credits["source"],
     }
 
 

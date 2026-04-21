@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TrialBanner } from "@/components/layout/TrialBanner";
 import { AIKeyBanner } from "@/components/layout/AIKeyBanner";
+import { CreditsBanner } from "@/components/layout/CreditsBanner";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
         <div className="mx-auto max-w-5xl px-6 py-8">
           <TrialBanner />
           <AIKeyBanner />
+          <CreditsBanner />
           {children}
         </div>
       </main>

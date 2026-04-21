@@ -138,7 +138,7 @@ const CATEGORIES: PromptCategory[] = [
       { label: "Config WhatsApp", prompt: "Mostrami la configurazione WhatsApp corrente" },
       { label: "Aggiorna WhatsApp", prompt: "Aggiorna la configurazione WhatsApp con Phone Number ID '123456' e WABA ID '789012'" },
       { label: "Config AI", prompt: "Mostrami la configurazione AI corrente" },
-      { label: "Cambia modello AI", prompt: "Imposta il modello AI a Claude Sonnet 4" },
+      { label: "Aggiorna config AI", prompt: "Aggiorna la mia configurazione AI alle impostazioni consigliate" },
       { label: "Cambia temperatura", prompt: "Imposta la temperatura AI a 0.5" },
       { label: "Piano e utilizzo", prompt: "Mostrami il mio piano e l'utilizzo corrente" },
     ],

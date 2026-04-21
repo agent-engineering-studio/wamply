@@ -27,16 +27,21 @@ interface Plan {
 const PLAN_COPY: Record<string, { tagline: string; features: string[]; highlight?: boolean }> = {
   starter: {
     tagline: "Perfetto per iniziare",
-    features: ["5 campagne/mese", "500 contatti", "2.500 messaggi AI/mese", "Claude Haiku"],
+    features: [
+      "5 campagne/mese",
+      "500 contatti",
+      "2.500 messaggi WhatsApp",
+      "AI con la tua API key (BYOK)",
+    ],
   },
   professional: {
     tagline: "Il più scelto",
     features: [
       "20 campagne/mese",
       "5.000 contatti",
-      "15.000 messaggi AI/mese",
-      "Claude Sonnet",
-      "A/B testing",
+      "15.000 messaggi WhatsApp",
+      "200 crediti AI/mese inclusi",
+      "A/B testing + Analytics",
       "API access",
     ],
     highlight: true,
@@ -46,8 +51,8 @@ const PLAN_COPY: Record<string, { tagline: string; features: string[]; highlight
     features: [
       "Campagne illimitate",
       "50.000 contatti",
-      "100.000 messaggi AI/mese",
-      "Claude Sonnet + BYOK",
+      "100.000 messaggi WhatsApp",
+      "1.500 crediti AI + BYOK illimitato",
       "Team fino a 10",
       "White label",
     ],

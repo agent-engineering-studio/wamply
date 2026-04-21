@@ -3,10 +3,17 @@ Chat handler: Claude tool_use orchestration for the Wamply chat agent.
 
 Provides execute_tool() to dispatch 25 tool calls against the database,
 and handle_chat() to orchestrate the Claude conversation loop.
+
+Credits & key resolution:
+- Each turn calls `ai_credits.reserve_credits()` BEFORE the Claude call
+  to gate on plan feature + budget (or BYOK rate limit).
+- After the call completes, `commit_credits()` writes the ledger and
+  increments the monthly counter (system_key only).
+- The model is chosen by `ai_models.classify_chat_operation()` based
+  on the user prompt — silent routing, user never sees Haiku/Sonnet/Opus.
 """
 
 import json
-from datetime import date
 
 import anthropic
 
@@ -15,8 +22,7 @@ from src.memory.supabase_memory import SupabaseMemory
 from src.memory.redis_memory import RedisMemory
 from src.tools.chat_tools import CHAT_TOOLS
 from src.utils.telemetry import log
-
-_client: anthropic.AsyncAnthropic | None = None
+from src.services import ai_models, ai_credits, chat_history
 
 SYSTEM_PROMPT = (
     "Sei l'assistente AI di Wamply, una piattaforma di WhatsApp marketing. "
@@ -29,11 +35,20 @@ SYSTEM_PROMPT = (
 PAGE_SIZE = 20
 
 
-def _get_client() -> anthropic.AsyncAnthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    return _client
+def _build_client(api_key: str) -> anthropic.AsyncAnthropic:
+    """Fresh async client bound to a per-user key. No module-level singleton."""
+    return anthropic.AsyncAnthropic(api_key=api_key)
+
+
+def _token_counts(response) -> tuple[int, int]:
+    """Safely extract (tokens_in, tokens_out) from an Anthropic response."""
+    usage = getattr(response, "usage", None)
+    if not usage:
+        return (0, 0)
+    return (
+        getattr(usage, "input_tokens", 0) or 0,
+        getattr(usage, "output_tokens", 0) or 0,
+    )
 
 
 def _parse_stats(stats) -> dict:
@@ -778,44 +793,88 @@ async def handle_chat(
     db: SupabaseMemory,
     redis: RedisMemory,
 ) -> dict:
-    """
-    Main chat orchestrator.
+    """Main chat orchestrator.
 
-    1. If mock_llm, return mock response.
-    2. Call Claude with system prompt + tools + user message.
-    3. If end_turn, return text.
-    4. If tool_use, execute tools and send results back to Claude.
-    5. Fallback.
+    Flow:
+      1. mock_llm short-circuit (dev).
+      2. Resolve API key (BYOK → system_key → 402 if neither).
+      3. Pre-flight credit reservation — blocks on plan feature gate
+         or insufficient credits.
+      4. Classify operation from prompt (planner intent → Opus).
+      5. Load last 10 turns of history from Redis, prepend to messages.
+      6. First Claude call.
+      7. If tool_use: execute tools, second Claude call for summary.
+      8. Commit credits (ledger + counter) with total tokens.
+      9. Append (user_prompt, assistant_text) to history.
+
+    On any HTTPException (402/403/429) the FastAPI layer surfaces the
+    status to the user; on Anthropic errors we return a friendly string
+    and DO NOT commit credits (user didn't consume anything).
     """
 
     if settings.mock_llm:
         return {"response": f"[mock] Hai detto: {prompt}"}
 
-    client = _get_client()
+    pool = db.pool
+    redis_client = redis.client
 
-    messages = [{"role": "user", "content": prompt}]
+    # Key resolution (BYOK or system). Raises HTTPException(402) if neither.
+    api_key, source = await ai_credits.resolve_api_key(pool, user_id)
+
+    # Pre-flight: reserve worst-case credits so we can block early.
+    # If user typed a planner-like prompt we reserve chat_turn_planner (3c, Opus);
+    # otherwise chat_turn_tool_use (2c, Sonnet) as cautious upper bound for
+    # tool-use turns. Final commit uses the actual operation (may be cheaper).
+    planner_intent = ai_models.planner_intent_detected(prompt)
+    preflight_op = "chat_turn_planner" if planner_intent else "chat_turn_tool_use"
+    reservation = await ai_credits.reserve_credits(pool, redis_client, user_id, preflight_op)
+
+    client = _build_client(api_key)
+
+    history_msgs = await chat_history.load_history(redis_client, user_id)
+    messages = history_msgs + [{"role": "user", "content": prompt}]
+
+    total_tokens_in = 0
+    total_tokens_out = 0
 
     try:
         response = await client.messages.create(
-            model=settings.claude_model,
+            model=reservation.model_id,
             max_tokens=1024,
             system=SYSTEM_PROMPT,
             tools=CHAT_TOOLS,
             messages=messages,
         )
     except Exception as exc:
-        await log.aerror("chat_claude_error", error=str(exc))
+        await log.aerror("chat_claude_error", error=str(exc), source=source)
         return {"response": "Errore nella comunicazione con l'AI. Riprova tra poco."}
 
-    # end_turn: direct text response
+    tin, tout = _token_counts(response)
+    total_tokens_in += tin
+    total_tokens_out += tout
+
+    # ── Case A: end_turn ──────────────────────────────────────────
     if response.stop_reason == "end_turn":
         text = ""
         for block in response.content:
             if block.type == "text":
                 text += block.text
-        return {"response": text or "Non ho capito, puoi riformulare?"}
+        final_text = text or "Non ho capito, puoi riformulare?"
 
-    # tool_use: execute tools and get summary
+        # Commit: true operation is chat_turn_planner if we used Opus,
+        # else chat_turn (no tool_use).
+        final_op = "chat_turn_planner" if planner_intent else "chat_turn"
+        reservation.operation = final_op
+        reservation.credits = ai_models.credits_for(final_op)
+        reservation.model_id = ai_models.model_id(final_op)
+
+        await ai_credits.commit_credits(
+            pool, redis_client, reservation, total_tokens_in, total_tokens_out
+        )
+        await chat_history.append_turn(redis_client, user_id, prompt, final_text)
+        return {"response": final_text}
+
+    # ── Case B: tool_use → execute + summary call ────────────────
     if response.stop_reason == "tool_use":
         tool_calls = []
         tool_results = []
@@ -838,38 +897,71 @@ async def handle_chat(
                     "content": json.dumps(result, ensure_ascii=False, default=str),
                 })
 
-        # Send tool results back to Claude for natural language summary
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results})
 
         try:
             summary = await client.messages.create(
-                model=settings.claude_model,
+                model=reservation.model_id,
                 max_tokens=1024,
                 system=SYSTEM_PROMPT,
                 tools=CHAT_TOOLS,
                 messages=messages,
             )
         except Exception as exc:
-            await log.aerror("chat_summary_error", error=str(exc))
+            await log.aerror("chat_summary_error", error=str(exc), source=source)
+            # Partial execution: tools ran but no summary. Still charge
+            # for the first call (we used the model) — use tool_use op.
+            final_op = "chat_turn_planner" if planner_intent else "chat_turn_tool_use"
+            reservation.operation = final_op
+            reservation.credits = ai_models.credits_for(final_op)
+            await ai_credits.commit_credits(
+                pool, redis_client, reservation, total_tokens_in, total_tokens_out
+            )
             return {
                 "response": "Ho eseguito le operazioni ma non riesco a generare il riepilogo.",
                 "tool_calls": tool_calls,
             }
 
+        tin, tout = _token_counts(summary)
+        total_tokens_in += tin
+        total_tokens_out += tout
+
         text = ""
         for block in summary.content:
             if block.type == "text":
                 text += block.text
+        final_text = text or "Operazione completata."
+
+        # Tool-use path: 2 credits Sonnet, 3 credits if planner (Opus).
+        final_op = "chat_turn_planner" if planner_intent else "chat_turn_tool_use"
+        reservation.operation = final_op
+        reservation.credits = ai_models.credits_for(final_op)
+        reservation.model_id = ai_models.model_id(final_op)
+
+        await ai_credits.commit_credits(
+            pool, redis_client, reservation, total_tokens_in, total_tokens_out
+        )
+        await chat_history.append_turn(redis_client, user_id, prompt, final_text)
 
         return {
-            "response": text or "Operazione completata.",
+            "response": final_text,
             "tool_calls": tool_calls,
         }
 
-    # Fallback
+    # ── Fallback: unknown stop_reason ────────────────────────────
     text = ""
     for block in response.content:
         if block.type == "text":
             text += block.text
-    return {"response": text or "Non ho capito, puoi riformulare?"}
+    final_text = text or "Non ho capito, puoi riformulare?"
+
+    final_op = "chat_turn_planner" if planner_intent else "chat_turn"
+    reservation.operation = final_op
+    reservation.credits = ai_models.credits_for(final_op)
+    reservation.model_id = ai_models.model_id(final_op)
+    await ai_credits.commit_credits(
+        pool, redis_client, reservation, total_tokens_in, total_tokens_out
+    )
+    await chat_history.append_turn(redis_client, user_id, prompt, final_text)
+    return {"response": final_text}

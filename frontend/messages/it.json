@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "title": "Wamply — WhatsApp Campaign Manager",
+    "description": "Amplify your WhatsApp campaigns with AI"
+  },
+  "nav": {
+    "login": "Accedi",
+    "register": "Inizia gratis",
+    "languageSwitcher": "Lingua"
+  },
+  "hero": {
+    "titleLead": "Amplify your WhatsApp campaigns",
+    "titleAccent": "with AI",
+    "subtitle": "Ogni contatto riceve il messaggio giusto, nel momento giusto, nella lingua giusta. Personalizzato dall'AI. Zero spam.",
+    "ctaTrial": "Inizia 14 giorni gratis",
+    "ctaPlans": "Scopri i piani",
+    "statTrial": "14 giorni gratis",
+    "statCard": "Nessuna carta",
+    "statStripe": "Pagamenti Stripe",
+    "statClaude": "Powered by Claude AI"
+  },
+  "aiSpotlight": {
+    "badge": "AI AL CENTRO",
+    "titleLead": "L'AI che",
+    "titleAccent": "scrive per te",
+    "titleTail": ", ogni singolo messaggio.",
+    "subtitleLead": "Niente template con variabili da compilare a mano. Un",
+    "subtitleBold": "messaggio unico",
+    "subtitleMid": "per ogni destinatario, generato da",
+    "subtitleAccent": "Claude",
+    "subtitleTail": "di Anthropic. Tu dai l'obiettivo — l'AI scrive, personalizza, ottimizza. E migliora a ogni campagna.",
+    "cards": {
+      "copyTitle": "Scrive il copy",
+      "copyDesc": "Un brief basta: l'AI produce testi in tono naturale, adattati al tuo brand.",
+      "segmentTitle": "Segmenta i contatti",
+      "segmentDesc": "Capisce chi è pronto all'offerta, chi va riscaldato, chi è meglio escludere.",
+      "languageTitle": "Parla la loro lingua",
+      "languageDesc": "50+ lingue. Tono formale o amichevole, scelto in base al contesto del cliente.",
+      "learnTitle": "Impara dai risultati",
+      "learnDesc": "Ogni risposta è feedback: l'AI affina il tono e il timing per la campagna successiva."
+    },
+    "statTimePrefix": "Tempo di preparazione campagna",
+    "statTimeValue": "da ore a minuti",
+    "statResponsePrefix": "Response rate medio",
+    "statResponseValue": "3× vs broadcast",
+    "statSpamValue": "Zero spam",
+    "statSpamSuffix": "per design"
+  },
+  "howItWorks": {
+    "title": "Come funziona",
+    "subtitle": "L'AI guida ogni fase — tu supervisioni e approvi",
+    "step1Title": "Porta i tuoi contatti",
+    "step1Desc": "Carica un CSV o aggiungi a mano. L'AI analizza tag, storico e dati per suggerire subito i segmenti più promettenti.",
+    "step2Title": "Descrivi l'obiettivo",
+    "step2Desc": "Dici all'AI cosa vuoi ottenere — l'agent scrive il copy, personalizza per ogni destinatario, pianifica l'invio nel momento giusto.",
+    "step3Title": "Raccogli i risultati",
+    "step3Desc": "Monitora invii, letture e risposte in tempo reale. L'AI ti dice cosa ha funzionato e come migliorare la prossima campagna."
+  },
+  "autoSelection": {
+    "badge": "AUTO-SELECTION",
+    "titleLead": "Wamply sceglie",
+    "titleAccent": "l'AI giusta",
+    "titleTail": "per ogni operazione",
+    "subtitleLead": "Ragionamento avanzato dove serve, velocità dove conta. Tu pensi al risultato — noi alla tecnologia. Paghi solo in",
+    "subtitleBold": "crediti",
+    "subtitleTail": ": il costo riflette la complessità dell'operazione.",
+    "tier1Tag": "VELOCITÀ",
+    "tier1Title": "Operazioni veloci",
+    "tier1Desc": "Traduzioni e personalizzazione massiva. Alto volume, risposta immediata, costo minimo.",
+    "tier1Credits": "0,5 – 1 credito",
+    "tier2Tag": "BILANCIATO",
+    "tier2Title": "Operazioni standard",
+    "tier2Desc": "Copy marketing, miglioramento template, chat agent. Il meglio tra qualità e costo.",
+    "tier2Credits": "1 – 3 crediti",
+    "tier3Tag": "AVANZATO",
+    "tier3Title": "Ragionamento avanzato",
+    "tier3Desc": "Pianificazione campagne, compliance check, strategie multi-step che richiedono analisi approfondita.",
+    "tier3Credits": "3 – 5 crediti",
+    "footnote": "Routing automatico: non serve configurare nulla. L'AI giusta viene scelta per te."
+  },
+  "pricing": {
+    "title": "Piani e prezzi",
+    "subtitle": "Scegli il piano adatto alla tua azienda",
+    "designedBy": "Designed by",
+    "plans": {
+      "freeCta": "Inizia 14 giorni gratis",
+      "starterCta": "Scegli Starter",
+      "professionalCta": "Scegli Professional",
+      "enterpriseCta": "Contattaci"
+    }
+  },
+  "faq": {
+    "title": "Domande frequenti",
+    "subtitle": "Tutto quello che c'è da sapere sui crediti AI e sui piani",
+    "q1Question": "Cosa sono i crediti AI?",
+    "q1AnswerP1": "I crediti sono l'unità di misura dell'uso dell'intelligenza artificiale di Wamply. Ogni operazione AI consuma un numero di crediti predefinito — per esempio generare un template costa 2 crediti, personalizzare un messaggio 0,5 crediti, pianificare una campagna 5 crediti.",
+    "q1AnswerP2Pre": "Il piano",
+    "q1AnswerP2ProfName": "Professional",
+    "q1AnswerP2Mid": "include",
+    "q1AnswerP2ProfCredits": "200 crediti/mese",
+    "q1AnswerP2Comma": ",",
+    "q1AnswerP2EntName": "Enterprise 1.500 crediti/mese",
+    "q1AnswerP2End": ". Se ti serve più capacità puoi acquistare un pacchetto top-up on demand.",
+    "q2Question": "Posso usare la mia chiave Claude (BYOK)?",
+    "q2AnswerP1Pre": "Sì. Dal piano",
+    "q2AnswerP1StarterName": "Starter",
+    "q2AnswerP1Mid": "in su puoi portare la tua API key di Anthropic (\"Bring Your Own Key\"). In modalità BYOK paghi Anthropic direttamente per i token consumati e Wamply",
+    "q2AnswerP1Bold": "non conteggia crediti",
+    "q2AnswerP1Tail": "sulle tue chiamate AI.",
+    "q2AnswerP2": "Utile se hai volumi alti, un contratto diretto con Anthropic, o vuoi controllo puntuale sui costi AI. La configurazione avviene da Impostazioni → AI in dashboard.",
+    "q3Question": "Cosa succede se finisco i crediti?",
+    "q3AnswerP1Pre": "Le operazioni AI vengono bloccate fino al rinnovo mensile del piano. Puoi continuare a",
+    "q3AnswerP1Bold": "inviare le campagne già create",
+    "q3AnswerP1Tail": "senza interruzioni — l'invio via WhatsApp non consuma crediti.",
+    "q3AnswerP2Pre": "Per sbloccare l'AI subito hai due opzioni: (1) acquista un",
+    "q3AnswerP2Accent": "pacchetto top-up",
+    "q3AnswerP2Tail": "(da 100 a 10.000 crediti, validi 12 mesi), oppure (2) passa al piano superiore. A 80% di consumo ti inviamo un'email di avviso così non resti mai senza.",
+    "contactPrompt": "Altre domande?",
+    "contactLink": "Scrivici",
+    "contactSuffix": "— rispondiamo entro 24h."
+  },
+  "footer": {
+    "copyright": "Wamply © 2026 · Tutti i diritti riservati",
+    "stripeLabel": "Pagamenti Stripe",
+    "claudeLabel": "Claude AI",
+    "designedBy": "Designed by"
+  }
+}

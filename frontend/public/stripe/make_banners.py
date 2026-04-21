@@ -1,10 +1,16 @@
-"""Generate four square product banners for Wamply plans.
+"""Generate four square product banners per language (IT + EN).
 
-Output: 1024x1024 SVG + PNG per plan (Free-trial, Starter, Professional, Enterprise).
+Output: 1024x1024 PNG + SVG per plan, per locale.
+Layout:
+  wamply-free-banner.png          (IT - default, root)
+  wamply-starter-banner.png
+  wamply-professional-banner.png
+  wamply-enterprise-banner.png
+  en/wamply-free-banner.png       (EN version)
+  en/...
+
 Brand: navy gradient + teal accents + W-wave logo.
-
-Data sourced from supabase/migrations/004_plans_subscriptions.sql
-and 018_trial_system.sql (14-day Professional trial on signup).
+Data from ai-credits-plan.md v2 (silent model routing, no model names on banners).
 """
 
 from pathlib import Path
@@ -18,12 +24,11 @@ NAVY = "#1B2A4A"
 NAVY_LIGHT = "#132240"
 TEAL = "#0D9488"
 TEAL_SOFT = "#CCFBF1"
-GREEN = "#25D366"  # brand WhatsApp green, defined in globals.css
+GREEN = "#25D366"
 GREEN_SOFT = "#E8F5E9"
 SLATE_LIGHT = "#94A3B8"
 WHITE = "#FFFFFF"
 
-# Rendered width (px) of the big number at 180px (DejaVu Bold fallback), tracking -6.
 NUM_WIDTH = {"14": 220, "49": 245, "149": 365, "399": 365}
 
 
@@ -51,16 +56,15 @@ def check_icon(cx, cy, color=TEAL):
               stroke-linecap="round" stroke-linejoin="round"/>"""
 
 
-def banner_svg(plan):
+def banner_svg(plan, strings):
     accent = plan.get("accent", TEAL)
     accent_soft = plan.get("accent_soft", TEAL_SOFT)
     badge_text = plan.get("badge_text")
     is_trial = plan.get("trial", False)
 
-    # For trial banner we show "14" + "GIORNI GRATIS" instead of money.
     big_number = plan["number"]
     unit_line = plan["unit"]
-    sub_label = plan.get("sub_label", "PIANO MENSILE")
+    sub_label = plan.get("sub_label", strings["sub_label_monthly"])
 
     num_width = NUM_WIDTH.get(big_number, 95 * len(big_number))
     rings_opacity = 0.14 if badge_text else 0.08
@@ -75,7 +79,6 @@ def banner_svg(plan):
 
     badge = ""
     if badge_text:
-        # Wider badge for longer text ("PROVA GRATUITA")
         w = max(220, len(badge_text) * 13 + 40)
         badge = f"""
     <g transform="translate(80,150)">
@@ -110,14 +113,13 @@ def banner_svg(plan):
     <rect x="60" y="360" width="720" height="240" rx="24"
           fill="none" stroke="{accent}" stroke-width="1.5" opacity="0.35"/>"""
 
-    # Trial banners: show "gg" (no €) after the number, smaller
     if is_trial:
         unit_symbol = f"""
     <text x="{num_width + 18}" y="-10"
           font-family="Inter, system-ui, sans-serif"
           font-size="60" font-weight="600" fill="{num_color}"
           letter-spacing="1">
-      gg
+      {strings["days_symbol"]}
     </text>"""
     else:
         unit_symbol = f"""
@@ -146,20 +148,15 @@ def banner_svg(plan):
       <stop offset="100%" stop-color="{accent}" stop-opacity="0"/>
     </radialGradient>
   </defs>
-
   <rect width="{SIZE}" height="{SIZE}" fill="url(#bg)"/>
   <rect width="{SIZE}" height="{SIZE}" fill="url(#glow)"/>
-
   {rings}
-
   {wave_logo(78, 78, 64, ring_color=accent)}
   <text x="160" y="125" font-family="Inter, system-ui, sans-serif"
         font-size="34" font-weight="600" fill="#FFFFFF" letter-spacing="-0.5">
     Wam<tspan fill="{accent}">ply</tspan>
   </text>
-
   {badge}
-
   <text x="80" y="290" font-family="Inter, system-ui, sans-serif"
         font-size="72" font-weight="700" fill="#FFFFFF" letter-spacing="-1.5">
     {plan["name"]}
@@ -169,7 +166,6 @@ def banner_svg(plan):
         letter-spacing="3">
     {sub_label}
   </text>
-
   {price_glow}
   <g transform="translate(110,520)">
     <text x="0" y="0" font-family="Inter, system-ui, sans-serif"
@@ -185,94 +181,138 @@ def banner_svg(plan):
       {unit_line}
     </text>
   </g>
-
   {feature_rows}
-
   <text x="{SIZE//2}" y="970" font-family="Inter, system-ui, sans-serif"
         font-size="20" font-weight="400" fill="{SLATE_LIGHT}"
         text-anchor="middle" letter-spacing="2">
-    Amplify your WhatsApp campaigns with AI
+    {strings["tagline"]}
   </text>
 </svg>
 """
 
 
-PLANS = [
-    # Free / trial banner — 14 days of Professional (inherits 250 AI credits).
-    # Source: ai-credits-plan.md sezione 6.2 + supabase/migrations/018_trial_system.sql.
-    {
-        "name": "Free Trial",
-        "slug": "free",
-        "number": "14",
-        "unit": "giorni gratis",
-        "sub_label": "14 GIORNI DI PROFESSIONAL",
-        "badge_text": "PROVA GRATUITA",
-        "trial": True,
-        "accent": GREEN,
-        "accent_soft": GREEN_SOFT,
-        "features": [
-            "Tutte le funzionalita' Professional",
-            "250 crediti AI inclusi",
-            "Claude Sonnet + A/B Testing",
-            "Nessuna carta richiesta",
+# Language-specific strings
+LOCALES = {
+    "it": {
+        "sub_label_monthly": "PIANO MENSILE",
+        "days_symbol": "gg",
+        "tagline": "Amplify your WhatsApp campaigns with AI",
+        "plans": [
+            {
+                "name": "Free Trial", "slug": "free", "number": "14",
+                "unit": "giorni gratis",
+                "sub_label": "14 GIORNI DI PROFESSIONAL",
+                "badge_text": "PROVA GRATUITA", "trial": True,
+                "accent": GREEN, "accent_soft": GREEN_SOFT,
+                "features": [
+                    "Tutte le funzionalita' Professional",
+                    "200 crediti AI inclusi",
+                    "A/B Testing + Analytics avanzate",
+                    "Nessuna carta richiesta",
+                ],
+            },
+            {
+                "name": "Starter", "slug": "starter", "number": "49", "unit": "al mese",
+                "features": [
+                    "5 campagne / mese",
+                    "500 contatti",
+                    "2.500 messaggi WhatsApp",
+                    "BYOK: porta la tua API Claude",
+                ],
+            },
+            {
+                "name": "Professional", "slug": "professional", "number": "149",
+                "unit": "al mese", "badge_text": "CONSIGLIATO",
+                "features": [
+                    "20 campagne / mese . 5.000 contatti",
+                    "15.000 messaggi WhatsApp",
+                    "200 crediti AI/mese inclusi",
+                    "A/B Testing + Analytics avanzate",
+                ],
+            },
+            {
+                "name": "Enterprise", "slug": "enterprise", "number": "399",
+                "unit": "al mese",
+                "features": [
+                    "Campagne illimitate . 50.000 contatti",
+                    "100.000 messaggi WhatsApp",
+                    "1.500 crediti AI + BYOK illimitato",
+                    "White-label + Supporto dedicato",
+                ],
+            },
         ],
     },
-    # Starter — AI available only via BYOK (0 system credits).
-    {
-        "name": "Starter",
-        "slug": "starter",
-        "number": "49",
-        "unit": "al mese",
-        "features": [
-            "5 campagne / mese",
-            "500 contatti",
-            "2.500 messaggi WhatsApp",
-            "BYOK: usa la tua API Claude",
+    "en": {
+        "sub_label_monthly": "MONTHLY PLAN",
+        "days_symbol": "days",
+        "tagline": "Amplify your WhatsApp campaigns with AI",
+        "plans": [
+            {
+                "name": "Free Trial", "slug": "free", "number": "14",
+                "unit": "days free",
+                "sub_label": "14 DAYS OF PROFESSIONAL",
+                "badge_text": "FREE TRIAL", "trial": True,
+                "accent": GREEN, "accent_soft": GREEN_SOFT,
+                "features": [
+                    "All Professional features",
+                    "200 AI credits included",
+                    "A/B Testing + Advanced analytics",
+                    "No credit card required",
+                ],
+            },
+            {
+                "name": "Starter", "slug": "starter", "number": "49", "unit": "per month",
+                "features": [
+                    "5 campaigns / month",
+                    "500 contacts",
+                    "2,500 WhatsApp messages",
+                    "BYOK: bring your Claude API key",
+                ],
+            },
+            {
+                "name": "Professional", "slug": "professional", "number": "149",
+                "unit": "per month", "badge_text": "RECOMMENDED",
+                "features": [
+                    "20 campaigns / month . 5,000 contacts",
+                    "15,000 WhatsApp messages",
+                    "200 AI credits/month included",
+                    "A/B Testing + Advanced analytics",
+                ],
+            },
+            {
+                "name": "Enterprise", "slug": "enterprise", "number": "399",
+                "unit": "per month",
+                "features": [
+                    "Unlimited campaigns . 50,000 contacts",
+                    "100,000 WhatsApp messages",
+                    "1,500 AI credits + Unlimited BYOK",
+                    "White-label + Dedicated support",
+                ],
+            },
         ],
     },
-    # Professional — 250 AI credits/month with system key (Sonnet).
-    {
-        "name": "Professional",
-        "slug": "professional",
-        "number": "149",
-        "unit": "al mese",
-        "badge_text": "CONSIGLIATO",
-        "features": [
-            "20 campagne / mese · 5.000 contatti",
-            "15.000 messaggi WhatsApp",
-            "250 crediti AI inclusi · Claude Sonnet",
-            "A/B Testing + Analytics avanzate",
-        ],
-    },
-    # Enterprise — 2000 AI credits/month + BYOK unlimited + white label.
-    {
-        "name": "Enterprise",
-        "slug": "enterprise",
-        "number": "399",
-        "unit": "al mese",
-        "features": [
-            "Campagne illimitate · 50.000 contatti",
-            "100.000 messaggi WhatsApp",
-            "2.000 crediti AI + BYOK illimitato",
-            "White-label + Supporto dedicato",
-        ],
-    },
-]
+}
+
+# Fix trial unit_gg string replace (SVG render needs proper width)
+# Rebuilding NUM_WIDTH for en days rendering (not needed since we use number width only)
 
 
 def main():
-    for p in PLANS:
-        svg = banner_svg(p)
-        svg_path = OUT / f"wamply-{p['slug']}-banner.svg"
-        png_path = OUT / f"wamply-{p['slug']}-banner.png"
-        svg_path.write_text(svg, encoding="utf-8")
-        cairosvg.svg2png(
-            bytestring=svg.encode("utf-8"),
-            write_to=str(png_path),
-            output_width=SIZE,
-            output_height=SIZE,
-        )
-        print(f"wrote {svg_path.name} + {png_path.name}")
+    for lang, data in LOCALES.items():
+        out_dir = OUT if lang == "it" else OUT / "en"
+        out_dir.mkdir(exist_ok=True)
+        for plan in data["plans"]:
+            svg = banner_svg(plan, data)
+            svg_path = out_dir / f"wamply-{plan['slug']}-banner.svg"
+            png_path = out_dir / f"wamply-{plan['slug']}-banner.png"
+            svg_path.write_text(svg, encoding="utf-8")
+            cairosvg.svg2png(
+                bytestring=svg.encode("utf-8"),
+                write_to=str(png_path),
+                output_width=SIZE,
+                output_height=SIZE,
+            )
+            print(f"[{lang}] wrote {png_path.relative_to(OUT)}")
 
 
 if __name__ == "__main__":

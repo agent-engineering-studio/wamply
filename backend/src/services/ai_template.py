@@ -1,4 +1,9 @@
-"""AI-assisted template generation and improvement via Claude."""
+"""AI-assisted template generation and improvement via Claude.
+
+All functions return a tuple `(result, tokens_in, tokens_out)` so the
+caller can write to the ledger. Mocks return zeros to signal no real
+Anthropic call happened.
+"""
 
 import json
 import re
@@ -8,6 +13,7 @@ import anthropic
 from pydantic import BaseModel, Field, ValidationError
 
 from src.config import settings
+from src.services import ai_models
 
 TemplateCategory = Literal["marketing", "utility", "authentication"]
 Language = Literal["it", "en", "es", "de", "fr"]
@@ -88,14 +94,29 @@ Output:
 }"""
 
 
-_client: anthropic.Anthropic | None = None
+def _build_client(api_key: str) -> anthropic.Anthropic:
+    """Build a fresh Anthropic client bound to the given API key.
+
+    Callers pass either the BYOK key or the system key, resolved upstream
+    by `ai_credits.resolve_api_key()`. No module-level singleton — keys
+    are per-user.
+    """
+    return anthropic.Anthropic(api_key=api_key)
 
 
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    return _client
+def _token_counts(response) -> tuple[int, int]:
+    """Extract (input_tokens, output_tokens) from an Anthropic response.
+
+    Uses `response.usage` when available; falls back to (0, 0) for mock
+    responses or unknown shapes.
+    """
+    usage = getattr(response, "usage", None)
+    if not usage:
+        return (0, 0)
+    return (
+        getattr(usage, "input_tokens", 0) or 0,
+        getattr(usage, "output_tokens", 0) or 0,
+    )
 
 
 def _mock_response(prompt: str, language: str) -> GeneratedTemplate:
@@ -146,14 +167,14 @@ def _mock_improve(body: str) -> ImproveResult:
     )
 
 
-async def improve_template(body: str) -> ImproveResult:
-    """Return 3 stylistic variants of the given template body via Claude Haiku."""
-    if settings.mock_llm or not settings.anthropic_api_key:
-        return _mock_improve(body)
+async def improve_template(body: str, api_key: str) -> tuple[ImproveResult, int, int]:
+    """Return 3 stylistic variants of the given template body."""
+    if settings.mock_llm or not api_key:
+        return (_mock_improve(body), 0, 0)
 
-    client = _get_client()
+    client = _build_client(api_key)
     response = client.messages.create(
-        model=settings.claude_haiku_model,
+        model=ai_models.model_id("template_improve"),
         max_tokens=1200,
         temperature=0.6,
         system=IMPROVE_SYSTEM_PROMPT,
@@ -163,8 +184,9 @@ async def improve_template(body: str) -> ImproveResult:
         block.text for block in response.content if hasattr(block, "text")
     )
     parsed = json.loads(_extract_json(raw))
+    tin, tout = _token_counts(response)
     try:
-        return ImproveResult(**parsed)
+        return (ImproveResult(**parsed), tin, tout)
     except ValidationError as e:
         raise ValueError(f"Improve AI malformato: {e}") from e
 
@@ -234,18 +256,20 @@ def _mock_compliance(body: str, category: str) -> ComplianceReport:
 
 
 async def check_compliance(
-    body: str, category: str = "marketing", language: str = "it"
-) -> ComplianceReport:
-    """Evaluate a template body against WhatsApp/Twilio content policies."""
-    if settings.mock_llm or not settings.anthropic_api_key:
-        return _mock_compliance(body, category)
+    body: str, api_key: str, category: str = "marketing", language: str = "it"
+) -> tuple[ComplianceReport, int, int]:
+    """Evaluate a template body against WhatsApp/Twilio content policies.
 
-    client = _get_client()
+    Uses the Opus model (reasoning over legal/policy nuances)."""
+    if settings.mock_llm or not api_key:
+        return (_mock_compliance(body, category), 0, 0)
+
+    client = _build_client(api_key)
     user_msg = (
         f"Categoria: {category}\nLingua: {language}\n\nTemplate:\n{body}"
     )
     response = client.messages.create(
-        model=settings.claude_model,
+        model=ai_models.model_id("template_compliance"),
         max_tokens=900,
         temperature=0.2,
         system=COMPLIANCE_SYSTEM_PROMPT,
@@ -255,8 +279,9 @@ async def check_compliance(
         block.text for block in response.content if hasattr(block, "text")
     )
     parsed = json.loads(_extract_json(raw))
+    tin, tout = _token_counts(response)
     try:
-        return ComplianceReport(**parsed)
+        return (ComplianceReport(**parsed), tin, tout)
     except ValidationError as e:
         raise ValueError(f"Compliance AI malformato: {e}") from e
 
@@ -299,12 +324,13 @@ async def translate_template(
     body: str,
     source_language: str,
     target_language: Language,
-) -> TranslatedTemplate:
+    api_key: str,
+) -> tuple[TranslatedTemplate, int, int]:
     """Translate a template body+name into the target language, preserving variables."""
-    if settings.mock_llm or not settings.anthropic_api_key:
-        return _mock_translate(name, body, target_language)
+    if settings.mock_llm or not api_key:
+        return (_mock_translate(name, body, target_language), 0, 0)
 
-    client = _get_client()
+    client = _build_client(api_key)
     target_name = LANGUAGE_NAMES.get(target_language, target_language)
     user_msg = (
         f"Lingua sorgente: {source_language}\n"
@@ -314,7 +340,7 @@ async def translate_template(
     )
 
     response = client.messages.create(
-        model=settings.claude_haiku_model,
+        model=ai_models.model_id("template_translate"),
         max_tokens=900,
         temperature=0.3,
         system=TRANSLATE_SYSTEM_PROMPT,
@@ -326,24 +352,25 @@ async def translate_template(
     parsed = json.loads(_extract_json(raw))
     # Force target language even if the model ignored it.
     parsed["language"] = target_language
+    tin, tout = _token_counts(response)
     try:
-        return TranslatedTemplate(**parsed)
+        return (TranslatedTemplate(**parsed), tin, tout)
     except ValidationError as e:
         raise ValueError(f"Translate AI malformato: {e}") from e
 
 
 async def generate_template(
-    prompt: str, language: Language = "it"
-) -> GeneratedTemplate:
+    prompt: str, api_key: str, language: Language = "it"
+) -> tuple[GeneratedTemplate, int, int]:
     """Generate a WhatsApp template from a natural-language prompt."""
-    if settings.mock_llm or not settings.anthropic_api_key:
-        return _mock_response(prompt, language)
+    if settings.mock_llm or not api_key:
+        return (_mock_response(prompt, language), 0, 0)
 
-    client = _get_client()
+    client = _build_client(api_key)
     user_msg = f"Lingua: {language}\nRichiesta: {prompt}"
 
     response = client.messages.create(
-        model=settings.claude_model,
+        model=ai_models.model_id("template_generate"),
         max_tokens=800,
         temperature=0.7,
         system=SYSTEM_PROMPT,
@@ -354,7 +381,8 @@ async def generate_template(
         block.text for block in response.content if hasattr(block, "text")
     )
     parsed = json.loads(_extract_json(raw))
+    tin, tout = _token_counts(response)
     try:
-        return GeneratedTemplate(**parsed)
+        return (GeneratedTemplate(**parsed), tin, tout)
     except ValidationError as e:
         raise ValueError(f"Template AI malformato: {e}") from e

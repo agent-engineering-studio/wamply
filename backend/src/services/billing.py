@@ -187,7 +187,18 @@ async def handle_stripe_webhook(
     obj = event["data"]["object"]
 
     if event_type == "checkout.session.completed":
-        if obj.get("mode") == "subscription" and obj.get("subscription"):
+        metadata = obj.get("metadata") or {}
+
+        # Top-up one-shot payment: credit the user's top-up balance.
+        if metadata.get("type") == "topup":
+            from src.services.credit_topup import apply_topup_purchase
+            session_id = obj.get("id")
+            payment_intent_id = obj.get("payment_intent")
+            if session_id:
+                await apply_topup_purchase(db, session_id, payment_intent_id)
+
+        # Subscription mode: sync plan.
+        elif obj.get("mode") == "subscription" and obj.get("subscription"):
             sub = stripe.Subscription.retrieve(obj["subscription"])
             await _sync_subscription_from_stripe(db, sub)
 

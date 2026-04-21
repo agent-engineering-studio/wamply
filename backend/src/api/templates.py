@@ -11,12 +11,14 @@ from src.services.ai_template import (
     improve_template,
     translate_template,
 )
+from src.services.ai_credits import (
+    reserve_credits,
+    commit_credits,
+    resolve_api_key,
+)
+from src.services.plan_limits import check_plan_limit
 
 SUPPORTED_LANGUAGES = {"it", "en", "es", "de", "fr"}
-from src.services.plan_limits import (
-    check_plan_limit,
-    increment_ai_template_ops,
-)
 
 IMPROVE_CACHE_TTL = 86400  # 24h
 
@@ -59,7 +61,6 @@ async def generate_template_ai(
     """Generate a WhatsApp template from a natural-language prompt via Claude."""
     db = get_db(request)
     redis = get_redis(request)
-    await check_plan_limit(db, redis, user.id, "ai_template_ops")
 
     body = await request.json()
     prompt = (body.get("prompt") or "").strip()
@@ -69,8 +70,11 @@ async def generate_template_ai(
     if len(prompt) > 500:
         raise HTTPException(status_code=400, detail="Prompt troppo lungo (max 500 caratteri).")
 
+    reservation = await reserve_credits(db, redis, user.id, "template_generate")
+    api_key, _ = await resolve_api_key(db, user.id)
+
     try:
-        generated = await generate_template(prompt, language)
+        generated, tin, tout = await generate_template(prompt, api_key, language)
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"AI error: {e}") from e
 
@@ -83,7 +87,7 @@ async def generate_template_ai(
         generated.category,
         json.dumps([{"type": "BODY", "text": generated.body}]),
     )
-    await increment_ai_template_ops(db, redis, user.id)
+    await commit_credits(db, redis, reservation, tin, tout)
 
     return {
         **_serialize_row(row),
@@ -115,16 +119,17 @@ async def improve_template_ai(
     if cached:
         return {"cached": True, **json.loads(cached)}
 
-    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+    reservation = await reserve_credits(db, redis, user.id, "template_improve")
+    api_key, _ = await resolve_api_key(db, user.id)
 
     try:
-        result = await improve_template(text)
+        result, tin, tout = await improve_template(text, api_key)
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"AI error: {e}") from e
 
     payload = {"variants": [v.model_dump() for v in result.variants]}
     await redis.set(cache_key, json.dumps(payload), ex=IMPROVE_CACHE_TTL)
-    await increment_ai_template_ops(db, redis, user.id)
+    await commit_credits(db, redis, reservation, tin, tout)
     return {"cached": False, **payload}
 
 
@@ -214,11 +219,12 @@ async def check_template_compliance(
     if not body_text:
         raise HTTPException(status_code=400, detail="Template senza body.")
 
-    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+    reservation = await reserve_credits(db, redis, user.id, "template_compliance")
+    api_key, _ = await resolve_api_key(db, user.id)
 
     try:
-        report = await check_compliance(
-            body_text, category=row["category"], language=row["language"]
+        report, tin, tout = await check_compliance(
+            body_text, api_key, category=row["category"], language=row["language"]
         )
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"AI error: {e}") from e
@@ -236,7 +242,7 @@ async def check_template_compliance(
         template_id,
         user.id,
     )
-    await increment_ai_template_ops(db, redis, user.id)
+    await commit_credits(db, redis, reservation, tin, tout)
     return report_payload
 
 
@@ -293,19 +299,22 @@ async def translate_template_ai(
     if not source_body:
         raise HTTPException(status_code=400, detail="Template senza body.")
 
-    # Check plan up-front (uses 1 op; we'll re-check in the loop per language).
-    await check_plan_limit(db, redis, user.id, "ai_template_ops")
+    # Resolve key once for the whole batch.
+    api_key, _ = await resolve_api_key(db, user.id)
 
     results: list[dict] = []
     for target in targets:
         try:
-            # Per-language quota check (ensures we stop when limit reached mid-batch).
-            await check_plan_limit(db, redis, user.id, "ai_template_ops")
-            translated = await translate_template(
+            # Per-language reservation — stops mid-batch if credits run out.
+            reservation = await reserve_credits(
+                db, redis, user.id, "template_translate"
+            )
+            translated, tin, tout = await translate_template(
                 name=row["name"],
                 body=source_body,
                 source_language=row["language"],
                 target_language=target,
+                api_key=api_key,
             )
             new_components = [{"type": "BODY", "text": translated.body}]
             new_row = await db.fetchrow(
@@ -320,7 +329,7 @@ async def translate_template_ai(
                 json.dumps(new_components),
                 template_id,
             )
-            await increment_ai_template_ops(db, redis, user.id)
+            await commit_credits(db, redis, reservation, tin, tout)
             results.append(
                 {
                     "language": target,
@@ -330,7 +339,7 @@ async def translate_template_ai(
                 }
             )
         except HTTPException as e:
-            # Quota exhausted mid-batch → stop, record remaining as failed.
+            # Credits exhausted mid-batch → stop, record remaining as failed.
             results.append({"language": target, "ok": False, "error": e.detail})
             break
         except Exception as e:  # noqa: BLE001 — record failure per language

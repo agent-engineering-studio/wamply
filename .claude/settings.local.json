@@ -70,7 +70,12 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec -i -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"select pg_get_functiondef\\('public.handle_new_user'::regproc\\);\")",
       "Bash(powershell.exe *)",
-      "PowerShell($current = [Environment]::GetEnvironmentVariable\\('PATH','User'\\); $new = $current.TrimEnd\\(';'\\) + ';C:\\\\Program Files\\\\Stripe'; [Environment]::SetEnvironmentVariable\\('PATH', $new, 'User'\\); Write-Output 'PATH User aggiornato.'; [Environment]::GetEnvironmentVariable\\('PATH','User'\\))"
+      "PowerShell($current = [Environment]::GetEnvironmentVariable\\('PATH','User'\\); $new = $current.TrimEnd\\(';'\\) + ';C:\\\\Program Files\\\\Stripe'; [Environment]::SetEnvironmentVariable\\('PATH', $new, 'User'\\); Write-Output 'PATH User aggiornato.'; [Environment]::GetEnvironmentVariable\\('PATH','User'\\))",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT column_name FROM information_schema.columns WHERE table_name='plans' AND column_name='ai_credits_month';\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT slug, ai_credits_month FROM plans ORDER BY price_cents;\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"\\\\d ai_usage_ledger\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT column_name, data_type, column_default FROM information_schema.columns WHERE \\(table_name='usage_counters' AND column_name='ai_credits_used'\\) OR \\(table_name='subscriptions' AND column_name LIKE 'ai_credits_%'\\) ORDER BY table_name, column_name;\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'ai_credit_%' ORDER BY table_name;\")"
     ]
   }
 }

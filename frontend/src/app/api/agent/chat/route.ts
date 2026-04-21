@@ -28,7 +28,15 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     const err = await res.json().catch(() => ({}));
     return NextResponse.json(
       { error: (err as Record<string, string>).detail || "Errore nella comunicazione con l'agent." },
-      { status: 500 }
+      {
+        status: res.status,
+        // Forward headers agent may set on 402 (suggested plan, credits)
+        headers: {
+          "X-Suggested-Plan": res.headers.get("x-suggested-plan") || "",
+          "X-Credits-Used": res.headers.get("x-credits-used") || "",
+          "X-Credits-Limit": res.headers.get("x-credits-limit") || "",
+        },
+      }
     );
   }
 

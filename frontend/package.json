@@ -17,6 +17,7 @@
     "@zxcvbn-ts/language-it": "^3.0.2",
     "ioredis": "^5.6.1",
     "next": "^15.3.0",
+    "next-intl": "^3.26.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "swr": "^2.3.3",

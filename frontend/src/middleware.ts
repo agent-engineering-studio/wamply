@@ -1,7 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
+
+import { routing } from "@/i18n/routing";
+
+const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Marketing/landing paths are handled by next-intl (handles locale detection,
+  // prefix enforcement, cookie NEXT_LOCALE). These are public pages with no auth.
+  const isLocalizedMarketingPath = /^\/(it|en)(\/|$)/.test(pathname);
+  if (isLocalizedMarketingPath) {
+    return intlMiddleware(request);
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
