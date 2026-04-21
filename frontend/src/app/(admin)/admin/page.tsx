@@ -179,9 +179,26 @@ export default function AdminPage() {
                   </td>
                   <td className="px-3.5 py-3 text-[13px] capitalize text-slate-100">{(u.subscription?.plans as Record<string, string>)?.name || "—"}</td>
                   <td className="px-3.5 py-3">
-                    <span className={`rounded-pill px-2 py-0.5 text-[10px] font-medium ${u.subscription?.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                      {u.subscription?.status || "nessuno"}
-                    </span>
+                    {(() => {
+                      const s = u.subscription;
+                      if (!s) return <span className="rounded-pill bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">nessuno</span>;
+                      if (s.status === "trialing") {
+                        const end = s.current_period_end ? new Date(s.current_period_end) : null;
+                        const days = end ? Math.max(0, Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
+                        const label = days !== null ? `trial (${days} g)` : "trial";
+                        const tooltip = end ? `Scadenza: ${end.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : undefined;
+                        return (
+                          <span title={tooltip} className="rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                            {label}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className={`rounded-pill px-2 py-0.5 text-[10px] font-medium ${s.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                          {s.status}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-3.5 py-3">
                     {u.banned ? (

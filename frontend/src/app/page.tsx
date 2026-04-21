@@ -1,18 +1,39 @@
 import Link from "next/link";
 
-const PLANS = [
+type Plan = {
+  name: string;
+  price: string;
+  priceUnit?: string;
+  priceSuffix?: string;
+  features: string[];
+  cta: string;
+  popular: boolean;
+  trial?: boolean;
+};
+
+const PLANS: Plan[] = [
+  {
+    name: "Free Trial",
+    price: "14",
+    priceUnit: "giorni",
+    priceSuffix: "Nessuna carta richiesta",
+    features: ["20 campagne / 5.000 contatti", "15.000 messaggi AI", "Claude Sonnet", "A/B Testing + Analytics", "Nessuna carta richiesta"],
+    cta: "Inizia 14 giorni gratis",
+    popular: false,
+    trial: true,
+  },
   {
     name: "Starter",
     price: "49",
     features: ["5 campagne/mese", "500 contatti", "2.500 messaggi AI", "Claude Haiku", "1 utente"],
-    cta: "Inizia gratis",
+    cta: "Scegli Starter",
     popular: false,
   },
   {
     name: "Professional",
     price: "149",
     features: ["20 campagne/mese", "5.000 contatti", "15.000 messaggi AI", "Claude Sonnet", "A/B Testing", "Analytics avanzate", "3 utenti"],
-    cta: "Prova gratis",
+    cta: "Scegli Professional",
     popular: true,
   },
   {
@@ -83,7 +104,7 @@ export default function LandingPage() {
 
         <div className="relative mt-8 flex items-center justify-center gap-4">
           <Link href="/register" className="rounded-pill bg-brand-teal px-8 py-3 text-[15px] font-medium text-white shadow-teal hover:bg-brand-teal-dark transition-colors">
-            Inizia gratis
+            Inizia 14 giorni gratis
           </Link>
           <a href="#pricing" className="rounded-pill border border-brand-slate px-8 py-3 text-[15px] font-medium text-brand-slate-light hover:border-brand-slate-light hover:text-white transition-colors">
             Scopri i piani
@@ -91,11 +112,11 @@ export default function LandingPage() {
         </div>
 
         <div className="relative mt-10 flex items-center justify-center gap-8 text-[12px] text-brand-slate-muted">
+          <span><span className="text-brand-green">14 giorni gratis</span></span>
+          <span className="h-3 w-px bg-white/15" />
+          <span>Nessuna carta richiesta</span>
+          <span className="h-3 w-px bg-white/15" />
           <span>Open rate 95%</span>
-          <span className="h-3 w-px bg-white/15" />
-          <span>Response rate 60%</span>
-          <span className="h-3 w-px bg-white/15" />
-          <span>Da 49 &euro;/mese</span>
           <span className="h-3 w-px bg-white/15" />
           <span>Powered by Claude AI</span>
         </div>
@@ -128,37 +149,115 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="mb-3 text-center text-[28px] font-semibold">Piani e prezzi</h2>
           <p className="mb-12 text-center text-[14px] text-brand-slate-light">Scegli il piano adatto alla tua azienda</p>
-          <div className="grid grid-cols-3 gap-6">
-            {PLANS.map((plan) => (
-              <div key={plan.name}
-                className={`rounded-xl border p-6 ${plan.popular ? "border-brand-teal bg-brand-teal/5 shadow-[0_0_30px_rgba(13,148,136,.12)]" : "border-white/10 bg-white/5"}`}>
-                {plan.popular && (
-                  <div className="mb-3 inline-block rounded-pill bg-brand-teal/20 px-3 py-1 text-[11px] font-medium text-brand-teal">
-                    Consigliato
+          <div className="grid grid-cols-4 gap-5">
+            {PLANS.map((plan) => {
+              const cardBorder = plan.trial
+                ? "border-brand-green/40 bg-brand-green/5 shadow-[0_0_30px_rgba(37,211,102,.10)]"
+                : plan.popular
+                ? "border-brand-teal bg-brand-teal/5 shadow-[0_0_30px_rgba(13,148,136,.12)]"
+                : "border-white/10 bg-white/5";
+              const ctaStyle = plan.trial
+                ? "bg-brand-green text-white hover:bg-brand-green-dark"
+                : plan.popular
+                ? "bg-brand-teal text-white shadow-teal hover:bg-brand-teal-dark"
+                : "border border-white/20 text-white/70 hover:border-brand-teal/50 hover:text-white";
+              const checkColor = plan.trial ? "#25D366" : "#0D9488";
+              return (
+                <div key={plan.name} className={`rounded-xl border p-6 ${cardBorder}`}>
+                  {plan.trial && (
+                    <div className="mb-3 inline-block rounded-pill bg-brand-green/20 px-3 py-1 text-[11px] font-medium text-brand-green">
+                      Prova gratuita
+                    </div>
+                  )}
+                  {plan.popular && (
+                    <div className="mb-3 inline-block rounded-pill bg-brand-teal/20 px-3 py-1 text-[11px] font-medium text-brand-teal">
+                      Consigliato
+                    </div>
+                  )}
+                  <h3 className="text-[20px] font-semibold">{plan.name}</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-[36px] font-semibold">{plan.price}</span>
+                    <span className="text-[14px] text-brand-slate-light">
+                      {plan.trial ? plan.priceUnit : <>&euro;/mese</>}
+                    </span>
                   </div>
-                )}
-                <h3 className="text-[20px] font-semibold">{plan.name}</h3>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-[36px] font-semibold">{plan.price}</span>
-                  <span className="text-[14px] text-brand-slate-light">&euro;/mese</span>
+                  {plan.trial && (
+                    <p className="mt-1 text-[11px] text-brand-green/80">
+                      {plan.priceSuffix}
+                    </p>
+                  )}
+                  <ul className="mt-6 space-y-2.5">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-[13px] text-white/70">
+                        <svg viewBox="0 0 24 24" fill="none" stroke={checkColor} strokeWidth="2.5" className="h-3.5 w-3.5 shrink-0">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/register"
+                    className={`mt-6 block rounded-pill py-2.5 text-center text-[13px] font-medium transition-colors ${ctaStyle}`}>
+                    {plan.cta}
+                  </Link>
                 </div>
-                <ul className="mt-6 space-y-2.5">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-[13px] text-white/70">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" className="h-3.5 w-3.5 shrink-0">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register"
-                  className={`mt-6 block rounded-pill py-2.5 text-center text-[13px] font-medium transition-colors ${plan.popular ? "bg-brand-teal text-white shadow-teal hover:bg-brand-teal-dark" : "border border-white/20 text-white/70 hover:border-brand-teal/50 hover:text-white"}`}>
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+      </section>
+
+      {/* Payment security */}
+      <section className="border-t border-white/10 py-14">
+        <div className="mx-auto max-w-6xl px-6 text-center">
+          <p className="mb-6 text-[12px] uppercase tracking-widest text-brand-slate-muted">Pagamenti sicuri</p>
+          <div className="flex flex-wrap items-center justify-center gap-5">
+            {/* Stripe logo */}
+            <div className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-sm">
+              <svg viewBox="0 0 60 25" className="h-6 w-auto" aria-label="Stripe">
+                <path fill="#635BFF" d="M59.5 14.34c0-4.38-2.12-7.84-6.18-7.84s-6.52 3.46-6.52 7.81c0 5.15 2.91 7.75 7.07 7.75 2.03 0 3.56-.46 4.72-1.11v-3.42c-1.16.58-2.49.94-4.18.94-1.66 0-3.12-.58-3.31-2.6h8.34c0-.22.06-1.1.06-1.53zm-8.43-1.63c0-1.93 1.18-2.74 2.26-2.74 1.05 0 2.16.81 2.16 2.74zm-10.84-6.21c-1.67 0-2.74.78-3.34 1.33l-.22-1.05h-3.75v19.95l4.27-.91.01-4.84c.61.45 1.52 1.07 3.02 1.07 3.06 0 5.85-2.46 5.85-7.88-.02-4.96-2.83-7.67-5.84-7.67zm-1.02 11.8c-1 0-1.6-.36-2.01-.8l-.03-6.32c.45-.49 1.06-.83 2.04-.83 1.57 0 2.65 1.76 2.65 3.96 0 2.26-1.07 3.99-2.65 3.99zm-12.14-12.05l4.28-.92V2.13l-4.28.9zM27.07 6.79h4.29v14.96h-4.29zm-4.59 1.27L22.2 6.79h-3.7v14.96h4.28V11.62c1.02-1.32 2.73-1.08 3.26-.89V6.79c-.54-.2-2.56-.55-3.56 1.27zm-8.52-5.12L9.8 3.86l-.01 13.72c0 2.54 1.9 4.4 4.43 4.4 1.4 0 2.42-.26 2.99-.56V17.9c-.55.22-3.25 1.01-3.25-1.52v-6.08h3.25V6.79h-3.25zM4.34 11.02c0-.66.55-.92 1.45-.92 1.29 0 2.93.4 4.22 1.09v-4c-1.41-.56-2.8-.78-4.22-.78C2.33 6.41 0 8.21 0 11.22c0 4.69 6.47 3.94 6.47 5.96 0 .78-.68 1.04-1.62 1.04-1.41 0-3.21-.58-4.63-1.37v4.05c1.57.68 3.17.96 4.63.96 3.55 0 6.02-1.75 6.02-4.79-.02-5.06-6.53-4.16-6.53-6.05z"/>
+              </svg>
+            </div>
+
+            {/* PCI DSS */}
+            <div className="inline-flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2" className="h-5 w-5">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              <div className="text-left">
+                <div className="text-[12.5px] font-medium text-white/90">PCI DSS Level 1</div>
+                <div className="text-[10.5px] text-brand-slate-muted">Massimo standard sicurezza</div>
+              </div>
+            </div>
+
+            {/* 3D Secure */}
+            <div className="inline-flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2" className="h-5 w-5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <polyline points="9 12 11 14 15 10" />
+              </svg>
+              <div className="text-left">
+                <div className="text-[12.5px] font-medium text-white/90">3D Secure 2</div>
+                <div className="text-[10.5px] text-brand-slate-muted">Autenticazione forte SCA</div>
+              </div>
+            </div>
+
+            {/* TLS / HTTPS */}
+            <div className="inline-flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2" className="h-5 w-5">
+                <path d="M12 2l9 4v6c0 5-4 9-9 10-5-1-9-5-9-10V6l9-4z" />
+              </svg>
+              <div className="text-left">
+                <div className="text-[12.5px] font-medium text-white/90">Cifratura TLS 1.3</div>
+                <div className="text-[10.5px] text-brand-slate-muted">Dati protetti end-to-end</div>
+              </div>
+            </div>
+          </div>
+          <p className="mx-auto mt-6 max-w-lg text-[12px] leading-relaxed text-brand-slate-muted">
+            I dati della carta non transitano mai dai nostri server. Ogni pagamento è gestito direttamente da
+            Stripe, uno dei leader mondiali nei pagamenti online, certificato PCI DSS Level 1.
+          </p>
         </div>
       </section>
 

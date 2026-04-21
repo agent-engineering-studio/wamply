@@ -45,3 +45,17 @@ async def get_my_plan(request: Request, user: CurrentUser = Depends(get_current_
             "cancel_at_period_end": sub["cancel_at_period_end"],
         },
     }
+
+
+@router.get("/plans")
+async def list_public_plans(request: Request, user: CurrentUser = Depends(get_current_user)):
+    """Paid plans visible to any authenticated user (for the billing page).
+    Excludes the internal 'free' plan."""
+    db = get_db(request)
+    rows = await db.fetch(
+        "SELECT id, name, slug, price_cents, max_campaigns_month, max_contacts, "
+        "max_messages_month, max_templates, max_team_members, stripe_price_id "
+        "FROM plans WHERE active = true AND slug != 'free' "
+        "ORDER BY price_cents ASC"
+    )
+    return {"plans": [{**dict(r), "id": str(r["id"])} for r in rows]}

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 
@@ -189,3 +189,39 @@ async def update_system_config(request: Request, user: CurrentUser = Depends(req
         )
 
     return {"success": True}
+
+
+# ── Subscription info (trial banner, billing page) ─────
+
+@router.get("/subscription")
+async def get_subscription(request: Request, user: CurrentUser = Depends(get_current_user)):
+    db = get_db(request)
+    row = await db.fetchrow(
+        """SELECT s.status::text AS status,
+                  s.current_period_start,
+                  s.current_period_end,
+                  p.name  AS plan_name,
+                  p.slug  AS plan_slug
+           FROM subscriptions s
+           JOIN plans p ON p.id = s.plan_id
+           WHERE s.user_id = $1""",
+        user.id,
+    )
+    if not row:
+        return {"subscription": None}
+
+    now = datetime.now(timezone.utc)
+    days_remaining = None
+    if row["status"] == "trialing" and row["current_period_end"]:
+        delta = row["current_period_end"] - now
+        days_remaining = max(0, delta.days + (1 if delta.seconds > 0 else 0))
+
+    return {
+        "subscription": {
+            "status": row["status"],
+            "plan": {"name": row["plan_name"], "slug": row["plan_slug"]},
+            "current_period_start": row["current_period_start"].isoformat() if row["current_period_start"] else None,
+            "current_period_end": row["current_period_end"].isoformat() if row["current_period_end"] else None,
+            "trial_days_remaining": days_remaining,
+        }
+    }

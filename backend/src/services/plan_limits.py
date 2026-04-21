@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 
 import asyncpg
 import redis.asyncio as aioredis
@@ -21,9 +21,31 @@ async def check_plan_limit(
         ctx = json.loads(cached)
     else:
         sub = await db.fetchrow(
-            "SELECT plan_id FROM subscriptions WHERE user_id = $1 AND status = 'active'",
+            "SELECT plan_id, status::text, current_period_end "
+            "FROM subscriptions WHERE user_id = $1 "
+            "  AND status IN ('active', 'trialing')",
             user_id,
         )
+
+        # Lazy trial expiration: downgrade to 'free' (zero limits → all API blocked).
+        if sub and sub["status"] == "trialing" and sub["current_period_end"] <= datetime.now(timezone.utc):
+            free_plan = await db.fetchrow(
+                "SELECT id FROM plans WHERE slug = 'free' LIMIT 1"
+            )
+            if free_plan:
+                await db.execute(
+                    "UPDATE subscriptions SET plan_id = $1, status = 'active', "
+                    "current_period_start = now(), current_period_end = NULL, "
+                    "updated_at = now() WHERE user_id = $2",
+                    free_plan["id"],
+                    user_id,
+                )
+                sub = await db.fetchrow(
+                    "SELECT plan_id, status::text, current_period_end "
+                    "FROM subscriptions WHERE user_id = $1",
+                    user_id,
+                )
+
         if not sub:
             raise HTTPException(status_code=402, detail="Nessun abbonamento attivo. Scegli un piano.")
 

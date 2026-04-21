@@ -59,7 +59,10 @@ async def admin_users(request: Request, user: CurrentUser = Depends(require_staf
     if not user_ids:
         return {"users": []}
     subs = await db.fetch(
-        "SELECT s.user_id, s.status, p.name as plan_name, p.slug as plan_slug FROM subscriptions s JOIN plans p ON p.id = s.plan_id WHERE s.user_id = ANY($1)",
+        "SELECT s.user_id, s.status::text as status, s.current_period_end, "
+        "       p.name as plan_name, p.slug as plan_slug "
+        "FROM subscriptions s JOIN plans p ON p.id = s.plan_id "
+        "WHERE s.user_id = ANY($1)",
         user_ids,
     )
     usage = await db.fetch("SELECT user_id, messages_used FROM usage_counters WHERE user_id = ANY($1)", user_ids)
@@ -73,7 +76,11 @@ async def admin_users(request: Request, user: CurrentUser = Depends(require_staf
         enriched.append({
             "id": uid, "email": u["email"], "role": u["role"], "full_name": u["full_name"],
             "created_at": u["created_at"].isoformat() if u["created_at"] else None,
-            "subscription": {"status": sub["status"], "plans": {"name": sub["plan_name"], "slug": sub["plan_slug"]}} if sub else None,
+            "subscription": {
+                "status": sub["status"],
+                "current_period_end": sub["current_period_end"].isoformat() if sub.get("current_period_end") else None,
+                "plans": {"name": sub["plan_name"], "slug": sub["plan_slug"]},
+            } if sub else None,
             "messages_used": usg["messages_used"] if usg else 0,
             "banned": bool(u["banned"]),
             "email_confirmed": bool(u["email_confirmed"]),

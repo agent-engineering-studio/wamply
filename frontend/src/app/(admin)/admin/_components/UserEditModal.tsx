@@ -9,7 +9,7 @@ export interface AdminUser {
   full_name: string | null;
   role: string;
   created_at: string;
-  subscription: { status: string; plans: { name: string; slug: string } } | null;
+  subscription: { status: string; current_period_end?: string | null; plans: { name: string; slug: string } } | null;
   messages_used: number;
   banned: boolean;
   email_confirmed: boolean;
