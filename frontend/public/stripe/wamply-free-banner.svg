@@ -104,7 +104,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="720" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      20 campagne / 5.000 contatti
+      Tutte le funzionalita' Professional
     </text>
     
     <circle cx="102" cy="770" r="22" fill="#25D366" opacity="0.15"/>
@@ -113,7 +113,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="778" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      15.000 messaggi AI con Claude Sonnet
+      250 crediti AI inclusi
     </text>
     
     <circle cx="102" cy="828" r="22" fill="#25D366" opacity="0.15"/>
@@ -122,7 +122,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="836" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      A/B Testing + Analytics avanzate
+      Claude Sonnet + A/B Testing
     </text>
     
     <circle cx="102" cy="886" r="22" fill="#25D366" opacity="0.15"/>

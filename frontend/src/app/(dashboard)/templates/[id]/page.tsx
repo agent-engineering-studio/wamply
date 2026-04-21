@@ -15,6 +15,7 @@ import { validateTemplate } from "@/lib/templates/validation";
 import { EditorForm } from "./_components/EditorForm";
 import { ComplianceBanner } from "./_components/ComplianceBanner";
 import { PreviewBubble } from "@/components/templates/PreviewBubble";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 export default function TemplateEditorPage() {
   const params = useParams<{ id: string }>();
@@ -27,6 +28,8 @@ export default function TemplateEditorPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null);
+  const { status: agent } = useAgentStatus();
+  const aiEnabled = !!agent?.active;
 
   useEffect(() => {
     if (isNew) return;
@@ -112,7 +115,7 @@ export default function TemplateEditorPage() {
         </div>
       )}
 
-      {!isNew && (
+      {!isNew && aiEnabled && (
         <div className="mb-4">
           <ComplianceBanner
             templateId={params.id}

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Template } from "@/lib/templates/types";
 import { bodyText } from "@/lib/templates/preview-meta";
 import { TranslateDialog } from "./TranslateDialog";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 const CATEGORY_STYLES: Record<string, string> = {
   marketing: "bg-brand-navy-light text-brand-teal",
@@ -23,6 +24,8 @@ export function TemplateCard({
   const [translateOpen, setTranslateOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const preview = bodyText(template.components);
+  const { status: agent } = useAgentStatus();
+  const aiEnabled = !!agent?.active;
   const date = new Date(template.created_at).toLocaleDateString("it-IT");
 
   useEffect(() => {
@@ -98,16 +101,18 @@ export function TemplateCard({
               >
                 Modifica
               </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setTranslateOpen(true);
-                }}
-                className="block w-full px-3 py-1.5 text-left text-[12.5px] text-brand-teal hover:bg-brand-navy-deep"
-              >
-                🌐 Traduci…
-              </button>
+              {aiEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setTranslateOpen(true);
+                  }}
+                  className="block w-full px-3 py-1.5 text-left text-[12.5px] text-brand-teal hover:bg-brand-navy-deep"
+                >
+                  🌐 Traduci…
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

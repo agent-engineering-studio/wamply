@@ -106,7 +106,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="836" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      2.500 messaggi AI
+      2.500 messaggi WhatsApp
     </text>
     
     <circle cx="102" cy="886" r="22" fill="#0D9488" opacity="0.15"/>
@@ -115,7 +115,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="894" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      Claude Haiku
+      BYOK: usa la tua API Claude
     </text>
 
   <text x="512" y="970" font-family="Inter, system-ui, sans-serif"

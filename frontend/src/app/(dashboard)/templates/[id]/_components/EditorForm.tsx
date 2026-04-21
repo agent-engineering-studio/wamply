@@ -12,6 +12,7 @@ import { insertAtCursor } from "@/lib/templates/variables";
 import { VariableToolbar } from "./VariableToolbar";
 import { ButtonsEditor } from "./ButtonsEditor";
 import { ImproveWithAI } from "./ImproveWithAI";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: "it", label: "Italiano" },
@@ -38,6 +39,8 @@ export function EditorForm({
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const headerRef = useRef<HTMLInputElement>(null);
   const [improveOpen, setImproveOpen] = useState(false);
+  const { status: agent } = useAgentStatus();
+  const aiEnabled = !!agent?.active;
 
   function insertIntoBody(token: string) {
     if (!bodyRef.current) return;
@@ -143,14 +146,16 @@ export function EditorForm({
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[12.5px] font-medium text-slate-100">Corpo del messaggio *</span>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setImproveOpen(true)}
-              disabled={!form.body.text.trim()}
-              className="flex items-center gap-1 rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-2.5 py-1 text-[11px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-40"
-            >
-              ✨ Migliora
-            </button>
+            {aiEnabled && (
+              <button
+                type="button"
+                onClick={() => setImproveOpen(true)}
+                disabled={!form.body.text.trim()}
+                className="flex items-center gap-1 rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-2.5 py-1 text-[11px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-40"
+              >
+                ✨ Migliora
+              </button>
+            )}
             <span className="text-[11px] text-slate-500">{form.body.text.length} / 1024</span>
           </div>
         </div>

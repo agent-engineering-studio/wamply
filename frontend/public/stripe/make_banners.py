@@ -198,8 +198,8 @@ def banner_svg(plan):
 
 
 PLANS = [
-    # Free / trial banner — limits & LLM come from the Professional plan
-    # (see supabase migration 018_trial_system.sql: 14-day trial on Pro).
+    # Free / trial banner — 14 days of Professional (inherits 250 AI credits).
+    # Source: ai-credits-plan.md sezione 6.2 + supabase/migrations/018_trial_system.sql.
     {
         "name": "Free Trial",
         "slug": "free",
@@ -211,12 +211,13 @@ PLANS = [
         "accent": GREEN,
         "accent_soft": GREEN_SOFT,
         "features": [
-            "20 campagne / 5.000 contatti",
-            "15.000 messaggi AI con Claude Sonnet",
-            "A/B Testing + Analytics avanzate",
+            "Tutte le funzionalita' Professional",
+            "250 crediti AI inclusi",
+            "Claude Sonnet + A/B Testing",
             "Nessuna carta richiesta",
         ],
     },
+    # Starter — AI available only via BYOK (0 system credits).
     {
         "name": "Starter",
         "slug": "starter",
@@ -225,10 +226,11 @@ PLANS = [
         "features": [
             "5 campagne / mese",
             "500 contatti",
-            "2.500 messaggi AI",
-            "Claude Haiku",
+            "2.500 messaggi WhatsApp",
+            "BYOK: usa la tua API Claude",
         ],
     },
+    # Professional — 250 AI credits/month with system key (Sonnet).
     {
         "name": "Professional",
         "slug": "professional",
@@ -236,22 +238,23 @@ PLANS = [
         "unit": "al mese",
         "badge_text": "CONSIGLIATO",
         "features": [
-            "20 campagne / mese",
-            "5.000 contatti",
-            "15.000 messaggi AI",
-            "Claude Sonnet + A/B Testing",
+            "20 campagne / mese · 5.000 contatti",
+            "15.000 messaggi WhatsApp",
+            "250 crediti AI inclusi · Claude Sonnet",
+            "A/B Testing + Analytics avanzate",
         ],
     },
+    # Enterprise — 2000 AI credits/month + BYOK unlimited + white label.
     {
         "name": "Enterprise",
         "slug": "enterprise",
         "number": "399",
         "unit": "al mese",
         "features": [
-            "Campagne illimitate",
-            "50.000 contatti",
-            "100.000 messaggi AI",
-            "White-label + BYOK + Supporto dedicato",
+            "Campagne illimitate · 50.000 contatti",
+            "100.000 messaggi WhatsApp",
+            "2.000 crediti AI + BYOK illimitato",
+            "White-label + Supporto dedicato",
         ],
     },
 ]

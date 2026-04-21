@@ -6,11 +6,14 @@ import { apiFetch } from "@/lib/api-client";
 import type { Template } from "@/lib/templates/types";
 import { TemplateCard } from "./_components/TemplateCard";
 import { GenerateWithAI } from "./_components/GenerateWithAI";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const { status: agent } = useAgentStatus();
+  const aiEnabled = !!agent?.active;
 
   useEffect(() => {
     let cancelled = false;
@@ -53,12 +56,15 @@ export default function TemplatesPage() {
           <p className="mt-1 text-[11.5px] text-slate-400">I tuoi template WhatsApp riutilizzabili</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAiOpen(true)}
-            className="flex items-center gap-1.5 rounded-sm border border-brand-teal/40 bg-brand-teal/10 px-3 py-2 text-[13px] font-medium text-brand-teal hover:bg-brand-teal/15"
-          >
-            <span>✨</span> Genera con AI
-          </button>
+          {aiEnabled && (
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className="flex items-center gap-1.5 rounded-sm border border-brand-teal/40 bg-brand-teal/10 px-3 py-2 text-[13px] font-medium text-brand-teal hover:bg-brand-teal/15"
+            >
+              <span>✨</span> Genera con AI
+            </button>
+          )}
           <Link
             href="/templates/new"
             className="rounded-sm bg-brand-teal px-4 py-2 text-[13px] font-medium text-slate-950 shadow-[0_1px_4px_rgba(13,148,136,.3)] hover:bg-brand-teal/90"
