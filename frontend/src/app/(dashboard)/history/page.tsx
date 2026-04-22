@@ -1,87 +1,183 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { FailureInsight } from "./_components/FailureInsight";
 
-interface HistoryItem {
+interface Message {
   id: string;
-  name: string;
-  phone: string;
-  campaign: string;
-  status: "sent" | "delivered" | "read" | "failed";
-  time: string;
+  status: "pending" | "sent" | "delivered" | "read" | "failed";
+  error: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  created_at: string;
+  campaign_id: string;
+  campaign_name: string;
+  contact_id: string;
+  contact_name: string | null;
+  contact_phone: string;
 }
 
 const STATUS_CONFIG: Record<string, { badge: string; label: string }> = {
   read: { badge: "bg-green-100 text-green-800", label: "Letto" },
   delivered: { badge: "bg-blue-100 text-blue-800", label: "Consegnato" },
   sent: { badge: "bg-gray-100 text-gray-600", label: "Inviato" },
+  pending: { badge: "bg-amber-100 text-amber-800", label: "In coda" },
   failed: { badge: "bg-red-100 text-red-800", label: "Fallito" },
 };
 
-const DEMO_HISTORY: HistoryItem[] = [
-  { id: "1", name: "Marco Bianchi", phone: "+39 333 1234567", campaign: "Promo Estiva", status: "read", time: "2 min" },
-  { id: "2", name: "Laura Verdi", phone: "+39 340 7654321", campaign: "Promo Estiva", status: "delivered", time: "5 min" },
-  { id: "3", name: "Giuseppe Neri", phone: "+39 328 9876543", campaign: "Newsletter", status: "read", time: "12 min" },
-  { id: "4", name: "Anna Russo", phone: "+39 339 1122334", campaign: "Newsletter", status: "failed", time: "15 min" },
-  { id: "5", name: "Paolo Conte", phone: "+39 347 5566778", campaign: "Promo Estiva", status: "sent", time: "20 min" },
-];
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "ora";
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}g`;
+}
 
 export default function HistoryPage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [failedCount, setFailedCount] = useState(0);
+  const { status: agentStatus } = useAgentStatus();
+  const aiEnabled = !!agentStatus?.active;
 
-  const filtered = filter ? DEMO_HISTORY.filter((h) => h.status === filter) : DEMO_HISTORY;
+  const reload = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page) });
+    if (filter) params.set("status", filter);
+    apiFetch(`/messages?${params}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setMessages(d.messages || []);
+        setTotal(d.total || 0);
+      })
+      .finally(() => setLoading(false));
+  }, [filter, page]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  // Separate lightweight call to know failed count for the insight CTA
+  useEffect(() => {
+    apiFetch(`/messages?status=failed&page=1`)
+      .then((r) => r.json())
+      .then((d) => setFailedCount(d.total || 0))
+      .catch(() => {});
+  }, []);
+
+  const filters: Array<{ key: string | null; label: string }> = [
+    { key: null, label: "Tutti" },
+    { key: "sent", label: "Inviati" },
+    { key: "delivered", label: "Consegnati" },
+    { key: "read", label: "Letti" },
+    { key: "failed", label: "Falliti" },
+  ];
 
   return (
     <>
       <h1 className="mb-1 text-[15px] font-semibold text-slate-100">Storico messaggi</h1>
-      <p className="mb-4 text-[11px] text-slate-400">Tutti i messaggi inviati</p>
+      <p className="mb-4 text-[11px] text-slate-400">
+        {total} {total === 1 ? "messaggio" : "messaggi"} totali
+      </p>
 
-      <div className="mb-5 flex items-start gap-3 rounded-card border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0 text-amber-300">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        <div className="text-[12px] text-amber-200/90">
-          <strong className="text-amber-100">Anteprima demo</strong> — i messaggi mostrati sono esempi.
-          Il feed reale in tempo reale arriverà nella prossima release, con analisi AI dei pattern di
-          fallimento e suggerimenti per migliorare consegna e lettura.
-        </div>
-      </div>
+      <FailureInsight aiEnabled={aiEnabled} failedCount={failedCount} />
 
       <div className="mb-4 flex gap-1.5">
-        {[null, "sent", "delivered", "read", "failed"].map((s) => (
-          <button type="button" key={s ?? "all"} onClick={() => setFilter(s)}
-            className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === s ? "bg-green-100 text-green-800" : "bg-slate-800 text-slate-400"}`}>
-            {s ? STATUS_CONFIG[s]?.label || s : "Tutti"}
+        {filters.map((f) => (
+          <button
+            type="button"
+            key={f.key ?? "all"}
+            onClick={() => { setFilter(f.key); setPage(1); }}
+            className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === f.key ? "bg-green-100 text-green-800" : "bg-slate-800 text-slate-400"}`}
+          >
+            {f.label}
           </button>
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-card border border-slate-800 bg-brand-navy-light shadow-card">
-        {filtered.map((h) => {
-          const initials = h.name.split(" ").map((w) => w[0]).join("").slice(0, 2);
-          const config = STATUS_CONFIG[h.status];
-          return (
-            <div key={h.id} className="flex items-center gap-3 border-b border-slate-800/50 px-4 py-2.5 last:border-0 hover:bg-brand-navy-deep">
-              <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-brand-teal/15 text-[12px] font-semibold text-brand-teal">
-                {initials}
+      {loading ? (
+        <div className="animate-pulse rounded-card bg-brand-navy-light p-8 text-[12.5px] text-slate-500">
+          Caricamento...
+        </div>
+      ) : messages.length === 0 ? (
+        <div className="rounded-card border border-slate-800 bg-brand-navy-light p-10 text-center">
+          <h2 className="mb-1 text-[14px] font-semibold text-slate-100">
+            {filter ? "Nessun messaggio in questo stato" : "Nessun messaggio ancora"}
+          </h2>
+          <p className="text-[12px] text-slate-400">
+            {filter
+              ? "Prova a rimuovere il filtro."
+              : "Lancia una campagna per iniziare a vedere lo storico qui."}
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-card border border-slate-800 bg-brand-navy-light shadow-card">
+          {messages.map((m) => {
+            const nameOrPhone = m.contact_name || m.contact_phone;
+            const initials = nameOrPhone.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "??";
+            const config = STATUS_CONFIG[m.status] || STATUS_CONFIG.sent;
+            return (
+              <div key={m.id} className="flex items-center gap-3 border-b border-slate-800/50 px-4 py-2.5 last:border-0 hover:bg-brand-navy-deep">
+                <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full bg-brand-teal/15 text-[12px] font-semibold text-brand-teal">
+                  {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-medium text-slate-100">
+                    {m.contact_name || "Senza nome"}
+                  </div>
+                  <div className="font-mono text-[11px] text-slate-400">{m.contact_phone}</div>
+                  {m.status === "failed" && m.error && (
+                    <div className="mt-0.5 truncate font-mono text-[10.5px] text-rose-400" title={m.error}>
+                      {m.error}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="truncate text-[11px] text-slate-400">{m.campaign_name}</div>
+                  <span className={`mt-0.5 inline-block rounded-pill px-2 py-0.5 text-[10px] font-medium ${config.badge}`}>
+                    {config.label}
+                  </span>
+                </div>
+                <div className="w-12 text-right text-[11px] text-slate-500">
+                  {relativeTime(m.sent_at || m.created_at)}
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-[13px] font-medium text-slate-100">{h.name}</div>
-                <div className="font-mono text-[11px] text-slate-400">{h.phone}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[11px] text-slate-400">{h.campaign}</div>
-                <span className={`mt-0.5 inline-block rounded-pill px-2 py-0.5 text-[10px] font-medium ${config.badge}`}>
-                  {config.label}
-                </span>
-              </div>
-              <div className="w-10 text-right text-[11px] text-slate-500">{h.time}</div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      {total > 50 && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="rounded-sm border border-slate-800 px-3 py-1.5 text-[12px] text-slate-300 disabled:opacity-40"
+          >
+            ← Prec
+          </button>
+          <span className="text-[12px] text-slate-400">
+            Pagina {page} di {Math.ceil(total / 50)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(page + 1)}
+            disabled={page >= Math.ceil(total / 50)}
+            className="rounded-sm border border-slate-800 px-3 py-1.5 text-[12px] text-slate-300 disabled:opacity-40"
+          >
+            Succ →
+          </button>
+        </div>
+      )}
     </>
   );
 }
