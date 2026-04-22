@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { DashboardInsight } from "./_components/DashboardInsight";
 
 interface DashboardData {
   contacts: number;
@@ -38,6 +40,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function DashboardHome() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const { status: agentStatus } = useAgentStatus();
+  const aiEnabled = !!agentStatus?.active;
 
   useEffect(() => {
     async function load() {
@@ -74,6 +78,8 @@ export default function DashboardHome() {
           + Nuova campagna
         </Link>
       </div>
+
+      {data.messages > 0 && <DashboardInsight aiEnabled={aiEnabled} />}
 
       {/* Stats */}
       <div className="mb-5 grid grid-cols-4 gap-3.5">
@@ -121,40 +127,70 @@ export default function DashboardHome() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[13px] font-semibold text-slate-100">Campagne recenti</span>
-          <Link href="/campaigns" className="text-[12px] font-medium text-brand-teal">Vedi tutte →</Link>
+          {data.campaigns.length > 0 && (
+            <Link href="/campaigns" className="text-[12px] font-medium text-brand-teal">Vedi tutte →</Link>
+          )}
         </div>
-        <div className="overflow-hidden rounded-card border border-slate-800 bg-brand-navy-light shadow-card">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-800 bg-brand-navy-deep">
-                <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Campagna</th>
-                <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Stato</th>
-                <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Inviati</th>
-                <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Letti</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.campaigns.map((c) => (
-                <tr key={c.id} className="border-b border-slate-800/50 last:border-0 hover:bg-brand-navy-deep">
-                  <td className="px-3.5 py-3">
-                    <Link href={`/campaigns/${c.id}`} className="text-[13px] font-medium text-slate-100 hover:text-brand-teal">{c.name}</Link>
-                    <div className="text-[11px] text-slate-400">{c.stats?.total || 0} destinatari</div>
-                  </td>
-                  <td className="px-3.5 py-3">
-                    <span className={`inline-block rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${STATUS_BADGES[c.status] || "bg-gray-100"}`}>
-                      {STATUS_LABELS[c.status] || c.status}
-                    </span>
-                  </td>
-                  <td className="px-3.5 py-3 text-[13px] text-slate-100">{c.stats?.sent || 0}</td>
-                  <td className="px-3.5 py-3 text-[13px] font-medium text-brand-teal">{c.stats?.read || 0}</td>
+
+        {data.campaigns.length === 0 ? (
+          <div className="rounded-card border border-slate-800 bg-brand-navy-light p-8 text-center shadow-card">
+            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-300">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
+                <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
+              </svg>
+            </div>
+            <h2 className="mb-1 text-[13.5px] font-semibold text-slate-100">Nessuna campagna ancora</h2>
+            <p className="mx-auto mb-4 max-w-sm text-[12px] text-slate-400">
+              Crea la prima campagna in pochi secondi. Wamply ti guida con l&apos;AI: descrivi
+              l&apos;obiettivo e ricevi segmento, template e orario consigliati.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Link
+                href="/campaigns"
+                className="rounded-pill bg-indigo-500 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-indigo-400"
+              >
+                Crea con AI
+              </Link>
+              <Link
+                href="/campaigns/new"
+                className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-300 hover:border-slate-600 hover:text-slate-100"
+              >
+                Crea manualmente
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-card border border-slate-800 bg-brand-navy-light shadow-card">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-800 bg-brand-navy-deep">
+                  <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Campagna</th>
+                  <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Stato</th>
+                  <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Inviati</th>
+                  <th className="px-3.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Letti</th>
                 </tr>
-              ))}
-              {data.campaigns.length === 0 && (
-                <tr><td colSpan={4} className="px-3.5 py-8 text-center text-[13px] text-slate-500">Nessuna campagna ancora</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data.campaigns.map((c) => (
+                  <tr key={c.id} className="border-b border-slate-800/50 last:border-0 hover:bg-brand-navy-deep">
+                    <td className="px-3.5 py-3">
+                      <Link href={`/campaigns/${c.id}`} className="text-[13px] font-medium text-slate-100 hover:text-brand-teal">{c.name}</Link>
+                      <div className="text-[11px] text-slate-400">{c.stats?.total || 0} destinatari</div>
+                    </td>
+                    <td className="px-3.5 py-3">
+                      <span className={`inline-block rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${STATUS_BADGES[c.status] || "bg-gray-100"}`}>
+                        {STATUS_LABELS[c.status] || c.status}
+                      </span>
+                    </td>
+                    <td className="px-3.5 py-3 text-[13px] text-slate-100">{c.stats?.sent || 0}</td>
+                    <td className="px-3.5 py-3 text-[13px] font-medium text-brand-teal">{c.stats?.read || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

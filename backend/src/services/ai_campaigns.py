@@ -182,6 +182,82 @@ async def plan_campaign(
         raise ValueError(f"Planner AI malformato: {e}") from e
 
 
+# ── Campaign performance insight ──────────────────────────────
+
+class PerformanceInsight(BaseModel):
+    summary: str = Field(..., min_length=1, max_length=400)
+    highlights: list[str] = Field(default_factory=list, max_length=4)
+    improvements: list[str] = Field(default_factory=list, max_length=4)
+    failure_diagnosis: str | None = Field(default=None, max_length=300)
+
+
+INSIGHT_SYSTEM_PROMPT = """Sei un analista di marketing WhatsApp. Ricevi le
+statistiche di UNA singola campagna già partita (dati aggregati, no PII) e
+produci un'analisi pragmatica e breve per una PMI con bassa alfabetizzazione
+tecnica.
+
+OUTPUT: JSON con:
+- summary: 1-2 frasi sul risultato complessivo (max 400 caratteri)
+- highlights: max 4 punti positivi concreti (es. "Tasso di lettura 42%: buono per questa categoria")
+- improvements: max 4 suggerimenti azionabili (es. "Prova a inviare alle 19 invece che alle 10")
+- failure_diagnosis: se ci sono fallimenti >5%, prova a ipotizzare la causa più probabile (numeri
+  non validi, opt-out, rate limit, template rifiutato). Altrimenti lascia null.
+
+Parla in italiano, tono concreto, no marketing-speak. Zero emoji.
+Rispondi SOLO con JSON valido."""
+
+
+def _mock_insight(stats: dict, name: str) -> PerformanceInsight:
+    total = int(stats.get("total") or 0)
+    read = int(stats.get("read") or 0)
+    failed = int(stats.get("failed") or 0)
+    read_rate = (read / total * 100) if total else 0
+    fail_rate = (failed / total * 100) if total else 0
+    return PerformanceInsight(
+        summary=f"[mock] Campagna '{name}': {read_rate:.0f}% letti, {fail_rate:.0f}% falliti.",
+        highlights=[f"Letti: {read}/{total}"],
+        improvements=["Configura una chiave Claude per un'analisi vera."],
+        failure_diagnosis=(
+            f"{fail_rate:.0f}% fallimenti — probabile mix di numeri non validi "
+            "e contatti senza opt-in."
+        ) if fail_rate > 5 else None,
+    )
+
+
+async def analyze_campaign_performance(
+    campaign_info: dict,
+    api_key: str,
+) -> tuple[PerformanceInsight, int, int]:
+    """Ask Claude Sonnet for a short, actionable reading of a single campaign.
+
+    `campaign_info` is expected to include: name, status, template_category,
+    scheduled/started timestamps, and a `stats` block with total/sent/delivered/read/failed.
+    """
+    if settings.mock_llm or not api_key:
+        stats = campaign_info.get("stats") or {}
+        return (_mock_insight(stats, campaign_info.get("name", "")), 0, 0)
+
+    client = _build_client(api_key)
+    user_msg = (
+        "Analizza questa campagna:\n"
+        f"{json.dumps(campaign_info, ensure_ascii=False, default=str)}"
+    )
+    response = client.messages.create(
+        model=ai_models.model_id("campaign_insight"),
+        max_tokens=800,
+        temperature=0.3,
+        system=INSIGHT_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    raw = "".join(b.text for b in response.content if hasattr(b, "text"))
+    tin, tout = _token_counts(response)
+    try:
+        parsed = json.loads(_extract_json(raw))
+        return (PerformanceInsight(**parsed), tin, tout)
+    except (ValueError, ValidationError) as e:
+        raise ValueError(f"Insight AI malformato: {e}") from e
+
+
 # ── Helpers for the preview endpoint ──────────────────────────
 
 def extract_body_text(components: Any) -> str:

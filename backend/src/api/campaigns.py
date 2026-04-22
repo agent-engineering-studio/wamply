@@ -10,7 +10,9 @@ from src.services.ai_campaigns import (
     personalize_for_contact,
     plan_campaign,
     extract_body_text,
+    analyze_campaign_performance,
 )
+from src.services.ai_assists import dashboard_insight
 
 router = APIRouter(prefix="/campaigns")
 
@@ -385,3 +387,142 @@ async def planner(
 
     await commit_credits(db, redis, reservation, tin, tout)
     return suggestion.model_dump()
+
+
+# ── AI: per-campaign performance insight ────────────────────
+
+@router.post("/{campaign_id}/insights")
+async def campaign_insights(
+    request: Request,
+    campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Sonnet-powered analysis of a single campaign (2 credits).
+
+    Only meaningful after the campaign has started sending. We fetch the
+    aggregate stats from `messages` (no PII sent to Claude) + a few
+    campaign-level fields (template category, timestamps) and ask for a
+    short, actionable reading.
+    """
+    db = get_db(request)
+    redis = get_redis(request)
+
+    row = await db.fetchrow(
+        """SELECT c.id, c.name, c.status, c.started_at, c.created_at,
+                  c.template_id, t.name AS template_name, t.category AS template_category
+           FROM campaigns c
+           LEFT JOIN templates t ON t.id = c.template_id
+           WHERE c.id = $1 AND c.user_id = $2""",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    counts = await db.fetch(
+        "SELECT status, count(*)::int AS n FROM messages WHERE campaign_id = $1 GROUP BY status",
+        campaign_id,
+    )
+    stats = {"total": 0, "sent": 0, "delivered": 0, "read": 0, "failed": 0}
+    for r in counts:
+        stats["total"] += r["n"]
+        if r["status"] in stats:
+            stats[r["status"]] += r["n"]
+
+    if stats["sent"] == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Analisi disponibile solo dopo che la campagna ha iniziato a inviare.",
+        )
+
+    campaign_info = {
+        "name": row["name"],
+        "status": row["status"],
+        "template_name": row["template_name"],
+        "template_category": row["template_category"],
+        "started_at": row["started_at"].isoformat() if row["started_at"] else None,
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "stats": stats,
+    }
+
+    reservation = await reserve_credits(db, redis, str(user.id), "campaign_insight")
+    api_key, _ = await resolve_api_key(db, str(user.id))
+
+    try:
+        insight, tin, tout = await analyze_campaign_performance(campaign_info, api_key)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"Insight error: {e}") from e
+
+    await commit_credits(db, redis, reservation, tin, tout)
+    return insight.model_dump()
+
+
+# ── AI: dashboard-level insight across recent campaigns ─────
+
+@router.post("/dashboard-insight")
+async def dashboard_insight_endpoint(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Sonnet reading of the user's overall marketing performance (2 credits).
+
+    Aggregates the last ~10 campaigns and contact totals, no PII sent to Claude.
+    Returns {headline, observations, next_action}.
+    """
+    db = get_db(request)
+    redis = get_redis(request)
+
+    total_contacts = await db.fetchval(
+        "SELECT count(*) FROM contacts WHERE user_id = $1 AND opt_in = true",
+        user.id,
+    )
+    recent = await db.fetch(
+        """SELECT c.name, c.status::text, c.stats, c.started_at, c.created_at,
+                  t.category AS template_category
+           FROM campaigns c
+           LEFT JOIN templates t ON t.id = c.template_id
+           WHERE c.user_id = $1
+           ORDER BY c.created_at DESC LIMIT 10""",
+        user.id,
+    )
+
+    campaigns_ctx = []
+    for r in recent:
+        stats_raw = r["stats"]
+        if isinstance(stats_raw, str):
+            try:
+                stats_raw = json.loads(stats_raw)
+            except (ValueError, TypeError):
+                stats_raw = {}
+        campaigns_ctx.append({
+            "name": r["name"],
+            "status": r["status"],
+            "template_category": r["template_category"],
+            "started_at": r["started_at"].isoformat() if r["started_at"] else None,
+            "stats": stats_raw or {},
+        })
+
+    sent_sum = sum(int((c["stats"] or {}).get("sent") or 0) for c in campaigns_ctx)
+    if not campaigns_ctx or sent_sum == 0:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Non ci sono ancora abbastanza dati per un'analisi AI. "
+                "Invia almeno una campagna e riprova."
+            ),
+        )
+
+    data = {
+        "total_contacts": int(total_contacts or 0),
+        "recent_campaigns": campaigns_ctx,
+    }
+
+    reservation = await reserve_credits(db, redis, str(user.id), "dashboard_insight")
+    api_key, _ = await resolve_api_key(db, str(user.id))
+
+    try:
+        insight, tin, tout = await dashboard_insight(data, api_key)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"DashboardInsight error: {e}") from e
+
+    await commit_credits(db, redis, reservation, tin, tout)
+    return insight.model_dump()

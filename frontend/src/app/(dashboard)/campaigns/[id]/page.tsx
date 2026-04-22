@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { CampaignInsights } from "./_components/CampaignInsights";
 
 interface CampaignStats { total: number; sent: number; delivered: number; read: number; failed: number }
 interface CampaignDetail {
@@ -26,6 +28,8 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [launching, setLaunching] = useState(false);
+  const { status: agentStatus } = useAgentStatus();
+  const aiEnabled = !!agentStatus?.active;
 
   useEffect(() => {
     apiFetch(`/campaigns/${id}`).then((r) => r.json()).then(setCampaign);
@@ -82,7 +86,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {s.total > 0 && (
-        <div className="rounded-card border border-slate-800 bg-brand-navy-light p-5 shadow-card">
+        <div className="mb-5 rounded-card border border-slate-800 bg-brand-navy-light p-5 shadow-card">
           <div className="mb-3 text-[13px] font-semibold text-slate-100">Progresso invio</div>
           <div className="h-2 overflow-hidden rounded-full bg-slate-800">
             <div className="h-full rounded-full bg-brand-teal transition-all" style={{ width: `${Math.round((s.sent / s.total) * 100)}%` }} />
@@ -92,6 +96,10 @@ export default function CampaignDetailPage() {
             <span>{s.failed > 0 && <span className="text-red-500">{s.failed} falliti</span>}</span>
           </div>
         </div>
+      )}
+
+      {s.sent > 0 && typeof id === "string" && (
+        <CampaignInsights campaignId={id} aiEnabled={aiEnabled} />
       )}
     </>
   );

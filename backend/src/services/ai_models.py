@@ -38,6 +38,10 @@ Operation = Literal[
     "template_translate",
     "personalize_message",
     "campaign_planner",
+    "campaign_insight",
+    "group_suggest",
+    "contact_tag_suggest",
+    "dashboard_insight",
 ]
 
 
@@ -56,6 +60,10 @@ OPERATION_CREDITS: dict[Operation, float] = {
     "template_translate":   1.0,  # Haiku
     "personalize_message":  0.5,  # Haiku
     "campaign_planner":     5.0,  # Opus
+    "campaign_insight":     2.0,  # Sonnet
+    "group_suggest":        2.0,  # Sonnet
+    "contact_tag_suggest":  1.0,  # Haiku
+    "dashboard_insight":    2.0,  # Sonnet
 }
 
 
@@ -71,6 +79,10 @@ OPERATION_MODEL: dict[Operation, Model] = {
     "template_translate":   "haiku",
     "personalize_message":  "haiku",
     "campaign_planner":     "opus",
+    "campaign_insight":     "sonnet",
+    "group_suggest":        "sonnet",
+    "contact_tag_suggest":  "haiku",
+    "dashboard_insight":    "sonnet",
 }
 
 

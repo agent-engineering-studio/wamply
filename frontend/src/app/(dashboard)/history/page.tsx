@@ -34,11 +34,24 @@ export default function HistoryPage() {
   return (
     <>
       <h1 className="mb-1 text-[15px] font-semibold text-slate-100">Storico messaggi</h1>
-      <p className="mb-6 text-[11px] text-slate-400">Tutti i messaggi inviati</p>
+      <p className="mb-4 text-[11px] text-slate-400">Tutti i messaggi inviati</p>
+
+      <div className="mb-5 flex items-start gap-3 rounded-card border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0 text-amber-300">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <div className="text-[12px] text-amber-200/90">
+          <strong className="text-amber-100">Anteprima demo</strong> — i messaggi mostrati sono esempi.
+          Il feed reale in tempo reale arriverà nella prossima release, con analisi AI dei pattern di
+          fallimento e suggerimenti per migliorare consegna e lettura.
+        </div>
+      </div>
 
       <div className="mb-4 flex gap-1.5">
         {[null, "sent", "delivered", "read", "failed"].map((s) => (
-          <button key={s ?? "all"} onClick={() => setFilter(s)}
+          <button type="button" key={s ?? "all"} onClick={() => setFilter(s)}
             className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === s ? "bg-green-100 text-green-800" : "bg-slate-800 text-slate-400"}`}>
             {s ? STATUS_CONFIG[s]?.label || s : "Tutti"}
           </button>

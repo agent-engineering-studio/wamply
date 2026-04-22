@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { PromptPalette, type PromptCategory } from "./_components/PromptPalette";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,60 +13,7 @@ interface Message {
   loading?: boolean;
 }
 
-interface QuickPrompt {
-  label: string;
-  prompt: string;
-}
-
-interface PromptCategory {
-  title: string;
-  icon: React.ReactNode;
-  prompts: QuickPrompt[];
-}
-
 // ─── Icons ────────────────────────────────────────────────────────────────────
-
-const IconUsers = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
-const IconSend = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
-
-const IconDocument = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <polyline points="10 9 9 9 8 9" />
-  </svg>
-);
-
-const IconBarChart = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-    <line x1="18" y1="20" x2="18" y2="10" />
-    <line x1="12" y1="20" x2="12" y2="4" />
-    <line x1="6" y1="20" x2="6" y2="14" />
-    <line x1="2" y1="20" x2="22" y2="20" />
-  </svg>
-);
-
-const IconGear = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
 
 const IconSendMsg = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
@@ -79,7 +27,6 @@ const IconSendMsg = () => (
 const CATEGORIES: PromptCategory[] = [
   {
     title: "Contatti",
-    icon: <IconUsers />,
     prompts: [
       { label: "Lista tutti i contatti", prompt: "Mostrami tutti i contatti" },
       { label: "Cerca contatto", prompt: "Cerca i contatti con nome 'Marco'" },
@@ -92,7 +39,6 @@ const CATEGORIES: PromptCategory[] = [
   },
   {
     title: "Campagne",
-    icon: <IconSend />,
     prompts: [
       { label: "Lista campagne", prompt: "Mostrami tutte le campagne" },
       { label: "Campagne attive", prompt: "Quali campagne sono in corso?" },
@@ -109,7 +55,6 @@ const CATEGORIES: PromptCategory[] = [
   },
   {
     title: "Template",
-    icon: <IconDocument />,
     prompts: [
       { label: "Lista template", prompt: "Mostrami tutti i template" },
       { label: "Dettagli template", prompt: "Mostrami i dettagli del template con ID [ID]" },
@@ -121,7 +66,6 @@ const CATEGORIES: PromptCategory[] = [
   },
   {
     title: "Dashboard & Analytics",
-    icon: <IconBarChart />,
     prompts: [
       { label: "Panoramica dashboard", prompt: "Mostrami le statistiche della dashboard" },
       { label: "Statistiche campagna", prompt: "Mostrami le statistiche della campagna con ID [ID]" },
@@ -133,7 +77,6 @@ const CATEGORIES: PromptCategory[] = [
   },
   {
     title: "Impostazioni",
-    icon: <IconGear />,
     prompts: [
       { label: "Config WhatsApp", prompt: "Mostrami la configurazione WhatsApp corrente" },
       { label: "Aggiorna WhatsApp", prompt: "Aggiorna la configurazione WhatsApp con Phone Number ID '123456' e WABA ID '789012'" },
@@ -152,6 +95,7 @@ export default function AgentPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -215,40 +159,32 @@ export default function AgentPage() {
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col">
       {/* Header */}
-      <div className="mb-4 flex-shrink-0">
+      <div className="mb-4 shrink-0">
         <h1 className="text-[15px] font-semibold text-slate-100">Agent AI</h1>
         <p className="text-[11px] text-slate-400">
           Assistente intelligente per gestire contatti, campagne e messaggi
         </p>
       </div>
 
-      {/* Messages / Quick Prompts */}
+      {/* Thread */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!hasMessages ? (
-          /* Quick Prompts Grid */
-          <div className="space-y-5 pb-4">
-            {CATEGORIES.map((cat) => (
-              <div key={cat.title}>
-                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                  <span className="text-brand-teal">{cat.icon}</span>
-                  {cat.title}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {cat.prompts.map((qp) => (
-                    <button
-                      key={qp.label}
-                      onClick={() => sendPrompt(qp.prompt)}
-                      className="rounded-pill border border-slate-800 bg-brand-navy-light px-3 py-1.5 text-[12px] text-slate-100 shadow-card transition-colors hover:border-brand-teal hover:bg-brand-teal/10 hover:text-brand-teal"
-                    >
-                      {qp.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal/15 text-brand-teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+                <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
+                <circle cx="9" cy="14" r="1" fill="currentColor" />
+                <circle cx="15" cy="14" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <h2 className="text-[14px] font-semibold text-slate-100">Ciao! Come posso aiutarti?</h2>
+            <p className="mt-1.5 max-w-sm text-[12px] text-slate-400">
+              Scrivi una richiesta in linguaggio naturale oppure apri i{" "}
+              <span className="text-brand-teal">prompt rapidi</span> dal pulsante qui sotto
+              (o con <kbd className="rounded-sm border border-slate-700 bg-brand-navy-light px-1 py-0.5 font-mono text-[10px] text-slate-300">⌘K</kbd>).
+            </p>
           </div>
         ) : (
-          /* Chat Bubbles */
           <div className="space-y-3 pb-4">
             {messages.map((msg, idx) => (
               <div
@@ -292,16 +228,31 @@ export default function AgentPage() {
         )}
       </div>
 
-      {/* Input Bar */}
-      <div className="flex-shrink-0 border-t border-slate-800 pt-3">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
+      {/* Input Bar — palette stays reachable forever */}
+      <div className="shrink-0 border-t border-slate-800 pt-3">
+        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+          <PromptPalette
+            categories={CATEGORIES}
+            onPick={(text) => {
+              setInput(text);
+              // Focus the textarea so the user can edit [ID] placeholders.
+              textareaRef.current?.focus();
+            }}
+          />
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Scrivi un messaggio o scegli un prompt rapido…"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendPrompt(input);
+              }
+            }}
+            placeholder="Scrivi un messaggio o apri i prompt rapidi…"
             disabled={sending}
-            className="min-w-0 flex-1 rounded-card border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none disabled:opacity-50"
+            rows={1}
+            className="min-w-0 flex-1 resize-none rounded-card border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none disabled:opacity-50"
           />
           <button
             type="submit"
@@ -315,6 +266,7 @@ export default function AgentPage() {
         {hasMessages && (
           <div className="mt-2 text-right">
             <button
+              type="button"
               onClick={resetConversation}
               className="text-[11px] text-slate-400 underline-offset-2 hover:text-brand-teal hover:underline"
             >

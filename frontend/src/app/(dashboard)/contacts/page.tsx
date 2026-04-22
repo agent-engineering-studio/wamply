@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { SmartTagsModal } from "./_components/SmartTagsModal";
 
 interface Contact {
   id: string;
@@ -67,7 +69,7 @@ export default function ContactsPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Cerca per nome, telefono, email..."
-          className="flex-1 rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none"
+          className="flex-1 rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none"
         />
       </div>
 
@@ -115,19 +117,52 @@ export default function ContactsPage() {
           })
         )}
         {!loading && contacts.length === 0 && (
-          <div className="p-8 text-center text-[13px] text-slate-500">Nessun contatto trovato</div>
+          <div className="p-10 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal/15 text-brand-teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+              </svg>
+            </div>
+            <h2 className="mb-1 text-[14px] font-semibold text-slate-100">
+              {search || tagFilter ? "Nessun contatto corrisponde ai filtri" : "Nessun contatto"}
+            </h2>
+            <p className="mx-auto mb-5 max-w-sm text-[12px] text-slate-400">
+              {search || tagFilter
+                ? "Prova a modificare la ricerca o rimuovere i filtri."
+                : "Importa la tua rubrica o aggiungi il primo contatto per iniziare a inviare campagne."}
+            </p>
+            {!search && !tagFilter && (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-pill bg-brand-teal px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-teal-dark"
+                >
+                  Importa CSV
+                </button>
+                <button
+                  type="button"
+                  className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-300 hover:border-slate-600 hover:text-slate-100"
+                >
+                  + Aggiungi manuale
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
       {/* Pagination */}
       {total > 50 && (
         <div className="mt-4 flex items-center justify-center gap-2">
-          <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
+          <button type="button" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
             className="rounded-sm border border-slate-800 px-3 py-1.5 text-[12px] disabled:opacity-40">
             ← Prec
           </button>
           <span className="text-[12px] text-slate-400">Pagina {page} di {Math.ceil(total / 50)}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= Math.ceil(total / 50)}
+          <button type="button" onClick={() => setPage(page + 1)} disabled={page >= Math.ceil(total / 50)}
             className="rounded-sm border border-slate-800 px-3 py-1.5 text-[12px] disabled:opacity-40">
             Succ →
           </button>
