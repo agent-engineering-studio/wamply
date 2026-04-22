@@ -33,24 +33,66 @@ async def dispatch_messages(
         messages=len(messages),
     )
 
-    # Get Twilio credentials
-    row = await db.pool.fetchrow(
-        "SELECT twilio_account_sid, twilio_auth_token_encrypted, "
-        "twilio_from, twilio_messaging_service_sid "
-        "FROM whatsapp_config WHERE user_id = $1",
+    # Get Twilio credentials — prefer the per-customer subaccount (new model)
+    # over the legacy whatsapp_config (kept for backward compat during rollout).
+    ma_row = await db.pool.fetchrow(
+        """SELECT ma.twilio_subaccount_sid,
+                  ma.twilio_subaccount_auth_token_encrypted,
+                  ma.twilio_phone_number,
+                  ma.twilio_messaging_service_sid,
+                  ma.status::text AS ma_status
+           FROM meta_applications ma
+           JOIN businesses b ON b.id = ma.business_id
+           WHERE b.user_id = $1""",
         user_id,
     )
-    if not row or not row["twilio_auth_token_encrypted"] or not row["twilio_account_sid"]:
-        raise ValueError("Configurazione Twilio mancante")
-    if not row["twilio_from"] and not row["twilio_messaging_service_sid"]:
-        raise ValueError(
-            "Configurazione Twilio: serve twilio_from o twilio_messaging_service_sid"
-        )
 
-    account_sid = row["twilio_account_sid"]
-    auth_token = decrypt(row["twilio_auth_token_encrypted"])
-    from_ = row["twilio_from"]
-    messaging_service_sid = row["twilio_messaging_service_sid"]
+    if ma_row and ma_row["twilio_subaccount_sid"] and ma_row["twilio_subaccount_auth_token_encrypted"]:
+        # Block the dispatch if the WABA isn't approved yet.
+        if ma_row["ma_status"] not in ("approved", "active"):
+            raise ValueError(
+                f"WhatsApp non ancora attivato (stato: {ma_row['ma_status']}). "
+                "Attendi l'approvazione Meta prima di inviare campagne."
+            )
+        account_sid = ma_row["twilio_subaccount_sid"]
+        auth_token_raw = ma_row["twilio_subaccount_auth_token_encrypted"]
+        if isinstance(auth_token_raw, (bytes, bytearray)):
+            auth_token_raw = auth_token_raw.decode()
+        auth_token = decrypt(auth_token_raw)
+        from_ = (
+            f"whatsapp:{ma_row['twilio_phone_number']}"
+            if ma_row["twilio_phone_number"]
+            else None
+        )
+        messaging_service_sid = ma_row["twilio_messaging_service_sid"]
+        await log.ainfo(
+            "dispatcher_using_subaccount",
+            user_id=user_id,
+            subaccount_sid=account_sid,
+        )
+    else:
+        # Legacy path: read whatsapp_config
+        row = await db.pool.fetchrow(
+            "SELECT twilio_account_sid, twilio_auth_token_encrypted, "
+            "twilio_from, twilio_messaging_service_sid "
+            "FROM whatsapp_config WHERE user_id = $1",
+            user_id,
+        )
+        if not row or not row["twilio_auth_token_encrypted"] or not row["twilio_account_sid"]:
+            raise ValueError("Configurazione Twilio mancante")
+        if not row["twilio_from"] and not row["twilio_messaging_service_sid"]:
+            raise ValueError(
+                "Configurazione Twilio: serve twilio_from o twilio_messaging_service_sid"
+            )
+        account_sid = row["twilio_account_sid"]
+        auth_token = decrypt(row["twilio_auth_token_encrypted"])
+        from_ = row["twilio_from"]
+        messaging_service_sid = row["twilio_messaging_service_sid"]
+
+    if not from_ and not messaging_service_sid:
+        raise ValueError(
+            "Configurazione Twilio incompleta: serve un numero attivo o messaging_service_sid."
+        )
 
     content_sid = template.get("twilio_content_sid")
     if not content_sid:

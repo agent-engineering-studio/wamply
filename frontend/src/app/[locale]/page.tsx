@@ -30,37 +30,17 @@ export async function generateMetadata({
   };
 }
 
-/* Agent Engineering Studio — inline SVG reconstruction (A + AI hexagon + circuits) */
+/* Agent Engineering Studio — renders the official v2 lockup
+   (hexagon with "Ai" + AGENT ENGINEERING STUDIO wordmark).
+   Asset in public/agent-engineering-logo-v2.png, aspect ratio ~2:1. */
 function AEStudioLogo({ className = "h-5 w-auto" }: { className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
   return (
-    <svg viewBox="0 0 120 64" className={className} aria-label="Agent Engineering Studio">
-      <defs>
-        <linearGradient id="aeBlue" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3B82F6" />
-          <stop offset="100%" stopColor="#1E3A8A" />
-        </linearGradient>
-        <linearGradient id="aeGray" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#94A3B8" />
-          <stop offset="100%" stopColor="#475569" />
-        </linearGradient>
-      </defs>
-      <polygon points="6,56 26,8 34,8 20,56" fill="url(#aeBlue)" />
-      <polygon points="26,8 34,8 42,56 20,56" fill="url(#aeGray)" opacity="0.85" />
-      <rect x="18" y="22" width="20" height="5" fill="#CBD5E1" />
-      <rect x="20" y="32" width="20" height="5" fill="#CBD5E1" />
-      <rect x="22" y="42" width="20" height="5" fill="#CBD5E1" />
-      <polygon points="58,10 72,10 79,22 72,34 58,34 51,22" fill="#2563EB" stroke="#1E3A8A" strokeWidth="1" />
-      <text x="65" y="26" fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle" fontFamily="Inter, sans-serif">AI</text>
-      <path d="M 79 16 L 92 12" stroke="#3B82F6" strokeWidth="1.2" fill="none" />
-      <circle cx="94" cy="11" r="1.4" fill="#3B82F6" />
-      <path d="M 79 22 L 96 22" stroke="#3B82F6" strokeWidth="1.2" fill="none" />
-      <circle cx="98" cy="22" r="1.4" fill="#3B82F6" />
-      <path d="M 79 28 L 92 32" stroke="#3B82F6" strokeWidth="1.2" fill="none" />
-      <circle cx="94" cy="33" r="1.4" fill="#3B82F6" />
-      <text x="60" y="54" fontSize="9" fontWeight="600" fill="currentColor" textAnchor="middle" fontFamily="Inter, sans-serif" letterSpacing="0.5">
-        AGENT ENGINEERING
-      </text>
-    </svg>
+    <img
+      src="/agent-engineering-logo-v2.png"
+      alt="Agent Engineering Studio"
+      className={className}
+    />
   );
 }
 

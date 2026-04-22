@@ -161,6 +161,43 @@ async def launch_campaign(
     if row["status"] not in ("draft", "scheduled"):
         raise HTTPException(status_code=400, detail=f"La campagna è in stato '{row['status']}'.")
 
+    # Gate: block launch if WhatsApp sender not yet activated (Meta approval flow).
+    # Users still on legacy whatsapp_config (pre-multi-tenant) skip this check.
+    ma = await db.fetchrow(
+        """SELECT ma.id, ma.status::text AS status, ma.business_id
+           FROM meta_applications ma
+           JOIN businesses b ON b.id = ma.business_id
+           WHERE b.user_id = $1""",
+        user.id,
+    )
+    if ma and ma["status"] not in ("approved", "active"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Il tuo sender WhatsApp non è ancora attivo. "
+                "Stato attuale: " + ma["status"] + ". "
+                "Attendi l'approvazione Meta prima di lanciare campagne."
+            ),
+            headers={"X-Meta-Application-Status": ma["status"]},
+        )
+
+    # First successful launch promotes approved → active (sender officially in use).
+    if ma and ma["status"] == "approved":
+        await db.execute(
+            """UPDATE meta_applications
+               SET status = 'active', activated_at = now(), updated_at = now()
+               WHERE id = $1""",
+            ma["id"],
+        )
+        await db.execute(
+            """INSERT INTO business_audit_log (business_id, action, actor_id, changes)
+               VALUES ($1, 'auto_promote_active', $2,
+                       jsonb_build_object('trigger', 'first_campaign_launch',
+                                          'campaign_id', $3::text,
+                                          'meta_application_id', $4::text))""",
+            ma["business_id"], user.id, campaign_id, str(ma["id"]),
+        )
+
     await redis.lpush("campaigns", campaign_id)
     await db.execute(
         "UPDATE campaigns SET status = 'running', started_at = now() WHERE id = $1",

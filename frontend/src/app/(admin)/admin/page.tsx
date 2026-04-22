@@ -9,6 +9,7 @@ import { StaffTable } from "./_components/StaffTable";
 import { RoleModal } from "./_components/RoleModal";
 import { AICostsTab } from "./_components/AICostsTab";
 import { AIRevenueTab } from "./_components/AIRevenueTab";
+import { WhatsAppApplicationsTab } from "./_components/WhatsAppApplicationsTab";
 
 interface Overview {
   total_users: number;
@@ -18,7 +19,7 @@ interface Overview {
   plan_breakdown: Record<string, number>;
 }
 
-type Tab = "overview" | "users" | "staff" | "campaigns" | "ai_costs" | "ai_revenue";
+type Tab = "overview" | "users" | "staff" | "campaigns" | "whatsapp" | "ai_costs" | "ai_revenue";
 type ViewerRole = "admin" | "collaborator" | null;
 
 const PLAN_COLORS: Record<string, string> = {
@@ -32,6 +33,7 @@ const TAB_LABELS: Record<Tab, string> = {
   users: "Utenti",
   staff: "Staff",
   campaigns: "Campagne",
+  whatsapp: "Pratiche WhatsApp",
   ai_costs: "AI Costs",
   ai_revenue: "AI Revenue",
 };
@@ -90,7 +92,7 @@ export default function AdminPage() {
   const messagesToday = (overview.messages_today ?? 0).toLocaleString("it-IT");
   const activeCampaigns = overview.active_campaigns ?? 0;
 
-  const tabs: Tab[] = ["overview", "users", "staff", "campaigns", "ai_costs", "ai_revenue"];
+  const tabs: Tab[] = ["overview", "users", "staff", "campaigns", "whatsapp", "ai_costs", "ai_revenue"];
 
   function openPromoteModal(user?: AdminUser) {
     if (user) {
@@ -235,6 +237,8 @@ export default function AdminPage() {
       )}
 
       {tab === "campaigns" && <CampaignsTable campaigns={campaigns} />}
+
+      {tab === "whatsapp" && <WhatsAppApplicationsTab />}
 
       {tab === "ai_costs" && <AICostsTab />}
       {tab === "ai_revenue" && <AIRevenueTab />}

@@ -78,9 +78,11 @@ services:
       - "8200:8200"
     volumes:
       - ./backend:/app
+      - backend_storage:/var/wamply-storage
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - STORAGE_ROOT=/var/wamply-storage
       - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
       - AGENT_SECRET=${AGENT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -315,6 +317,7 @@ volumes:
   redis-data:
   storage-data:
   frontend_node_modules:
+  backend_storage:
 
 networks:
   wcm-network:
