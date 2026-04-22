@@ -21,6 +21,23 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   });
 }
 
+/**
+ * Calls the agent container via Kong route `/agent/v1/*`.
+ * The backend (port 8200) is a different service from the agent (port 8000);
+ * Kong proxies `/api/v1/*` → backend and `/agent/v1/*` → agent.
+ */
+export async function agentFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const headers = await getAuthHeaders();
+  return fetch(`${KONG_URL}/agent/v1${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+      ...options.headers,
+    },
+  });
+}
+
 export async function apiFetcher(path: string) {
   const res = await apiFetch(path);
   if (!res.ok) throw new Error(`API error: ${res.status}`);

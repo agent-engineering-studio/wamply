@@ -10,6 +10,7 @@ from src.api.billing import router as billing_router
 from src.api.business import router as business_router
 from src.api.groups import router as groups_router
 from src.api.messages import router as messages_router
+from src.api.agent_proxy import router as agent_proxy_router
 
 api_router = APIRouter()
 api_router.include_router(plan_router, tags=["plan"])
@@ -22,3 +23,4 @@ api_router.include_router(billing_router, tags=["billing"])
 api_router.include_router(business_router, tags=["business"])
 api_router.include_router(groups_router, tags=["groups"])
 api_router.include_router(messages_router, tags=["messages"])
+api_router.include_router(agent_proxy_router, tags=["agent"])

@@ -80,7 +80,9 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT schema_name FROM information_schema.schemata WHERE schema_name='storage';\")",
       "Bash(echo \"EXIT=$?\")",
       "Bash(docker cp *)",
-      "Read(//c/tmp/**)"
+      "Read(//c/tmp/**)",
+      "Bash(curl -sf -o /dev/null http://localhost:8200/health)",
+      "Bash(curl -sf -o /dev/null http://localhost:8000/health)"
     ]
   }
 }

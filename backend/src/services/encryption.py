@@ -18,7 +18,11 @@ def encrypt(plaintext: str) -> str:
     return f"{base64.b64encode(iv).decode()}:{base64.b64encode(tag).decode()}:{base64.b64encode(ct).decode()}"
 
 
-def decrypt(ciphertext: str) -> str:
+def decrypt(ciphertext: str | bytes) -> str:
+    # `bytea` columns round-trip as `bytes` via asyncpg even though we stored
+    # an ASCII "iv:tag:ct" triple. Normalize here so both paths work.
+    if isinstance(ciphertext, bytes):
+        ciphertext = ciphertext.decode("utf-8", errors="strict")
     key = settings.encryption_key.encode()
     parts = ciphertext.split(":")
     if len(parts) != 3:

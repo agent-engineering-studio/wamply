@@ -5,7 +5,8 @@ export default function AISettingsPage() {
     <>
       <h1 className="text-2xl font-semibold text-slate-100">Intelligenza Artificiale</h1>
       <p className="mt-1 text-sm text-slate-300">
-        Configura il modello AI e la modalità di accesso.
+        Attiva l&apos;AI con la tua chiave Claude personale (opzionale) e definisci tono
+        e istruzioni per i messaggi generati.
       </p>
       <div className="mt-6">
         <AIConfigForm />

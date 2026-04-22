@@ -13,8 +13,8 @@ class Settings(BaseSettings):
 
     # Anthropic — keys live in DB only (system_config or ai_config.encrypted_api_key).
     # `mock_llm` short-circuits all LLM calls for dev/tests.
-    claude_model: str = "claude-sonnet-4-20250514"
-    claude_haiku_model: str = "claude-haiku-4-5-20251001"
+    claude_model: str = "claude-sonnet-4-5"
+    claude_haiku_model: str = "claude-haiku-4-5"
     mock_llm: bool = False
 
     # Encryption

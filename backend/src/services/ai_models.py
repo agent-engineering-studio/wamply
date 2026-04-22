@@ -12,8 +12,11 @@ from typing import Literal
 Model = Literal["haiku", "sonnet", "opus"]
 
 MODELS: dict[Model, str] = {
-    "haiku":  "claude-haiku-4-5-20251001",
-    "sonnet": "claude-sonnet-4-6-20251108",
+    # Alias ("claude-haiku-4-5") always point at the latest dated release of
+    # that family, so we don't have to bump the registry every time Anthropic
+    # ships a new version. Dated ids would break on rollovers.
+    "haiku":  "claude-haiku-4-5",
+    "sonnet": "claude-sonnet-4-5",
     "opus":   "claude-opus-4-5",
 }
 

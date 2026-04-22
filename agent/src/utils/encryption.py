@@ -19,8 +19,14 @@ def encrypt(plaintext: str) -> str:
     return f"{base64.b64encode(iv).decode()}:{base64.b64encode(tag).decode()}:{base64.b64encode(ct).decode()}"
 
 
-def decrypt(ciphertext: str) -> str:
-    """Decrypt AES-256-GCM ciphertext in format iv:authTag:encrypted (all base64)."""
+def decrypt(ciphertext: str | bytes) -> str:
+    """Decrypt AES-256-GCM ciphertext in format iv:authTag:encrypted (all base64).
+
+    `bytea` columns round-trip as `bytes` via asyncpg even though we stored
+    an ASCII "iv:tag:ct" triple. Normalize here so both paths work.
+    """
+    if isinstance(ciphertext, bytes):
+        ciphertext = ciphertext.decode("utf-8", errors="strict")
     parts = ciphertext.split(":")
     if len(parts) != 3:
         raise ValueError("Invalid ciphertext format")

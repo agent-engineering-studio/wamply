@@ -19,12 +19,7 @@ const SECTIONS: Section[] = [
   {
     href: "/settings/ai",
     title: "Intelligenza Artificiale",
-    description: "Modello AI, temperatura e modalità (condivisa o BYOK).",
-  },
-  {
-    href: "/settings/agent",
-    title: "Agente AI",
-    description: "Comportamento dell'agente nelle campagne.",
+    description: "API Key personale, tono dei messaggi e istruzioni per l'agente.",
   },
   {
     href: "/settings/billing",

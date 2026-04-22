@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.auth.permissions import require_admin
@@ -61,57 +61,83 @@ async def update_twilio(request: Request, user: CurrentUser = Depends(get_curren
 
 # ── AI Config (per user) ─────────────────────────────────
 
+_ALLOWED_TONES = {"professionale", "amichevole", "informale", "formale"}
+_MAX_INSTRUCTIONS_LEN = 1000
+
+
 @router.get("/ai")
 async def get_ai(request: Request, user: CurrentUser = Depends(get_current_user)):
+    """Return the user's AI preferences.
+
+    Model / temperature / max_tokens are NOT surfaced — the backend uses
+    silent per-operation routing (see ai_models.py), so these are internal.
+    Only the things the user actually controls are returned.
+    """
     db = get_db(request)
     row = await db.fetchrow("SELECT * FROM ai_config WHERE user_id = $1", user.id)
-    has_byok = row["encrypted_api_key"] is not None if row else False
-
-    config = {
-        "mode": row["mode"] if row else "shared",
-        "model": row["model"] if row else "claude-haiku-4-5-20251001",
-        "temperature": float(row["temperature"]) if row else 0.7,
-        "max_tokens": row["max_tokens"] if row else 500,
-        "has_api_key": has_byok,
+    has_byok = row is not None and row["encrypted_api_key"] is not None
+    return {
+        "config": {
+            "has_api_key": has_byok,
+            "agent_tone": (row["agent_tone"] if row else None) or "professionale",
+            "agent_instructions": (row["agent_instructions"] if row else None) or "",
+        },
     }
-    return {"config": config}
 
 
 @router.post("/ai")
 async def update_ai(request: Request, user: CurrentUser = Depends(get_current_user)):
+    """Upsert user AI prefs: BYOK key (optional), tone, custom instructions.
+
+    Empty string `api_key` clears the stored BYOK key. Missing field leaves
+    the existing key untouched (COALESCE on the upsert).
+    """
     db = get_db(request)
     body = await request.json()
-    api_key = body.get("api_key")
-    encrypted = encrypt(api_key) if api_key else None
 
-    # If user sends api_key="" explicitly, clear it
-    clear_key = body.get("api_key") == ""
+    raw_key = body.get("api_key")
+    clear_key = raw_key == ""
+    encrypted = encrypt(raw_key).encode() if raw_key else None
+
+    tone = body.get("agent_tone") or None
+    if tone is not None and tone not in _ALLOWED_TONES:
+        raise HTTPException(status_code=400, detail=f"Tono non valido: {tone}.")
+
+    instructions = body.get("agent_instructions")
+    if instructions is not None:
+        if not isinstance(instructions, str):
+            raise HTTPException(status_code=400, detail="agent_instructions deve essere stringa.")
+        instructions = instructions.strip() or None
+        if instructions and len(instructions) > _MAX_INSTRUCTIONS_LEN:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Istruzioni troppo lunghe (max {_MAX_INSTRUCTIONS_LEN} caratteri).",
+            )
 
     if clear_key:
         await db.execute(
-            """INSERT INTO ai_config (user_id, mode, encrypted_api_key, model, temperature, max_tokens)
-               VALUES ($1, $2, NULL, $3, $4, $5)
+            """INSERT INTO ai_config (user_id, mode, encrypted_api_key, agent_tone, agent_instructions)
+               VALUES ($1, 'shared', NULL, $2, $3)
                ON CONFLICT (user_id) DO UPDATE SET
-                 mode = EXCLUDED.mode, encrypted_api_key = NULL,
-                 model = EXCLUDED.model, temperature = EXCLUDED.temperature,
-                 max_tokens = EXCLUDED.max_tokens, updated_at = now()""",
-            user.id, body.get("mode", "shared"),
-            body.get("model", "claude-haiku-4-5-20251001"),
-            body.get("temperature", 0.7), body.get("max_tokens", 500),
+                 mode = 'shared',
+                 encrypted_api_key = NULL,
+                 agent_tone = EXCLUDED.agent_tone,
+                 agent_instructions = EXCLUDED.agent_instructions,
+                 updated_at = now()""",
+            user.id, tone, instructions,
         )
     else:
+        mode = "byok" if encrypted else "shared"
         await db.execute(
-            """INSERT INTO ai_config (user_id, mode, encrypted_api_key, model, temperature, max_tokens)
-               VALUES ($1, $2, $3, $4, $5, $6)
+            """INSERT INTO ai_config (user_id, mode, encrypted_api_key, agent_tone, agent_instructions)
+               VALUES ($1, $2, $3, $4, $5)
                ON CONFLICT (user_id) DO UPDATE SET
                  mode = EXCLUDED.mode,
                  encrypted_api_key = COALESCE(EXCLUDED.encrypted_api_key, ai_config.encrypted_api_key),
-                 model = EXCLUDED.model, temperature = EXCLUDED.temperature,
-                 max_tokens = EXCLUDED.max_tokens, updated_at = now()""",
-            user.id, body.get("mode", "shared"),
-            encrypted.encode() if encrypted else None,
-            body.get("model", "claude-haiku-4-5-20251001"),
-            body.get("temperature", 0.7), body.get("max_tokens", 500),
+                 agent_tone = EXCLUDED.agent_tone,
+                 agent_instructions = EXCLUDED.agent_instructions,
+                 updated_at = now()""",
+            user.id, mode, encrypted, tone, instructions,
         )
     return {"success": True}
 

@@ -12,8 +12,10 @@ from typing import Literal
 Model = Literal["haiku", "sonnet", "opus"]
 
 MODELS: dict[Model, str] = {
-    "haiku":  "claude-haiku-4-5-20251001",
-    "sonnet": "claude-sonnet-4-6-20251108",
+    # Anthropic alias ids — sempre mappati all'ultima release di quella
+    # famiglia, così non dobbiamo aggiornare a ogni rollout.
+    "haiku":  "claude-haiku-4-5",
+    "sonnet": "claude-sonnet-4-5",
     "opus":   "claude-opus-4-5",
 }
 

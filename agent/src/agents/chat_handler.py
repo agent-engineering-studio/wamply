@@ -32,6 +32,39 @@ SYSTEM_PROMPT = (
     "Quando mostri dati, formattali in modo leggibile."
 )
 
+_TONE_DIRECTIVES = {
+    "professionale": "Usa un tono professionale e misurato.",
+    "amichevole":    "Usa un tono amichevole e caloroso, pur restando professionale.",
+    "informale":     "Usa un tono informale e diretto, come fra colleghi.",
+    "formale":       "Usa un tono formale, adatto a contesti istituzionali.",
+}
+
+
+async def _build_system_prompt(pool, user_id: str) -> str:
+    """Append the user's persona overrides (tone, custom instructions) to
+    the base prompt. Non-fatal: if ai_config is missing or the columns
+    aren't there yet (pre-025 migration), we just return the base.
+    """
+    try:
+        row = await pool.fetchrow(
+            "SELECT agent_tone, agent_instructions FROM ai_config WHERE user_id = $1",
+            user_id,
+        )
+    except Exception:
+        return SYSTEM_PROMPT
+
+    parts = [SYSTEM_PROMPT]
+    tone = row["agent_tone"] if row else None
+    if tone and tone in _TONE_DIRECTIVES:
+        parts.append(_TONE_DIRECTIVES[tone])
+    instructions = (row["agent_instructions"] if row else None) or ""
+    instructions = instructions.strip()
+    if instructions:
+        # Clip defensively so a runaway textarea can't blow the prompt.
+        parts.append("Istruzioni aggiuntive dell'utente: " + instructions[:1000])
+    return " ".join(parts)
+
+
 PAGE_SIZE = 20
 
 
@@ -830,6 +863,7 @@ async def handle_chat(
     reservation = await ai_credits.reserve_credits(pool, redis_client, user_id, preflight_op)
 
     client = _build_client(api_key)
+    system_prompt = await _build_system_prompt(pool, user_id)
 
     history_msgs = await chat_history.load_history(redis_client, user_id)
     messages = history_msgs + [{"role": "user", "content": prompt}]
@@ -841,7 +875,7 @@ async def handle_chat(
         response = await client.messages.create(
             model=reservation.model_id,
             max_tokens=1024,
-            system=SYSTEM_PROMPT,
+            system=system_prompt,
             tools=CHAT_TOOLS,
             messages=messages,
         )
@@ -904,7 +938,7 @@ async def handle_chat(
             summary = await client.messages.create(
                 model=reservation.model_id,
                 max_tokens=1024,
-                system=SYSTEM_PROMPT,
+                system=system_prompt,
                 tools=CHAT_TOOLS,
                 messages=messages,
             )
