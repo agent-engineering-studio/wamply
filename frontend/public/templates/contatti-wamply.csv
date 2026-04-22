@@ -1,0 +1,4 @@
+phone,name,email,tags,language,city
++39 333 1234567,Marco Rossi,marco.rossi@example.it,"vip,clienti",it,Milano
++39 340 7654321,Laura Bianchi,laura.bianchi@example.it,newsletter,it,Roma
++44 7700 900123,John Smith,john.smith@example.com,"lead,newsletter",en,London

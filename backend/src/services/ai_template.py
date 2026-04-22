@@ -65,8 +65,10 @@ sulla richiesta dell'utente.
 REGOLE OBBLIGATORIE:
 - Rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo.
 - Massimo 1024 caratteri nel body.
-- Usa variabili con sintassi {{nome}}, {{data}}, {{ora}}, {{importo}} ecc.
-  (nomi descrittivi, snake_case, no spazi).
+- Le variabili DEVONO avere DUE graffe di apertura e DUE di chiusura.
+  Corretto: {{nome}}, {{data}}, {{ora}}, {{importo}}.
+  Sbagliato (non usare mai): {nome}, [nome], $nome, %nome%.
+  Nomi snake_case, minuscoli, senza spazi.
 - Tono professionale ma personale, adatto a WhatsApp.
 - Nessun markdown, solo testo piano.
 - Category: "marketing" (promo/newsletter), "utility" (conferme, reminder),
@@ -359,6 +361,22 @@ async def translate_template(
         raise ValueError(f"Translate AI malformato: {e}") from e
 
 
+# Matches `{name}` that is NOT already part of a `{{...}}` block.
+# Negative look-behind `(?<!\{)` and look-ahead `(?!\})` guard against
+# touching correct double-brace tokens.
+_SINGLE_BRACE_VAR_RE = re.compile(r"(?<!\{)\{([a-z0-9_]+)\}(?!\})", re.IGNORECASE)
+
+
+def _normalize_variables(text: str) -> str:
+    """Defensive post-processing: promote stray `{var}` to `{{var}}`.
+
+    The system prompt explicitly asks for `{{var}}`, but we've seen Claude
+    produce single braces on rare prompts. Rather than fail/retry we just
+    fix the output here — idempotent and safe (double braces are left alone).
+    """
+    return _SINGLE_BRACE_VAR_RE.sub(r"{{\1}}", text)
+
+
 async def generate_template(
     prompt: str, api_key: str, language: Language = "it"
 ) -> tuple[GeneratedTemplate, int, int]:
@@ -381,6 +399,8 @@ async def generate_template(
         block.text for block in response.content if hasattr(block, "text")
     )
     parsed = json.loads(_extract_json(raw))
+    if isinstance(parsed.get("body"), str):
+        parsed["body"] = _normalize_variables(parsed["body"])
     tin, tout = _token_counts(response)
     try:
         return (GeneratedTemplate(**parsed), tin, tout)

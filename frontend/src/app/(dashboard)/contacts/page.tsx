@@ -88,6 +88,104 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* CSV format help — shown when no contacts yet, collapsible otherwise */}
+      <details
+        className="group mb-4 rounded-card border border-slate-800 bg-brand-navy-light"
+        open={total === 0 && !search && !tagFilter}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 text-brand-teal">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span className="text-[12.5px] font-medium text-slate-100">
+              Formato CSV per l&apos;importazione
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </summary>
+        <div className="space-y-3 border-t border-slate-800 px-4 py-3 text-[12px]">
+          <p className="leading-relaxed text-slate-300">
+            Prepara un file CSV con queste colonne. Solo <strong className="text-slate-100">phone</strong> è obbligatorio,
+            le altre sono facoltative.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11.5px]">
+              <thead>
+                <tr className="border-b border-slate-800 text-left text-slate-500">
+                  <th className="pb-1.5 pr-3 font-medium">Colonna</th>
+                  <th className="pb-1.5 pr-3 font-medium">Obbligatorio</th>
+                  <th className="pb-1.5 font-medium">Esempio</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-300">
+                <tr>
+                  <td className="py-1 pr-3 font-mono text-brand-teal">phone</td>
+                  <td className="py-1 pr-3 text-rose-300">sì</td>
+                  <td className="py-1 font-mono text-slate-400">+39 333 1234567</td>
+                </tr>
+                <tr>
+                  <td className="py-1 pr-3 font-mono text-brand-teal">name</td>
+                  <td className="py-1 pr-3 text-slate-500">no</td>
+                  <td className="py-1 font-mono text-slate-400">Marco Rossi</td>
+                </tr>
+                <tr>
+                  <td className="py-1 pr-3 font-mono text-brand-teal">email</td>
+                  <td className="py-1 pr-3 text-slate-500">no</td>
+                  <td className="py-1 font-mono text-slate-400">marco@example.it</td>
+                </tr>
+                <tr>
+                  <td className="py-1 pr-3 font-mono text-brand-teal">tags</td>
+                  <td className="py-1 pr-3 text-slate-500">no</td>
+                  <td className="py-1 font-mono text-slate-400">&quot;vip,clienti&quot;</td>
+                </tr>
+                <tr>
+                  <td className="py-1 pr-3 font-mono text-brand-teal">language</td>
+                  <td className="py-1 pr-3 text-slate-500">no</td>
+                  <td className="py-1 font-mono text-slate-400">it, en, es, de, fr</td>
+                </tr>
+                <tr>
+                  <td className="py-1 pr-3 font-mono text-brand-teal">city</td>
+                  <td className="py-1 pr-3 text-slate-500">no</td>
+                  <td className="py-1 font-mono text-slate-400">Milano</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2">
+            <div className="text-[11.5px] text-slate-400">
+              Non sei sicuro del formato? Scarica il template già pronto.
+            </div>
+            <a
+              href="/templates/contatti-wamply.csv"
+              download="contatti-wamply.csv"
+              className="flex items-center gap-1.5 rounded-pill bg-brand-teal px-3 py-1.5 text-[11.5px] font-semibold text-white hover:bg-brand-teal-dark"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Scarica CSV
+            </a>
+          </div>
+          <p className="text-[11px] leading-relaxed text-slate-500">
+            <strong>Suggerimenti</strong>: usa UTF-8 come encoding, separatore virgola, racchiudi tra virgolette i valori
+            che contengono virgole (es. <code className="rounded bg-slate-800 px-1 text-slate-300">&quot;vip,newsletter&quot;</code>).
+            I numeri devono essere in formato internazionale con il prefisso (es. <code className="rounded bg-slate-800 px-1 text-slate-300">+39</code>).
+          </p>
+        </div>
+      </details>
+
       {/* Search + Filters */}
       <div className="mb-4 flex items-center gap-3">
         <input
