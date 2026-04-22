@@ -78,7 +78,9 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'ai_credit_%' ORDER BY table_name;\")",
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"\\\\d businesses\")",
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT schema_name FROM information_schema.schemata WHERE schema_name='storage';\")",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(docker cp *)",
+      "Read(//c/tmp/**)"
     ]
   }
 }

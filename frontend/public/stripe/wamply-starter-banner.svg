@@ -58,7 +58,7 @@
     <text x="0" y="0" font-family="Inter, system-ui, sans-serif"
           font-size="180" font-weight="700" fill="#FFFFFF"
           letter-spacing="-6">
-      49
+      79
     </text>
     
     <text x="263" y="0"
@@ -81,7 +81,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="720" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      5 campagne / mese
+      5 campagne / mese . 500 contatti
     </text>
     
     <circle cx="102" cy="770" r="22" fill="#0D9488" opacity="0.15"/>
@@ -90,7 +90,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="778" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      500 contatti
+      500 messaggi WhatsApp
     </text>
     
     <circle cx="102" cy="828" r="22" fill="#0D9488" opacity="0.15"/>
@@ -99,7 +99,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="836" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      2.500 messaggi WhatsApp
+      5 template . 1 utente
     </text>
     
     <circle cx="102" cy="886" r="22" fill="#0D9488" opacity="0.15"/>

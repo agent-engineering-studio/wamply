@@ -106,7 +106,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="778" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      200 AI credits included
+      50 AI credits included
     </text>
     
     <circle cx="102" cy="828" r="22" fill="#25D366" opacity="0.15"/>
@@ -115,7 +115,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="836" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      A/B Testing + Advanced analytics
+      100 sandbox WhatsApp messages
     </text>
     
     <circle cx="102" cy="886" r="22" fill="#25D366" opacity="0.15"/>

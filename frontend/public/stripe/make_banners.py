@@ -29,7 +29,7 @@ GREEN_SOFT = "#E8F5E9"
 SLATE_LIGHT = "#94A3B8"
 WHITE = "#FFFFFF"
 
-NUM_WIDTH = {"14": 220, "49": 245, "149": 365, "399": 365}
+NUM_WIDTH = {"14": 220, "79": 245, "249": 365, "799": 365}
 
 
 def wave_logo(x, y, size, ring_color=TEAL):
@@ -206,38 +206,38 @@ LOCALES = {
                 "accent": GREEN, "accent_soft": GREEN_SOFT,
                 "features": [
                     "Tutte le funzionalita' Professional",
-                    "200 crediti AI inclusi",
-                    "A/B Testing + Analytics avanzate",
+                    "50 crediti AI inclusi",
+                    "100 messaggi WhatsApp sandbox",
                     "Nessuna carta richiesta",
                 ],
             },
             {
-                "name": "Starter", "slug": "starter", "number": "49", "unit": "al mese",
+                "name": "Starter", "slug": "starter", "number": "79", "unit": "al mese",
                 "features": [
-                    "5 campagne / mese",
-                    "500 contatti",
-                    "2.500 messaggi WhatsApp",
+                    "5 campagne / mese . 500 contatti",
+                    "500 messaggi WhatsApp",
+                    "5 template . 1 utente",
                     "BYOK: porta la tua API Claude",
                 ],
             },
             {
-                "name": "Professional", "slug": "professional", "number": "149",
+                "name": "Professional", "slug": "professional", "number": "249",
                 "unit": "al mese", "badge_text": "CONSIGLIATO",
                 "features": [
                     "20 campagne / mese . 5.000 contatti",
-                    "15.000 messaggi WhatsApp",
+                    "2.500 messaggi WhatsApp",
                     "200 crediti AI/mese inclusi",
                     "A/B Testing + Analytics avanzate",
                 ],
             },
             {
-                "name": "Enterprise", "slug": "enterprise", "number": "399",
+                "name": "Enterprise", "slug": "enterprise", "number": "799",
                 "unit": "al mese",
                 "features": [
                     "Campagne illimitate . 50.000 contatti",
-                    "100.000 messaggi WhatsApp",
+                    "10.000 messaggi WhatsApp",
                     "1.500 crediti AI + BYOK illimitato",
-                    "White-label + Supporto dedicato",
+                    "Account manager dedicato",
                 ],
             },
         ],
@@ -255,38 +255,38 @@ LOCALES = {
                 "accent": GREEN, "accent_soft": GREEN_SOFT,
                 "features": [
                     "All Professional features",
-                    "200 AI credits included",
-                    "A/B Testing + Advanced analytics",
+                    "50 AI credits included",
+                    "100 sandbox WhatsApp messages",
                     "No credit card required",
                 ],
             },
             {
-                "name": "Starter", "slug": "starter", "number": "49", "unit": "per month",
+                "name": "Starter", "slug": "starter", "number": "79", "unit": "per month",
                 "features": [
-                    "5 campaigns / month",
-                    "500 contacts",
-                    "2,500 WhatsApp messages",
+                    "5 campaigns / month . 500 contacts",
+                    "500 WhatsApp messages",
+                    "5 templates . 1 user",
                     "BYOK: bring your Claude API key",
                 ],
             },
             {
-                "name": "Professional", "slug": "professional", "number": "149",
+                "name": "Professional", "slug": "professional", "number": "249",
                 "unit": "per month", "badge_text": "RECOMMENDED",
                 "features": [
                     "20 campaigns / month . 5,000 contacts",
-                    "15,000 WhatsApp messages",
+                    "2,500 WhatsApp messages",
                     "200 AI credits/month included",
                     "A/B Testing + Advanced analytics",
                 ],
             },
             {
-                "name": "Enterprise", "slug": "enterprise", "number": "399",
+                "name": "Enterprise", "slug": "enterprise", "number": "799",
                 "unit": "per month",
                 "features": [
                     "Unlimited campaigns . 50,000 contacts",
-                    "100,000 WhatsApp messages",
+                    "10,000 WhatsApp messages",
                     "1,500 AI credits + Unlimited BYOK",
-                    "White-label + Dedicated support",
+                    "Dedicated account manager",
                 ],
             },
         ],

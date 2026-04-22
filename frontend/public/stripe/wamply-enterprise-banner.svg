@@ -58,7 +58,7 @@
     <text x="0" y="0" font-family="Inter, system-ui, sans-serif"
           font-size="180" font-weight="700" fill="#FFFFFF"
           letter-spacing="-6">
-      399
+      799
     </text>
     
     <text x="383" y="0"
@@ -90,7 +90,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="778" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      100.000 messaggi WhatsApp
+      10.000 messaggi WhatsApp
     </text>
     
     <circle cx="102" cy="828" r="22" fill="#0D9488" opacity="0.15"/>
@@ -108,7 +108,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="894" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      White-label + Supporto dedicato
+      Account manager dedicato
     </text>
   <text x="512" y="970" font-family="Inter, system-ui, sans-serif"
         font-size="20" font-weight="400" fill="#94A3B8"

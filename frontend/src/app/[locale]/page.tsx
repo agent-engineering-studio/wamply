@@ -30,14 +30,13 @@ export async function generateMetadata({
   };
 }
 
-/* Agent Engineering Studio — renders the official v2 lockup
-   (hexagon with "Ai" + AGENT ENGINEERING STUDIO wordmark).
-   Asset in public/agent-engineering-logo-v2.png, aspect ratio ~2:1. */
-function AEStudioLogo({ className = "h-5 w-auto" }: { className?: string }) {
+/* Agent Engineering Studio — horizontal lockup (hexagon + wordmark).
+   Asset: public/agent-engineering-logo.png, 521×260 (~2:1). */
+function AEStudioLogo({ className = "h-8 w-auto" }: { className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
-      src="/agent-engineering-logo-v2.png"
+      src="/agent-engineering-logo.png"
       alt="Agent Engineering Studio"
       className={className}
     />
@@ -377,7 +376,7 @@ function LandingContent() {
               className="inline-flex items-center gap-2.5 rounded-pill border border-white/10 bg-white/5 px-4 py-2 text-[11px] text-brand-slate-muted backdrop-blur-sm transition-colors hover:border-brand-teal/30 hover:text-white"
             >
               <span className="uppercase tracking-widest">{t("pricing.designedBy")}</span>
-              <AEStudioLogo className="h-7 w-auto" />
+              <AEStudioLogo className="h-10 w-auto" />
             </a>
           </div>
           <div className="grid grid-cols-2 gap-8">
@@ -512,7 +511,7 @@ function LandingContent() {
             className="inline-flex items-center gap-2 transition-colors hover:text-white"
           >
             <span className="text-[10px] uppercase tracking-widest">{t("footer.designedBy")}</span>
-            <AEStudioLogo className="h-6 w-auto" />
+            <AEStudioLogo className="h-8 w-auto" />
           </a>
         </div>
       </footer>
