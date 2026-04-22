@@ -180,7 +180,7 @@ async def execute_tool(
             tool_input.get("name"),
             tool_input.get("email"),
             tool_input.get("language"),
-            tool_input.get("tags"),
+            tool_input.get("tags") or [],
         )
         if row:
             return {"success": True, "contact_id": str(row["id"])}
@@ -202,9 +202,10 @@ async def execute_tool(
         for col, val in fields.items():
             if col == "tags":
                 set_parts.append(f"{col} = ${idx}::text[]")
+                params.append(val or [])
             else:
                 set_parts.append(f"{col} = ${idx}")
-            params.append(val)
+                params.append(val)
             idx += 1
 
         set_clause = ", ".join(set_parts)
@@ -254,7 +255,7 @@ async def execute_tool(
                 c.get("name"),
                 c.get("email"),
                 c.get("language"),
-                c.get("tags"),
+                c.get("tags") or [],
             )
             if row:
                 imported += 1

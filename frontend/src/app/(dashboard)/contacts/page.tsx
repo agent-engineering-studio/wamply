@@ -10,7 +10,7 @@ interface Contact {
   phone: string;
   name: string | null;
   email: string | null;
-  tags: string[];
+  tags: string[] | null;
   opt_in: boolean;
   created_at: string;
 }
@@ -50,7 +50,7 @@ export default function ContactsPage() {
     reload();
   }, [reload]);
 
-  const allTags = [...new Set(contacts.flatMap((c) => c.tags))];
+  const allTags = [...new Set(contacts.flatMap((c) => c.tags ?? []))];
 
   return (
     <>
@@ -230,7 +230,7 @@ export default function ContactsPage() {
                   <div className="font-mono text-[11px] text-slate-400">{c.phone}</div>
                 </div>
                 <div className="flex gap-1">
-                  {c.tags.map((tag) => (
+                  {(c.tags ?? []).map((tag) => (
                     <span key={tag} className={`rounded-pill px-2 py-0.5 text-[10px] font-medium ${TAG_COLORS[tag] || "bg-gray-100 text-gray-600"}`}>
                       {tag}
                     </span>
