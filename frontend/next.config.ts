@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  devIndicators: false,
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
