@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/client";
 import { UserEditModal, type AdminUser, type Plan } from "./_components/UserEditModal";
@@ -9,7 +10,9 @@ import { StaffTable } from "./_components/StaffTable";
 import { RoleModal } from "./_components/RoleModal";
 import { AICostsTab } from "./_components/AICostsTab";
 import { AIRevenueTab } from "./_components/AIRevenueTab";
+import { AISystemKeyTab } from "./_components/AISystemKeyTab";
 import { WhatsAppApplicationsTab } from "./_components/WhatsAppApplicationsTab";
+import type { AdminTab } from "./_components/AdminSidebar";
 
 interface Overview {
   total_users: number;
@@ -19,8 +22,18 @@ interface Overview {
   plan_breakdown: Record<string, number>;
 }
 
-type Tab = "overview" | "users" | "staff" | "campaigns" | "whatsapp" | "ai_costs" | "ai_revenue";
 type ViewerRole = "admin" | "collaborator" | null;
+
+const VALID_TABS: ReadonlySet<AdminTab> = new Set<AdminTab>([
+  "overview",
+  "users",
+  "staff",
+  "campaigns",
+  "whatsapp",
+  "ai_costs",
+  "ai_revenue",
+  "ai_key",
+]);
 
 const PLAN_COLORS: Record<string, string> = {
   starter: "bg-brand-teal",
@@ -28,17 +41,15 @@ const PLAN_COLORS: Record<string, string> = {
   enterprise: "bg-brand-purple",
 };
 
-const TAB_LABELS: Record<Tab, string> = {
-  overview: "Overview",
-  users: "Utenti",
-  staff: "Staff",
-  campaigns: "Campagne",
-  whatsapp: "Pratiche WhatsApp",
-  ai_costs: "AI Costs",
-  ai_revenue: "AI Revenue",
-};
-
 export default function AdminPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse text-slate-500">Caricamento...</div>}>
+      <AdminPageContent />
+    </Suspense>
+  );
+}
+
+function AdminPageContent() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
@@ -48,7 +59,11 @@ export default function AdminPage() {
   const [roleModalMode, setRoleModalMode] = useState<"promote" | "edit">("promote");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [viewerRole, setViewerRole] = useState<ViewerRole>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab: AdminTab = tabParam && VALID_TABS.has(tabParam as AdminTab) ? (tabParam as AdminTab) : "overview";
 
   useEffect(() => {
     Promise.all([
@@ -92,15 +107,13 @@ export default function AdminPage() {
   const messagesToday = (overview.messages_today ?? 0).toLocaleString("it-IT");
   const activeCampaigns = overview.active_campaigns ?? 0;
 
-  const tabs: Tab[] = ["overview", "users", "staff", "campaigns", "whatsapp", "ai_costs", "ai_revenue"];
-
   function openPromoteModal(user?: AdminUser) {
     if (user) {
       setRoleModalUser(user);
       setRoleModalMode("promote");
       return;
     }
-    setTab("users");
+    router.push("/admin?tab=users");
   }
 
   function openEditRoleModal(user: AdminUser) {
@@ -110,16 +123,6 @@ export default function AdminPage() {
 
   return (
     <>
-      {/* Tabs */}
-      <div className="mb-5 flex w-fit gap-px rounded-[10px] border border-slate-800 bg-brand-navy-light p-[3px]">
-        {tabs.map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`rounded-sm px-4 py-1.5 text-[12.5px] font-medium ${tab === t ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-100"}`}>
-            {TAB_LABELS[t]}
-          </button>
-        ))}
-      </div>
-
       {tab === "overview" && (
         <>
           <div className="mb-5 grid grid-cols-4 gap-3.5">
@@ -242,6 +245,7 @@ export default function AdminPage() {
 
       {tab === "ai_costs" && <AICostsTab />}
       {tab === "ai_revenue" && <AIRevenueTab />}
+      {tab === "ai_key" && <AISystemKeyTab />}
 
       <UserEditModal
         user={editingUser}

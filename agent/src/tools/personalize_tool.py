@@ -3,23 +3,20 @@ import anthropic
 from src.config import settings
 from src.utils.telemetry import log
 
-_client: anthropic.AsyncAnthropic | None = None
-
-
-def _get_client() -> anthropic.AsyncAnthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    return _client
-
 
 async def personalize_message(
     contact: dict,
     template: dict,
     campaign_context: str,
+    api_key: str,
     model: str | None = None,
 ) -> str:
-    """Generate a personalized message for a contact using Claude."""
+    """Generate a personalized message for a contact using Claude.
+
+    The API key is resolved once per workflow (BYOK or system_key) and passed
+    in — we never read it from env. A fresh `AsyncAnthropic` is cheap enough
+    for per-call creation given the composer semaphore already bounds concurrency.
+    """
     if settings.mock_llm:
         name = contact.get("name") or "Cliente"
         return f"Ciao {name}! Questo è un messaggio personalizzato per te."
@@ -50,7 +47,7 @@ REGOLE:
 
 Rispondi SOLO con il testo del messaggio, nient'altro."""
 
-    client = _get_client()
+    client = anthropic.AsyncAnthropic(api_key=api_key)
     response = await client.messages.create(
         model=llm_model,
         max_tokens=settings.claude_haiku_model and 300 or 500,

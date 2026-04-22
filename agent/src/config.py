@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     # Agent
     agent_secret: str = "dev-agent-secret"
 
-    # Anthropic
-    anthropic_api_key: str = ""
+    # Anthropic — keys live in DB only (system_config or ai_config.encrypted_api_key).
+    # `mock_llm` short-circuits all LLM calls for dev/tests.
     claude_model: str = "claude-sonnet-4-20250514"
     claude_haiku_model: str = "claude-haiku-4-5-20251001"
     mock_llm: bool = False

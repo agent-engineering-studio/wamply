@@ -14,6 +14,7 @@ async def compose_messages(
     contacts: list[dict],
     template: dict,
     context: str,
+    api_key: str,
     model: str | None = None,
 ) -> list[dict]:
     """
@@ -41,6 +42,7 @@ async def compose_messages(
                     contact=contact,
                     template=template,
                     campaign_context=context,
+                    api_key=api_key,
                     model=model,
                 )
                 return {

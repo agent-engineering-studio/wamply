@@ -75,7 +75,7 @@ export default function NewCampaignPage() {
             <label className="mb-1 block text-[11.5px] font-medium text-slate-400">Nome campagna</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
               placeholder="Es: Promo Estiva 2026" required
-              className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none" />
+              className="w-full rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none" />
           </div>
 
           <div className="mb-4">
@@ -83,7 +83,7 @@ export default function NewCampaignPage() {
             <select id="campaign-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}
               disabled={templates.length === 0}
               aria-label="Template della campagna"
-              className="w-full rounded-sm border border-slate-800 px-3 py-2 text-[13px] focus:border-brand-teal focus:outline-none disabled:bg-brand-navy-deep disabled:text-slate-400">
+              className="w-full rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-brand-teal focus:outline-none disabled:text-slate-500">
               <option value="">
                 {templates.length === 0 ? "Nessun template disponibile" : "Seleziona template..."}
               </option>

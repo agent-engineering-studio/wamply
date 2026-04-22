@@ -1,9 +1,11 @@
+import { AdminSidebar } from "./admin/_components/AdminSidebar";
 import { LogoutButton } from "./_components/LogoutButton";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-brand-navy-deep">
-      <div className="bg-linear-to-r from-brand-navy to-brand-navy-light px-6 py-3 flex items-center gap-3 border-b border-white/10">
+    <div className="flex h-screen flex-col bg-brand-navy-deep">
+      {/* Top bar */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-white/10 bg-linear-to-r from-brand-navy to-brand-navy-light px-6 py-3">
         <svg viewBox="0 0 400 400" className="h-7 w-7 shrink-0">
           <defs>
             <linearGradient id="adminLogoBg" x1="0" y1="0" x2="1" y2="1">
@@ -17,10 +19,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </svg>
         <span className="text-[14px] font-semibold text-white">Wamply Admin</span>
         <span className="rounded-pill bg-brand-teal/20 px-2 py-0.5 text-[10px] font-semibold text-brand-teal">Admin</span>
-        <a href="/" className="ml-auto text-[12px] text-white/60 hover:text-white transition-colors">&larr; Torna alla dashboard</a>
+        <a href="/dashboard" className="ml-auto text-[12px] text-white/60 transition-colors hover:text-white">
+          &larr; Torna alla dashboard
+        </a>
         <LogoutButton />
+      </header>
+
+      {/* Sidebar + main */}
+      <div className="flex flex-1 overflow-hidden">
+        <AdminSidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-6xl px-6 py-6">{children}</div>
+        </main>
       </div>
-      <div className="mx-auto max-w-6xl px-6 py-6">{children}</div>
     </div>
   );
 }

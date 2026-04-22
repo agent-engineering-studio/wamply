@@ -14,6 +14,7 @@ async def plan_campaign(
     db: SupabaseMemory,
     campaign: dict,
     user_id: str,
+    api_key: str,
 ) -> dict:
     """
     Stage 1: Analyze campaign request, fetch contacts and template.
@@ -48,7 +49,7 @@ async def plan_campaign(
 
     # Build campaign context (used by Claude if not mock)
     if not settings.mock_llm:
-        client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        client = anthropic.AsyncAnthropic(api_key=api_key)
         history_summary = "\n".join(
             f"- {h['name']}: {h['stats'].get('sent', 0)} inviati, "
             f"{h['stats'].get('read', 0)} letti ({h['status']})"

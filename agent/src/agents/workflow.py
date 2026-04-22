@@ -5,6 +5,7 @@ from src.memory.supabase_memory import SupabaseMemory
 from src.agents.campaign_planner import plan_campaign
 from src.agents.message_composer import compose_messages
 from src.agents.dispatcher import dispatch_messages
+from src.services import ai_credits
 from src.tools.status_tool import finalize_campaign
 from src.utils.telemetry import log
 
@@ -50,8 +51,13 @@ async def run_campaign_workflow(
         await db.update_campaign_status(campaign_id, "running")
         await redis.set_state(campaign_id, {"status": "running", "stage": "planning"})
 
+        # Resolve the Anthropic API key once per workflow (BYOK → system_key).
+        # Both planner and composer use it; keeping the resolution here avoids
+        # re-reading DB for every contact in the composer fan-out.
+        api_key, _ = await ai_credits.resolve_api_key(db.pool, user_id)
+
         # -- Stage 1: Plan --
-        plan = await plan_campaign(db, campaign, user_id)
+        plan = await plan_campaign(db, campaign, user_id, api_key=api_key)
         contacts = plan["contacts"]
         template = plan["template"]
         context = plan["context"]
@@ -73,7 +79,7 @@ async def run_campaign_workflow(
         model = sub_row["llm_model"] if sub_row else None
 
         messages = await compose_messages(
-            db, campaign_id, contacts, template, context, model=model
+            db, campaign_id, contacts, template, context, model=model, api_key=api_key
         )
 
         await redis.set_state(campaign_id, {"status": "running", "stage": "dispatching"})

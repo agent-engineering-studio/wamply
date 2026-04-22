@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     supabase_service_role_key: str = ""
-    anthropic_api_key: str = ""
+    # Anthropic keys live in DB only (system_config or ai_config.encrypted_api_key).
     claude_model: str = "claude-sonnet-4-20250514"
     claude_haiku_model: str = "claude-haiku-4-5-20251001"
     mock_llm: bool = False
