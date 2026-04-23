@@ -399,6 +399,21 @@ async def admin_update_user_role(
     return {"role": new_role, "previous_role": old_role}
 
 
+@router.get("/me/permissions")
+async def admin_me_permissions(
+    request: Request,
+    user: CurrentUser = Depends(require_staff),
+):
+    """Return the calling user's role and flattened permission set.
+    Used by the frontend to gate admin tabs and destructive buttons."""
+    db = get_db(request)
+    rows = await db.fetch(
+        "SELECT permission FROM role_permissions WHERE role = $1::user_role",
+        user.role,
+    )
+    return {"role": user.role, "permissions": [r["permission"] for r in rows]}
+
+
 # ── AI Costs dashboard ────────────────────────────────────────
 
 @router.get("/ai/costs")
