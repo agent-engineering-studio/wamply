@@ -83,7 +83,8 @@
       "Read(//c/tmp/**)",
       "Bash(curl -sf -o /dev/null http://localhost:8200/health)",
       "Bash(curl -sf -o /dev/null http://localhost:8000/health)",
-      "Bash(grep -E \"\\\\.tsx$\")"
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(gh pr *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\GiuseppeZileni\\Git\\wamply\\docs\\superpowers\\specs"
