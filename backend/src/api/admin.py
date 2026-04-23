@@ -4,7 +4,7 @@ from datetime import date
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.auth.permissions import require_admin, require_staff
+from src.auth.permissions import require_admin, require_permission, require_staff
 from src.auth.jwt import CurrentUser
 from src.dependencies import get_db, get_redis
 from src.services.role_change_emails import send_role_change_email
@@ -261,7 +261,7 @@ async def admin_patch_user(
 async def admin_reset_user_password(
     request: Request,
     user_id: str,
-    user: CurrentUser = Depends(require_staff),
+    user: CurrentUser = Depends(require_permission("admin.users.edit")),
 ):
     """Set a new password for the target user by updating
     auth.users.encrypted_password via bcrypt. Revokes all their existing
@@ -376,19 +376,20 @@ async def admin_update_user_role(
                 detail="Deve esistere almeno un amministratore attivo.",
             )
 
-    await db.execute(
-        "UPDATE users SET role = $1::user_role, updated_at = now() WHERE id = $2",
-        new_role,
-        user_id,
-    )
-
-    await db.execute(
-        "INSERT INTO audit_log (actor_id, action, target_id, metadata) "
-        "VALUES ($1, 'role_change', $2, $3::jsonb)",
-        user.id,
-        user_id,
-        json.dumps({"old": old_role, "new": new_role}),
-    )
+    async with db.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE users SET role = $1::user_role, updated_at = now() WHERE id = $2",
+                new_role,
+                user_id,
+            )
+            await conn.execute(
+                "INSERT INTO audit_log (actor_id, action, target_id, metadata) "
+                "VALUES ($1, 'role_change', $2, $3::jsonb)",
+                user.id,
+                user_id,
+                json.dumps({"old": old_role, "new": new_role}),
+            )
 
     # Fire-and-forget: role change stands even if email fails.
     try:
@@ -419,7 +420,7 @@ async def admin_me_permissions(
 @router.get("/ai/costs")
 async def admin_ai_costs(
     request: Request,
-    user: CurrentUser = Depends(require_staff),
+    user: CurrentUser = Depends(require_permission("admin.ai_costs.view")),
     days: int = 30,
 ):
     """Aggregates from ai_usage_ledger for the last N days (default 30).
@@ -575,7 +576,7 @@ async def admin_ai_costs(
 @router.get("/ai/revenue")
 async def admin_ai_revenue(
     request: Request,
-    user: CurrentUser = Depends(require_staff),
+    user: CurrentUser = Depends(require_permission("admin.ai_revenue.view")),
     days: int = 30,
 ):
     """Revenue breakdown between subscription (recurring) and top-up (one-shot).

@@ -5,6 +5,7 @@ Failures are logged but never raise — the role change stands regardless of
 SMTP availability, same pattern as `meta_status_emails.send_meta_status_email`.
 """
 
+import html
 import os
 
 import asyncpg
@@ -111,10 +112,10 @@ async def send_role_change_email(
         perms_html = _permissions_list_html(perms)
 
     variables = {
-        "USER_NAME": full_name,
+        "USER_NAME": html.escape(full_name),
         "OLD_ROLE_LABEL": _role_label(old_role),
         "NEW_ROLE_LABEL": _role_label(new_role),
-        "CHANGED_BY": actor_email,
+        "CHANGED_BY": html.escape(actor_email),
         "PERMISSIONS_LIST_HTML": perms_html,
         "CTA_URL": f"{app_url}/admin",
     }
@@ -123,10 +124,10 @@ async def send_role_change_email(
     if not tpl:
         logger.warning("role_change_email_template_missing", template=tpl_file)
         return False
-    html = _render(tpl, variables)
+    body = _render(tpl, variables)
 
     try:
-        _send_email(row["email"], subject, html)
+        _send_email(row["email"], subject, body)
         logger.info("role_change_email_sent", type=change_type, email=row["email"])
         return True
     except Exception as exc:

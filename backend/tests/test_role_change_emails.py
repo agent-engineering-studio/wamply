@@ -76,3 +76,29 @@ async def test_send_role_change_email_returns_false_when_user_not_found():
     db.fetchrow = AsyncMock(return_value=None)
     ok = await send_role_change_email(db, "uid", "user", "collaborator", "admin@wamply.com")
     assert ok is False
+
+
+@pytest.mark.asyncio
+async def test_send_role_change_email_escapes_html_in_user_and_actor_fields():
+    """User-controlled full_name and actor_email must be HTML-escaped before
+    interpolation so an attacker cannot inject markup into the email body."""
+    db = AsyncMock()
+    db.fetchrow = AsyncMock(
+        return_value={"email": "x@test.com", "full_name": "<script>alert(1)</script>"}
+    )
+    db.fetch = AsyncMock(return_value=[{"permission": "admin.users.view"}])
+    captured = {}
+
+    def fake_send(to, subject, body):
+        captured["body"] = body
+
+    with patch("src.services.role_change_emails._send_email", side_effect=fake_send):
+        ok = await send_role_change_email(
+            db, "uid", "user", "collaborator", "actor<x>@wamply.com"
+        )
+    assert ok is True
+    body = captured["body"]
+    assert "<script>" not in body
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in body
+    assert "actor<x>@wamply.com" not in body
+    assert "actor&lt;x&gt;@wamply.com" in body
