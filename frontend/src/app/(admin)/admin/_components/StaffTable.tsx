@@ -2,19 +2,19 @@
 
 import { useMemo, useState } from "react";
 import type { AdminUser } from "./UserEditModal";
+import { can, usePermissions } from "@/lib/permissions";
 
 export function StaffTable({
   users,
-  viewerRole,
   onPromoteUser,
   onChangeRole,
 }: {
   users: AdminUser[];
-  viewerRole: "admin" | "collaborator" | "sales" | null;
   onPromoteUser: () => void;
   onChangeRole: (user: AdminUser) => void;
 }) {
   const [query, setQuery] = useState("");
+  const { perms } = usePermissions();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -24,7 +24,7 @@ export function StaffTable({
     );
   }, [users, query]);
 
-  const isAdmin = viewerRole === "admin";
+  const canManageStaff = can(perms, "admin.staff.manage");
 
   return (
     <div className="space-y-3">
@@ -38,8 +38,8 @@ export function StaffTable({
         />
         <button
           onClick={onPromoteUser}
-          disabled={!isAdmin}
-          title={isAdmin ? "Promuovi un utente a staff" : "Solo gli amministratori possono promuovere"}
+          disabled={!canManageStaff}
+          title={canManageStaff ? "Promuovi un utente a staff" : "Permesso insufficiente per promuovere"}
           className="ml-auto inline-flex items-center gap-1.5 rounded-pill bg-brand-teal px-3 py-1.5 text-[12px] font-medium text-white shadow-teal hover:bg-brand-teal-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
@@ -77,6 +77,10 @@ export function StaffTable({
                       <span className="rounded-pill bg-brand-teal/20 px-2 py-0.5 text-[10.5px] font-semibold text-brand-teal">
                         Amministratore
                       </span>
+                    ) : u.role === "sales" ? (
+                      <span className="rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-semibold text-amber-300">
+                        Sales
+                      </span>
                     ) : (
                       <span className="rounded-pill bg-sky-500/15 px-2 py-0.5 text-[10.5px] font-semibold text-sky-300">
                         Collaboratore
@@ -96,8 +100,8 @@ export function StaffTable({
                   <td className="px-3.5 py-3 text-right">
                     <button
                       onClick={() => onChangeRole(u)}
-                      disabled={!isAdmin}
-                      title={isAdmin ? "Modifica ruolo o rimuovi dallo staff" : "Solo gli amministratori"}
+                      disabled={!canManageStaff}
+                      title={canManageStaff ? "Modifica ruolo o rimuovi dallo staff" : "Permesso insufficiente"}
                       className="rounded-pill border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:bg-brand-navy-deep hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Modifica ruolo

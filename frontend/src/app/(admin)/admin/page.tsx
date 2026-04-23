@@ -23,8 +23,6 @@ interface Overview {
   plan_breakdown: Record<string, number>;
 }
 
-type ViewerRole = "admin" | "collaborator" | "sales" | null;
-
 const VALID_TABS: ReadonlySet<AdminTab> = new Set<AdminTab>([
   "overview",
   "users",
@@ -59,7 +57,6 @@ function AdminPageContent() {
   const [roleModalUser, setRoleModalUser] = useState<AdminUser | null>(null);
   const [roleModalMode, setRoleModalMode] = useState<"promote" | "edit">("promote");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [viewerRole, setViewerRole] = useState<ViewerRole>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,15 +90,6 @@ function AdminPageContent() {
         setCurrentUserId(data.user?.id ?? null);
       });
   }, []);
-
-  useEffect(() => {
-    if (!currentUserId || users.length === 0) return;
-    const me = users.find((u) => u.id === currentUserId);
-    const role = me?.role;
-    if (role === "admin" || role === "collaborator" || role === "sales") {
-      setViewerRole(role);
-    }
-  }, [currentUserId, users]);
 
   const endUsers = useMemo(() => users.filter((u) => u.role === "user"), [users]);
   const staffUsers = useMemo(
@@ -243,7 +231,6 @@ function AdminPageContent() {
       {tab === "staff" && (
         <StaffTable
           users={staffUsers}
-          viewerRole={viewerRole}
           onPromoteUser={() => openPromoteModal()}
           onChangeRole={openEditRoleModal}
         />
@@ -261,7 +248,6 @@ function AdminPageContent() {
         user={editingUser}
         plans={plans}
         currentUserId={currentUserId}
-        viewerRole={viewerRole}
         onClose={() => setEditingUser(null)}
         onSaved={(updated) =>
           setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { can, usePermissions } from "@/lib/permissions";
 
 export interface AdminUser {
   id: string;
@@ -34,7 +35,6 @@ export function UserEditModal({
   user,
   plans,
   currentUserId,
-  viewerRole,
   onClose,
   onSaved,
   onDeleted,
@@ -43,12 +43,14 @@ export function UserEditModal({
   user: AdminUser | null;
   plans: Plan[];
   currentUserId: string | null;
-  viewerRole: "admin" | "collaborator" | "sales" | null;
   onClose: () => void;
   onSaved: (updated: AdminUser) => void;
   onDeleted?: (userId: string) => void;
   onPromote?: (user: AdminUser) => void;
 }) {
+  const { perms } = usePermissions();
+  const canEditUsers = can(perms, "admin.users.edit");
+  const canManageStaff = can(perms, "admin.staff.manage");
   const [planSlug, setPlanSlug] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -170,7 +172,6 @@ export function UserEditModal({
   const initials = buildInitials(user.full_name ?? "", user.email);
   const canConfirmDelete = confirmEmail.trim().toLowerCase() === user.email.toLowerCase();
   const isSelf = !!currentUserId && user.id === currentUserId;
-  const isAdminViewer = viewerRole === "admin";
 
   return (
     <div
@@ -319,7 +320,7 @@ export function UserEditModal({
                 >
                   Resetta password
                 </button>
-                {isAdminViewer && user.role === "user" && onPromote && (
+                {canManageStaff && user.role === "user" && onPromote && (
                   <button
                     type="button"
                     onClick={() => onPromote(user)}
@@ -331,10 +332,10 @@ export function UserEditModal({
                 <button
                   type="button"
                   onClick={handleToggleBan}
-                  disabled={saving || !isAdminViewer}
+                  disabled={saving || !canEditUsers}
                   title={
-                    !isAdminViewer
-                      ? "Solo gli amministratori possono disabilitare"
+                    !canEditUsers
+                      ? "Permesso insufficiente per disabilitare"
                       : user.banned
                         ? "Riattiva l'account"
                         : "Disabilita l'account (reversibile)"
@@ -350,8 +351,8 @@ export function UserEditModal({
                 <button
                   type="button"
                   onClick={() => setConfirmOpen(true)}
-                  disabled={!onDeleted || !isAdminViewer}
-                  title={!isAdminViewer ? "Solo gli amministratori possono eliminare" : undefined}
+                  disabled={!onDeleted || !canEditUsers}
+                  title={!canEditUsers ? "Permesso insufficiente per eliminare" : undefined}
                   className="rounded-sm border border-red-900/60 px-3 py-2 text-[12.5px] font-medium text-red-400 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Elimina utente
@@ -392,8 +393,8 @@ export function UserEditModal({
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || !isAdminViewer}
-            title={!isAdminViewer ? "Solo gli amministratori possono modificare l'abbonamento" : undefined}
+            disabled={saving || !canEditUsers}
+            title={!canEditUsers ? "Permesso insufficiente per modificare l'abbonamento" : undefined}
             className="rounded-sm bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(13,148,136,.3)] hover:bg-brand-teal-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Salvataggio..." : "Salva modifiche"}
