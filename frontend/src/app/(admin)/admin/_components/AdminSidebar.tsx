@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { LogoutButton } from "../../_components/LogoutButton";
 
 export type AdminTab =
   | "overview"
@@ -179,11 +180,9 @@ function AdminSidebarContent() {
         ))}
       </nav>
 
-      {/* Footer hint */}
-      <div className="border-t border-slate-800 px-4 py-3 text-[11px] text-slate-500">
-        <Link href="/dashboard" className="hover:text-slate-300">
-          &larr; Torna alla dashboard
-        </Link>
+      {/* Footer: logout */}
+      <div className="border-t border-slate-800 px-4 py-3">
+        <LogoutButton />
       </div>
     </aside>
   );
