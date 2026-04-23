@@ -394,7 +394,7 @@ E2E (Playwright):
 ## Risks & open points
 
 - **Enum alter risk.** Postgres requires that `ALTER TYPE … ADD VALUE` be committed before the new label can appear as a literal in an `INSERT`. If the migration runner wraps the whole file in a single transaction, the seed `INSERT … VALUES ('sales', …)` will fail with "unsafe use of new value". Two acceptable fixes: (a) split into two migration files `018_add_sales_role.sql` (only the ALTER TYPE) and `019_role_permissions.sql` (table + seed), or (b) keep one file but run it outside a transaction. Prefer (a) — clearer, no runner-specific flags. The spec's "migration 018" in the implementation order should be read as "migrations 018 + 019" in this case.
-- **`CurrentUser.email` availability.** The existing route reads `user.id` but not `user.email`. Must verify `CurrentUser` from `src.auth.jwt` exposes `email` (for `actor_email` in audit and email). If not, load it from `users` table alongside target in a single query.
+- ~~`CurrentUser.email` availability~~ — verified: `CurrentUser` exposes `id`, `email`, `role`, `full_name` (see `backend/src/auth/jwt.py:11-16`). No extra query needed.
 - **Audit log growth.** No retention policy yet. Acceptable for now given low volume of role changes. Add retention as future work if volume grows.
 - **Frontend permission fetch.** `GET /admin/me/permissions` is called on admin page mount. A stale cache could show tabs that are then 403'd. Acceptable: refresh on login / page reload; worst case user sees a tab but the action fails server-side.
 
