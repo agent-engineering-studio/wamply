@@ -49,3 +49,6 @@ htmlcov/
 .vercel
 
 .superpowers/
+
+# Git worktrees
+.worktrees/
