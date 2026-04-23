@@ -37,40 +37,44 @@ A new role is also required: **sales** — identical to collaborator except they
 - "Torna alla dashboard" link in:
   - `frontend/src/app/(admin)/layout.tsx:22-24`
   - `frontend/src/app/(admin)/admin/_components/AdminSidebar.tsx:184-186`
-- `PATCH /api/admin/users/:id/role` — **missing** (called from `RoleModal.tsx:43`).
+- `PATCH /admin/users/:id/role` — **exists** in `backend/src/api/admin.py:335-372` (discovered during planning). Routed via Kong: `apiFetch()` in frontend hits `{KONG_URL}/api/v1/admin/...` → backend. The route updates the role but (a) does not include `sales` in `VALID_ROLES`, (b) does not send email, (c) does not write audit log.
 - Backend Python SMTP already wired (`backend/src/services/meta_status_emails.py`) with template engine supporting `{{key}}` and `{{#BLOCK}}...{{/BLOCK}}`. Templates live in `backend/templates/emails/`.
 - No granular permission system. RLS policies distinguish admin from others; the new system is **additive**, not replacing RLS.
 
 ## Architecture Overview
 
+**Architecture note (revised during planning):** All admin API routes live in the Python backend (`backend/src/api/admin.py`) and are called by the frontend via `apiFetch()` → Kong → backend. There are **no Next.js API routes** for admin operations. The `PATCH /admin/users/:id/role` handler already exists — we extend it.
+
 Four sub-features, implemented in this order:
 
-1. **RBAC matrix (foundation).** DB table `role_permissions`, shared helper `hasPermission()`, seeded with the agreed matrix.
-2. **`PATCH /api/admin/users/:id/role` route.** Guards via `withAdminRole` + `hasPermission('admin.staff.manage')`, updates DB, writes audit log, calls backend to send email.
-3. **Backend email service.** New `POST /internal/notify-role-change` endpoint protected by shared token, renders one of two templates, sends via existing SMTP.
-4. **UI cleanup.** Remove dashboard links, filter admin tabs by permission, hide destructive buttons.
+1. **RBAC matrix (foundation).** DB table `role_permissions`, backend helper `get_user_permissions()` / `has_permission()` and frontend parallel helper, seeded with the agreed matrix.
+2. **Extend backend `PATCH /admin/users/:id/role`.** Add `sales` to `VALID_ROLES`, write audit log, call email service. Reuse existing `require_admin` guard and last-active-admin logic.
+3. **Backend email service.** New `send_role_change_email()` function in new module `role_change_emails.py`, mirroring `meta_status_emails.py`. Renders one of two templates, sends via existing SMTP helper.
+4. **UI cleanup.** Remove dashboard links, add logout button, filter admin tabs by permission, hide destructive buttons. Update `RoleModal` to include `sales` option.
 
 ### End-to-end flow — role change
 
 ```
 Admin clicks "Promote" in RoleModal
-  → PATCH /api/admin/users/:id/role { role: 'collaborator' }
-    → withAdminRole guard
-    → hasPermission(session.user.id, 'admin.staff.manage') guard
-    → load target user (old_role, email, name)
-    → guard: self-demote forbidden
-    → guard: no-op if same role
-    → UPDATE users SET role = :new_role
+  → apiFetch PATCH /api/v1/admin/users/:id/role { role: 'collaborator' }
+    → Kong → backend FastAPI
+    → require_admin guard (existing)
+    → validate role ∈ {user, collaborator, sales, admin}
+    → self-modify guard (existing: "Non puoi modificare il tuo ruolo")
+    → load target: old_role
+    → last-active-admin guard (existing)
+    → no-op if old_role == new_role (return 200)
+    → UPDATE users SET role = $1, updated_at = now()
     → INSERT audit_log (actor, 'role_change', target, {old, new})
-    → POST {BACKEND}/internal/notify-role-change (fire-and-forget, 5s timeout)
-        → verify X-Internal-Token
+    → send_role_change_email(pool, target_id, old_role, new_role, actor_email)
         → query role_permissions for new_role (for PERMISSIONS_LIST)
         → render role-promoted.html or role-demoted.html
-        → SMTP send (background task)
-    → 200 { ok, role }
+        → SMTP send via existing _send_email helper
+        → exceptions logged but do not propagate
+    → return { role: new_role }
 ```
 
-Email is UX-level fire-and-forget: role change is always committed regardless of backend email success/failure. Backend failure is logged as a warning.
+Email is UX-level fire-and-forget: role change is always committed regardless of SMTP success/failure. SMTP failure is logged as a warning, same pattern as `send_meta_status_email`.
 
 ## Design — RBAC
 
@@ -163,78 +167,91 @@ INSERT INTO role_permissions (role, permission) VALUES
   ('sales', 'admin.ai_revenue.view');
 ```
 
-### Helper — `frontend/src/lib/permissions.ts`
+### Backend helper — `backend/src/auth/permissions.py`
 
-```ts
-export async function getUserPermissions(userId: string): Promise<Set<string>>;
-export async function hasPermission(userId: string, permission: string): Promise<boolean>;
+Extend the existing file with:
+
+```python
+async def get_role_permissions(db, role: str) -> set[str]:
+    rows = await db.fetch("SELECT permission FROM role_permissions WHERE role = $1::user_role", role)
+    return {r["permission"] for r in rows}
+
+async def has_permission(db, user_role: str, permission: str) -> bool:
+    perms = await get_role_permissions(db, user_role)
+    return "*" in perms or permission in perms
 ```
 
-- Reads `users.role` then `role_permissions` where `role = user.role`.
-- `hasPermission` returns true if permissions contain `*` or exact match.
-- Per-request cache via React `cache()` (server components) or a simple Map in API routes to avoid repeated DB hits in one request.
+Backend enforcement stays at the `require_admin` / `require_staff` layer for now — permissions are a data fence (emails list, RLS, UI gating) rather than replacing existing guards. Future route-level permission checks can adopt `has_permission` as needed.
 
-Used in three layers:
-- **API routes** — hard block with 403.
-- **Server components** — conditional rendering of tabs/buttons.
-- **`withStaffRole` / `withAdminRole` middleware** — unchanged; permission check is an additional layer on top of role check.
+### Frontend helper — `frontend/src/lib/permissions.ts` (new file)
 
-## Design — Route `PATCH /api/admin/users/:id/role`
+Fetches once per page load via a new backend endpoint `GET /admin/me/permissions`:
 
-**File:** `frontend/src/app/api/admin/users/[id]/role/route.ts`
+```ts
+export async function fetchMyPermissions(): Promise<Set<string>> { /* apiFetch + cache */ }
+export function can(perms: Set<string>, permission: string): boolean {
+  return perms.has("*") || perms.has(permission);
+}
+```
 
-**Contract:**
-- Method: `PATCH`
-- Body: `{ role: 'user' | 'collaborator' | 'sales' | 'admin' }`
-- Auth: Supabase session cookie
-- Response 200: `{ ok: true, role }`
+New backend endpoint `GET /admin/me/permissions` (in `admin.py`): returns `{ role, permissions: [...] }` for the calling user. Protected by `require_staff`.
 
-**Guards (in order):**
-1. `withAdminRole` → 401/403.
-2. Zod validate body.
-3. `hasPermission(caller, 'admin.staff.manage')` → 403.
-4. Load target user: 404 if missing.
-5. **Self-demote guard:** if `target.id === caller.id && new_role !== 'admin'` → 400 with message "Un admin non può retrocedersi da solo. Chiedi a un altro amministratore."
-6. If `old_role === new_role` → 200 no-op (no update, no audit, no email).
+Used in the frontend to:
+- Filter admin tabs in `AdminSidebar.tsx` / admin `page.tsx`.
+- Hide destructive buttons in modals and campaign actions.
 
-**Side effects (atomic-ish, in single request):**
-1. `UPDATE users SET role = :new_role WHERE id = :target_id`.
-2. `INSERT INTO audit_log` with actor, action=`role_change`, target, metadata=`{old, new}`.
-3. Determine email type (promotion | demotion | lateral-as-promotion).
-4. `fetch POST {BACKEND_URL}/internal/notify-role-change` with header `X-Internal-Token: ${INTERNAL_API_TOKEN}` and body `{ user_email, user_name, old_role, new_role, changed_by_email, type }`. Timeout 5s. Fire-and-forget: on failure, `console.warn` and continue — **do not** roll back the role change.
+## Design — Extend backend `PATCH /admin/users/:id/role`
 
-**Env vars added:**
-- `BACKEND_INTERNAL_URL` — e.g. `http://backend:8000`
-- `INTERNAL_API_TOKEN` — shared secret, same value in Next.js and Python backend env.
+**File:** `backend/src/api/admin.py:332-372` (existing handler `admin_update_user_role`).
+
+**Changes:**
+1. Update `VALID_ROLES = {"user", "collaborator", "sales", "admin"}` (add `sales`).
+2. Return `200` no-op early if `target.role == new_role` (avoid spurious email + audit rows).
+3. After the `UPDATE users SET role …` call, write to `audit_log` with:
+   - `actor_id = user.id` (the calling admin)
+   - `action = 'role_change'`
+   - `target_id = user_id`
+   - `metadata = {"old": old_role, "new": new_role}`
+4. After the DB updates, call `send_role_change_email(db, user_id, old_role, new_role, actor_email=user.email)`. Wrap in try/except — failure must not abort the request. Log warnings with structlog.
+5. Response body adds `{"previous_role": old_role}` to help the frontend update state without an extra fetch.
+
+**Guards (most already present):**
+- `require_admin` (existing).
+- Self-modify guard: already present at line 343 (`Non puoi modificare il tuo ruolo`).
+- Last-active-admin guard: already present at line 359-365. This already covers the "admin cannot self-demote as the last admin" case; with the self-modify guard, self-demote is impossible in any situation. The spec's "self-demote guard" is therefore already implemented.
+- No-op guard: add `if target["role"] == new_role: return {"role": new_role, "previous_role": new_role}` before the UPDATE.
+
+**Type determination (promotion vs demotion):**
+
+Ranks: `user=0, collaborator=1, sales=1, admin=2`.
+- `rank(new) > rank(old)` → `type = "promotion"`
+- `rank(new) < rank(old)` → `type = "demotion"`
+- `rank(new) == rank(old)` (collaborator ↔ sales) → `type = "promotion"` (uses promotion template with its permissions list, copy is neutral)
+
+Logic lives in `role_change_emails.py`, not in the route handler.
 
 ## Design — Backend email service
 
 **New files:**
-- `backend/src/api/internal.py` — FastAPI router exposing `POST /internal/notify-role-change`.
-- `backend/src/services/role_change_emails.py` — render + send, mirroring `meta_status_emails.py`.
+- `backend/src/services/role_change_emails.py` — render + send, mirroring `meta_status_emails.py`. Exposes `send_role_change_email(db, user_id, old_role, new_role, actor_email)`.
 - `backend/templates/emails/role-promoted.html`
 - `backend/templates/emails/role-demoted.html`
-- `backend/templates/emails/assets/wamply-logo.png` — copy of the logo to embed via CID.
 
-**Endpoint:**
-```
-POST /internal/notify-role-change
-Header: X-Internal-Token: <INTERNAL_API_TOKEN>   # 401 if mismatch
-Body JSON: {
-  user_email: str,
-  user_name: str,
-  old_role: str,
-  new_role: str,
-  changed_by_email: str,
-  type: 'promotion' | 'demotion'   # lateral is sent as 'promotion'
-}
+**No internal HTTP endpoint** — the email service is called directly from `admin_update_user_role` in the same FastAPI process. Simpler than originally designed (no token, no second hop, no Kong routing).
 
-# Rationale for lateral=promotion: a lateral change (collaborator ↔ sales)
-# has the same rank. Using the demotion template would wrongly imply a
-# downgrade; using the promotion template with its permission list is the
-# most informative for the user (they see what they now can do). The copy
-# is neutral enough ("il tuo ruolo è stato aggiornato a X") to cover this.
-Response: 200 { queued: true } immediately; send runs in FastAPI BackgroundTasks.
+**Function signature:**
+
+```python
+async def send_role_change_email(
+    db: asyncpg.Pool,
+    user_id: str,
+    old_role: str,
+    new_role: str,
+    actor_email: str,
+) -> bool:
+    """Load target email/name, compute promotion/demotion type, render template,
+    send via existing SMTP helper. Returns True if sent, False on any failure
+    (logged as warning, does not raise)."""
 ```
 
 **Render logic:**
@@ -265,17 +282,22 @@ PERMISSION_LABELS = {
 }
 ```
 
-**Template layout (both):**
-- Header bar navy `#0B1D3A`, inline logo via CID (`cid:wamply-logo`).
-- Greeting: "Ciao {{USER_NAME}},".
-- Body paragraph (varies promoted vs demoted — see copy below).
-- Info box with rounded corners, background `#F3F6FA`, border-left `4px solid #1ABC9C`, showing "Ruolo precedente: {{OLD_ROLE_LABEL}}" and "Ruolo attuale: **{{NEW_ROLE_LABEL}}**".
-- Only in promoted: "Ora hai accesso a:" + bullet list `{{PERMISSIONS_LIST_HTML}}` (rendered as `<ul><li>…</li></ul>`).
-- CTA button teal `#1ABC9C`, text white, rounded 8px: "Accedi a Wamply" → `CTA_URL`.
+**Template layout (both) — match existing `meta-approved.html` style:**
+
+Dark theme, consistent with the other transactional emails already in `backend/templates/emails/`:
+
+- Background `#0B1628` (brand navy deep).
+- Outer card `#132240` with `1px solid #1E2F52`, border-radius 16px, max-width 600px.
+- Header gradient `#1B2A4A → #0F1B33` with inline wordmark "Wam**ply**" (white "Wam" + teal `#0D9488` "ply") — no image asset needed.
+- Status pill top-right: teal tint "Promosso" (promoted) or slate tint "Ruolo modificato" (demoted).
+- H1 title, sub-paragraph `#94A3B8`.
+- Info box: `#0B1628` background with `1px solid #0D9488`, centered, shows `OLD_ROLE_LABEL → NEW_ROLE_LABEL`.
+- Promoted only: `{{#PERMISSIONS_LIST_HTML}}…{{/PERMISSIONS_LIST_HTML}}` conditional block with bullet list.
+- CTA button teal `#0D9488`, white text, rounded pill: "Accedi al pannello admin" → `CTA_URL`.
 - Small footnote: "Modificato da {{CHANGED_BY}}".
-- Footer: "Wamply · WhatsApp Campaign Manager" + `support@wamply.it` + privacy link.
-- Font-stack: `-apple-system, 'Segoe UI', Inter, Roboto, sans-serif`.
-- Single-column, max-width 600px, table-based layout for email client compatibility.
+- Footer divider + copyright line `© Wamply — WhatsApp Campaign Manager`.
+- Font-stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`.
+- Table-based layout for email client compatibility.
 
 **Copy — role-promoted.html body:**
 > Buone notizie: il tuo ruolo su Wamply è stato aggiornato a **{{NEW_ROLE_LABEL}}**.
@@ -289,7 +311,7 @@ PERMISSION_LABELS = {
 >
 > Se pensi sia un errore o vuoi chiarimenti, contatta l'amministratore.
 
-**SMTP:** reuse `_send_email()` from `meta_status_emails.py` (same SSL/STARTTLS handling, same env vars). Attach logo PNG as `MIMEImage` with Content-ID `wamply-logo`, inline disposition.
+**SMTP:** reuse `_send_email()` from `meta_status_emails.py` (same SSL/STARTTLS handling, same env vars). No image attachment — the wordmark is inline text/CSS, matching `meta-approved.html:22-25`.
 
 ## Design — UI cleanup
 
@@ -337,27 +359,30 @@ Unit tests:
 - `hasPermission()` — admin wildcard true for any permission, collaborator true for own perms false for others, sales has ai_costs true staff.manage false, user false for any admin.* perm.
 - Email template renderer — given fixture data, produces expected HTML; handles empty PERMISSIONS_LIST_HTML in demoted template; skips unknown permission keys.
 
-API tests (route `PATCH /api/admin/users/:id/role`):
-- Admin promotes user → collaborator → 200, DB updated, audit_log row written, backend called with `type=promotion`.
-- Admin promotes collaborator → admin → 200, `type=promotion`.
-- Admin demotes collaborator → user → 200, `type=demotion`.
-- Admin lateral collaborator ↔ sales → 200, `type=promotion` (copy neutral).
-- Admin same role → 200 no-op, no audit, no backend call.
-- Collaborator calls route → 403.
-- Sales calls route → 403.
-- Anonymous → 401.
-- Admin self-demote → 400.
+Backend API tests (route `PATCH /admin/users/:user_id/role`, via FastAPI `TestClient`):
+
+- Admin promotes user → collaborator → 200, DB updated, audit_log row written.
+- Admin promotes collaborator → admin → 200.
+- Admin demotes collaborator → user → 200.
+- Admin lateral collaborator ↔ sales → 200 (promotion template).
+- Admin same role → 200 no-op, no audit, no email call.
+- Non-admin (collaborator/sales/user) calls route → 403.
+- Admin self-modify attempt → 400 (existing guard).
+- Last active admin demoting self blocked → 400 (existing guard).
 - Invalid role in body → 400.
 - Target user not found → 404.
-- Backend down / timeout → role still updated, audit_log still written, warning logged.
+- Email send raising exception → role still updated, audit_log still written, warning logged.
 
-Backend tests (endpoint `/internal/notify-role-change`):
-- Missing / wrong `X-Internal-Token` → 401.
-- Valid request → 200 immediately, email dispatched in background.
-- Promotion template includes PERMISSIONS_LIST rendered as `<ul>` with Italian labels.
-- Demotion template has no PERMISSIONS_LIST section.
-- Italian role labels applied.
-- Smoke test against MailHog (dev) — email visible at `localhost:8025`.
+Email rendering tests (pure unit, no SMTP):
+
+- `send_role_change_email` computes `type=promotion` for user → collaborator, collaborator → admin, user → sales.
+- Computes `type=demotion` for admin → collaborator, sales → user.
+- Computes `type=promotion` for lateral collaborator → sales and sales → collaborator.
+- Promoted template includes `<ul>` list from `PERMISSIONS_LIST_HTML` with Italian labels.
+- Demoted template has no permissions block (conditional stripped).
+- Italian role labels rendered correctly.
+- Unknown permission key is silently skipped.
+- SMTP smoke test against MailHog: `SMTP_HOST=mailhog SMTP_PORT=1025` — email visible at `http://localhost:8025`.
 
 E2E (Playwright):
 - Login as collaborator → admin tabs visible = overview/users/campaigns/whatsapp. No "staff", "ai_costs", "ai_revenue", "ai_key" tabs.
@@ -369,47 +394,52 @@ E2E (Playwright):
 ## Risks & open points
 
 - **Enum alter risk.** Postgres requires that `ALTER TYPE … ADD VALUE` be committed before the new label can appear as a literal in an `INSERT`. If the migration runner wraps the whole file in a single transaction, the seed `INSERT … VALUES ('sales', …)` will fail with "unsafe use of new value". Two acceptable fixes: (a) split into two migration files `018_add_sales_role.sql` (only the ALTER TYPE) and `019_role_permissions.sql` (table + seed), or (b) keep one file but run it outside a transaction. Prefer (a) — clearer, no runner-specific flags. The spec's "migration 018" in the implementation order should be read as "migrations 018 + 019" in this case.
-- **Internal token.** `INTERNAL_API_TOKEN` must be present in both Next.js and Python envs. Missing → 401 everywhere. Add to `.env.example` in both projects.
-- **Logo path.** Memory references `frontend/public/agent-engineering-logo.png`; verify during implementation whether a dedicated Wamply logo exists and use that instead.
-- **Backend URL in dev vs prod.** `BACKEND_INTERNAL_URL` differs (`http://backend:8000` in Docker, `http://localhost:8000` outside). Document in `.env.example`.
+- **`CurrentUser.email` availability.** The existing route reads `user.id` but not `user.email`. Must verify `CurrentUser` from `src.auth.jwt` exposes `email` (for `actor_email` in audit and email). If not, load it from `users` table alongside target in a single query.
 - **Audit log growth.** No retention policy yet. Acceptable for now given low volume of role changes. Add retention as future work if volume grows.
+- **Frontend permission fetch.** `GET /admin/me/permissions` is called on admin page mount. A stale cache could show tabs that are then 403'd. Acceptable: refresh on login / page reload; worst case user sees a tab but the action fails server-side.
 
 ## Out of scope / future work
 
 - Admin UI to edit `role_permissions` at runtime.
 - Audit log viewer UI in the admin area.
 - Retention policy for `audit_log`.
-- Email delivery retries / dead-letter queue (currently single-shot via FastAPI BackgroundTasks).
+- Email delivery retries / dead-letter queue (currently single-shot, synchronous call from route handler).
+- Backend route-level permission enforcement (currently relies on `require_admin`/`require_staff` coarse checks + RLS; granular per-endpoint `require_permission('...')` is future work).
 
 ## File change summary
 
 **New files:**
-- `supabase/migrations/018_role_permissions.sql`
+- `supabase/migrations/018_add_sales_role.sql` (ALTER TYPE only)
+- `supabase/migrations/019_role_permissions_and_audit_log.sql` (tables + seed)
 - `frontend/src/lib/permissions.ts`
-- `frontend/src/app/api/admin/users/[id]/role/route.ts`
-- `backend/src/api/internal.py`
 - `backend/src/services/role_change_emails.py`
 - `backend/templates/emails/role-promoted.html`
 - `backend/templates/emails/role-demoted.html`
-- `backend/templates/emails/assets/wamply-logo.png`
+- `backend/tests/test_admin_role_change.py`
+- `frontend/tests/admin/permissions.test.ts`
 
 **Modified files:**
-- `frontend/src/app/(admin)/layout.tsx` — remove dashboard link
-- `frontend/src/app/(admin)/admin/_components/AdminSidebar.tsx` — replace dashboard link with logout button
-- `frontend/src/app/(admin)/admin/page.tsx` — tab filtering by permission
-- `frontend/src/components/admin/UserEditModal.tsx` — hide destructive actions
-- `frontend/src/components/admin/StaffTable.tsx` — hide role-change when lacking permission
-- Campaigns tab components — hide suspend/delete when lacking permission
-- `backend/src/main.py` (or app factory) — register new internal router
-- `.env.example` (frontend & backend) — add `INTERNAL_API_TOKEN`, `BACKEND_INTERNAL_URL`
 
-## Implementation order (for writing-plans)
+- `frontend/src/app/(admin)/layout.tsx` — remove "Torna alla dashboard" anchor (line 22-24).
+- `frontend/src/app/(admin)/admin/_components/AdminSidebar.tsx` — replace dashboard link with logout button; filter nav sections by permission (lines 183-187 + NAV_SECTIONS rendering).
+- `frontend/src/app/(admin)/admin/page.tsx` — fetch user permissions on mount, filter tabs.
+- `frontend/src/app/(admin)/admin/_components/RoleModal.tsx` — add `sales` to `Role` type and add a third `RoleOption`.
+- `frontend/src/components/admin/UserEditModal.tsx` — hide destructive buttons without `admin.users.edit`.
+- `frontend/src/components/admin/StaffTable.tsx` — hide "Cambia ruolo" without `admin.staff.manage`.
+- Campaigns admin view — hide suspend/delete without `admin.campaigns.suspend`.
+- `backend/src/auth/permissions.py` — add `get_role_permissions` and `has_permission`.
+- `backend/src/api/admin.py` — extend `admin_update_user_role` (add sales, no-op guard, audit log, email call); add new `GET /admin/me/permissions` endpoint.
 
-1. Migration 018 (enum + role_permissions + audit_log + seed).
-2. `lib/permissions.ts` + unit tests.
-3. Email templates + `role_change_emails.py` + renderer tests + MailHog smoke.
-4. Backend `/internal/notify-role-change` endpoint + tests.
-5. Next.js `PATCH /api/admin/users/:id/role` route + integration tests with mocked backend.
-6. Remove "Torna alla dashboard" links + add logout button.
-7. Tab filtering + destructive-action hiding in admin UI.
-8. Playwright E2E scenarios.
+## Implementation order (revised for writing-plans)
+
+1. Migrations 018 (ALTER TYPE add 'sales') + 019 (role_permissions + audit_log tables + seed).
+2. Backend helper `has_permission` in `permissions.py` + unit test.
+3. Backend email templates + `role_change_emails.py` + rendering unit tests + MailHog smoke test.
+4. Extend backend `admin_update_user_role`: add sales to VALID_ROLES, no-op guard, audit log insert, email call. Backend API tests with `TestClient`.
+5. Backend new endpoint `GET /admin/me/permissions` + test.
+6. Frontend `lib/permissions.ts` helper + unit test.
+7. Frontend `RoleModal` update: add `sales` option.
+8. Remove "Torna alla dashboard" in `layout.tsx`; add logout button in `AdminSidebar.tsx`.
+9. Frontend tab filtering in admin `page.tsx` and `AdminSidebar.tsx` using fetched permissions.
+10. Frontend destructive-action hiding in user/staff/campaign components.
+11. Playwright E2E scenarios.
