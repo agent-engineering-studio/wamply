@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import type { AdminUser } from "./UserEditModal";
 
-type Role = "user" | "collaborator" | "admin";
+type Role = "user" | "collaborator" | "sales" | "admin";
 
 export function RoleModal({
   user,
@@ -80,6 +80,13 @@ export function RoleModal({
             onSelect={() => setRole("collaborator")}
             label="Collaboratore"
             desc="Accesso al pannello admin: può gestire utenti, campagne, template. Non può eliminare utenti o modificare abbonamenti."
+          />
+          <RoleOption
+            value="sales"
+            selected={role === "sales"}
+            onSelect={() => setRole("sales")}
+            label="Sales"
+            desc="Come collaboratore, più visibilità su costi e ricavi AI. Non può gestire lo staff o configurare la Claude API."
           />
           <RoleOption
             value="admin"
