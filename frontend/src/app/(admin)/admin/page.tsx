@@ -12,7 +12,8 @@ import { AICostsTab } from "./_components/AICostsTab";
 import { AIRevenueTab } from "./_components/AIRevenueTab";
 import { AISystemKeyTab } from "./_components/AISystemKeyTab";
 import { WhatsAppApplicationsTab } from "./_components/WhatsAppApplicationsTab";
-import type { AdminTab } from "./_components/AdminSidebar";
+import { TAB_PERMISSIONS, type AdminTab } from "./_components/AdminSidebar";
+import { can, usePermissions } from "@/lib/permissions";
 
 interface Overview {
   total_users: number;
@@ -22,7 +23,7 @@ interface Overview {
   plan_breakdown: Record<string, number>;
 }
 
-type ViewerRole = "admin" | "collaborator" | null;
+type ViewerRole = "admin" | "collaborator" | "sales" | null;
 
 const VALID_TABS: ReadonlySet<AdminTab> = new Set<AdminTab>([
   "overview",
@@ -63,7 +64,16 @@ function AdminPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const tab: AdminTab = tabParam && VALID_TABS.has(tabParam as AdminTab) ? (tabParam as AdminTab) : "overview";
+  const requestedTab: AdminTab = tabParam && VALID_TABS.has(tabParam as AdminTab) ? (tabParam as AdminTab) : "overview";
+  const { perms, loading: permsLoading } = usePermissions();
+  // Fall back to the first allowed tab if the requested one is not permitted.
+  // While permissions load we optimistically use the requested tab to avoid
+  // flicker; the gating below hides body content until perms are known.
+  const tab: AdminTab = permsLoading
+    ? requestedTab
+    : can(perms, TAB_PERMISSIONS[requestedTab])
+      ? requestedTab
+      : ((Object.keys(TAB_PERMISSIONS) as AdminTab[]).find((t) => can(perms, TAB_PERMISSIONS[t])) ?? requestedTab);
 
   useEffect(() => {
     Promise.all([
@@ -88,14 +98,14 @@ function AdminPageContent() {
     if (!currentUserId || users.length === 0) return;
     const me = users.find((u) => u.id === currentUserId);
     const role = me?.role;
-    if (role === "admin" || role === "collaborator") {
+    if (role === "admin" || role === "collaborator" || role === "sales") {
       setViewerRole(role);
     }
   }, [currentUserId, users]);
 
   const endUsers = useMemo(() => users.filter((u) => u.role === "user"), [users]);
   const staffUsers = useMemo(
-    () => users.filter((u) => u.role === "admin" || u.role === "collaborator"),
+    () => users.filter((u) => u.role === "admin" || u.role === "collaborator" || u.role === "sales"),
     [users],
   );
 

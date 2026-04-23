@@ -10,7 +10,7 @@ export function StaffTable({
   onChangeRole,
 }: {
   users: AdminUser[];
-  viewerRole: "admin" | "collaborator" | null;
+  viewerRole: "admin" | "collaborator" | "sales" | null;
   onPromoteUser: () => void;
   onChangeRole: (user: AdminUser) => void;
 }) {

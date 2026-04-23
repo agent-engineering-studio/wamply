@@ -43,7 +43,7 @@ export function UserEditModal({
   user: AdminUser | null;
   plans: Plan[];
   currentUserId: string | null;
-  viewerRole: "admin" | "collaborator" | null;
+  viewerRole: "admin" | "collaborator" | "sales" | null;
   onClose: () => void;
   onSaved: (updated: AdminUser) => void;
   onDeleted?: (userId: string) => void;
