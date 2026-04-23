@@ -1,10 +1,15 @@
+import json
 from datetime import date
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.permissions import require_admin, require_staff
 from src.auth.jwt import CurrentUser
 from src.dependencies import get_db, get_redis
+from src.services.role_change_emails import send_role_change_email
+
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/admin")
 
@@ -329,7 +334,7 @@ async def admin_delete_user(
     return None
 
 
-VALID_ROLES = {"user", "collaborator", "admin"}
+VALID_ROLES = {"user", "collaborator", "sales", "admin"}
 
 
 @router.patch("/users/{user_id}/role")
@@ -339,7 +344,8 @@ async def admin_update_user_role(
     user: CurrentUser = Depends(require_admin),
 ):
     """Change the target user's role. Admin-only. Prevents demoting the last
-    active admin."""
+    active admin. Writes an audit_log row and sends a branded notification
+    email. Email failures are logged but do not abort the request."""
     if user_id == str(user.id):
         raise HTTPException(status_code=400, detail="Non puoi modificare il tuo ruolo.")
 
@@ -356,7 +362,13 @@ async def admin_update_user_role(
     if not target:
         raise HTTPException(status_code=404, detail="Utente non trovato.")
 
-    if target["role"] == "admin" and new_role != "admin":
+    old_role = target["role"]
+
+    # No-op: no update, no audit, no email.
+    if old_role == new_role:
+        return {"role": new_role, "previous_role": old_role}
+
+    if old_role == "admin" and new_role != "admin":
         active = await _count_active_admins(db)
         if active <= 1:
             raise HTTPException(
@@ -369,7 +381,22 @@ async def admin_update_user_role(
         new_role,
         user_id,
     )
-    return {"role": new_role}
+
+    await db.execute(
+        "INSERT INTO audit_log (actor_id, action, target_id, metadata) "
+        "VALUES ($1, 'role_change', $2, $3::jsonb)",
+        user.id,
+        user_id,
+        json.dumps({"old": old_role, "new": new_role}),
+    )
+
+    # Fire-and-forget: role change stands even if email fails.
+    try:
+        await send_role_change_email(db, user_id, old_role, new_role, user.email)
+    except Exception as exc:
+        logger.warning("role_change_email_unexpected_error", error=str(exc))
+
+    return {"role": new_role, "previous_role": old_role}
 
 
 # ── AI Costs dashboard ────────────────────────────────────────
