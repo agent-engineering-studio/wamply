@@ -3,6 +3,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { LogoutButton } from "../../_components/LogoutButton";
+import { can, usePermissions } from "@/lib/permissions";
 
 export type AdminTab =
   | "overview"
@@ -13,6 +15,17 @@ export type AdminTab =
   | "ai_costs"
   | "ai_revenue"
   | "ai_key";
+
+export const TAB_PERMISSIONS: Record<AdminTab, string> = {
+  overview: "admin.overview.view",
+  users: "admin.users.view",
+  staff: "admin.staff.manage",
+  campaigns: "admin.campaigns.view",
+  whatsapp: "admin.whatsapp.manage",
+  ai_costs: "admin.ai_costs.view",
+  ai_revenue: "admin.ai_revenue.view",
+  ai_key: "admin.ai_key.configure",
+};
 
 interface NavItem {
   tab: AdminTab;
@@ -136,6 +149,16 @@ export function AdminSidebar() {
 function AdminSidebarContent() {
   const searchParams = useSearchParams();
   const currentTab = (searchParams.get("tab") as AdminTab | null) ?? "overview";
+  const { perms, loading } = usePermissions();
+
+  const sections = loading
+    ? []
+    : NAV_SECTIONS
+        .map((s) => ({
+          ...s,
+          items: s.items.filter((i) => can(perms, TAB_PERMISSIONS[i.tab])),
+        }))
+        .filter((s) => s.items.length > 0);
 
   return (
     <aside className="flex h-[calc(100vh-52px)] w-55 shrink-0 flex-col border-r border-slate-800 bg-brand-navy-light">
@@ -151,7 +174,7 @@ function AdminSidebarContent() {
 
       {/* Nav sections */}
       <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
-        {NAV_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <div key={section.title}>
             <div className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               {section.title}
@@ -179,11 +202,9 @@ function AdminSidebarContent() {
         ))}
       </nav>
 
-      {/* Footer hint */}
-      <div className="border-t border-slate-800 px-4 py-3 text-[11px] text-slate-500">
-        <Link href="/dashboard" className="hover:text-slate-300">
-          &larr; Torna alla dashboard
-        </Link>
+      {/* Footer: logout */}
+      <div className="border-t border-slate-800 px-4 py-3">
+        <LogoutButton />
       </div>
     </aside>
   );

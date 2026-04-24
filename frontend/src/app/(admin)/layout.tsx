@@ -1,5 +1,4 @@
 import { AdminSidebar } from "./admin/_components/AdminSidebar";
-import { LogoutButton } from "./_components/LogoutButton";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,10 +18,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </svg>
         <span className="text-[14px] font-semibold text-white">Wamply Admin</span>
         <span className="rounded-pill bg-brand-teal/20 px-2 py-0.5 text-[10px] font-semibold text-brand-teal">Admin</span>
-        <a href="/dashboard" className="ml-auto text-[12px] text-white/60 transition-colors hover:text-white">
-          &larr; Torna alla dashboard
-        </a>
-        <LogoutButton />
       </header>
 
       {/* Sidebar + main */}
