@@ -5,6 +5,8 @@ Admin endpoints: `/admin/businesses/*` for the marketing partner to manage
 Meta applications on behalf of low-tech customers.
 """
 
+import json
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
@@ -212,7 +214,7 @@ async def admin_create_business(
     await db.execute(
         """INSERT INTO business_audit_log (business_id, actor_id, action, changes)
            VALUES ($1, $2, 'admin_created', $3::jsonb)""",
-        business["id"], str(user.id), f'{{"email": "{user_email}"}}',
+        business["id"], str(user.id), json.dumps({"email": user_email}),
     )
     return {"ok": True, "business_id": str(business["id"])}
 
