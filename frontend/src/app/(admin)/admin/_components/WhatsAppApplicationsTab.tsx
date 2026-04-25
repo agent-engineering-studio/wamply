@@ -134,6 +134,25 @@ export function WhatsAppApplicationsTab() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false); // wired to CreateBusinessModal in Task 5
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  async function handleStatusChange(businessId: string, newStatus: string) {
+    try {
+      const r = await apiFetch(`/admin/businesses/${businessId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.business_id === businessId ? { ...it, status: newStatus as BusinessListItem["status"] } : it
+        )
+      );
+      setMsg({ type: "ok", text: `Stato aggiornato: ${newStatus}` });
+    } catch (e) {
+      setMsg({ type: "err", text: e instanceof Error ? e.message : "Errore" });
+    }
+  }
 
   function reload() {
     setLoading(true);
@@ -181,6 +200,16 @@ export function WhatsAppApplicationsTab() {
 
   return (
     <div className="space-y-4">
+      {msg && (
+        <div className={`rounded-sm border px-3 py-2 text-[12px] ${
+          msg.type === "ok"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+            : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+        }`}>
+          {msg.text}
+          <button type="button" onClick={() => setMsg(null)} className="ml-2 text-slate-500 hover:text-slate-300">×</button>
+        </div>
+      )}
       {/* KPI cards */}
       <div className="grid grid-cols-4 gap-3">
         {[
@@ -363,13 +392,26 @@ export function WhatsAppApplicationsTab() {
                       {formatDate(it.business_created_at)}
                     </td>
                     <td className="px-3.5 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(it.business_id)}
-                        className="rounded-pill border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:bg-brand-navy-deep hover:text-white"
-                      >
-                        Apri
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <select
+                          value={it.status ?? ""}
+                          onChange={(e) => handleStatusChange(it.business_id, e.target.value)}
+                          aria-label={`Cambia stato pratica ${it.brand_name}`}
+                          className="rounded-sm border border-slate-700 bg-brand-navy-deep px-2 py-1 text-[11px] text-slate-200 focus:border-brand-teal focus:outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {(["draft","awaiting_docs","submitted_to_meta","in_review","approved","rejected","active","suspended"] as const).map((s) => (
+                            <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(it.business_id)}
+                          className="rounded-pill border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:bg-brand-navy-deep hover:text-white"
+                        >
+                          Dettaglio
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
