@@ -12,6 +12,7 @@ export type AdminTab =
   | "staff"
   | "campaigns"
   | "whatsapp"
+  | "twilio"
   | "ai_costs"
   | "ai_revenue"
   | "ai_key"
@@ -23,6 +24,7 @@ export const TAB_PERMISSIONS: Record<AdminTab, string> = {
   staff: "admin.staff.manage",
   campaigns: "admin.campaigns.view",
   whatsapp: "admin.whatsapp.manage",
+  twilio: "admin.twilio.manage",
   ai_costs: "admin.ai_costs.view",
   ai_revenue: "admin.ai_revenue.view",
   ai_key: "admin.ai_key.configure",
@@ -110,6 +112,19 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
         icon: (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={ICON_CLASS}>
             <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+          </svg>
+        ),
+      },
+      {
+        tab: "twilio",
+        label: "Twilio",
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={ICON_CLASS}>
+            <path d="M4 4h16v16H4z" />
+            <circle cx="9" cy="10" r="1.5" />
+            <circle cx="15" cy="10" r="1.5" />
+            <circle cx="9" cy="15" r="1.5" />
+            <circle cx="15" cy="15" r="1.5" />
           </svg>
         ),
       },
