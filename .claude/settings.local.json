@@ -89,7 +89,8 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT slug, display_name, price_cents, msg_included, ai_features, overage_rates FROM plans WHERE active = true ORDER BY price_cents ASC;\")",
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"\\\\d groups\")",
       "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%group%' OR table_name = 'templates' ORDER BY table_name;\")",
-      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'templates' AND column_name LIKE '%cat%';\")"
+      "Bash(MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD=postgres wcm-supabase-db psql -U supabase_admin -d postgres -c \"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'templates' AND column_name LIKE '%cat%';\")",
+      "Read(//home/user/wamply/frontend/src/app/\\(dashboard\\)/campaigns/**)"
     ],
     "additionalDirectories": [
       "c:\\Users\\GiuseppeZileni\\Git\\wamply\\docs\\superpowers\\specs"
