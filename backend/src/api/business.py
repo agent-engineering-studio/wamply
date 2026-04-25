@@ -213,6 +213,50 @@ async def admin_update_business(
     }
 
 
+_VALID_STATUSES = {
+    "draft", "awaiting_docs", "submitted_to_meta",
+    "in_review", "approved", "rejected", "active", "suspended",
+}
+
+
+@router.patch("/admin/businesses/{business_id}/status")
+async def admin_patch_business_status(
+    request: Request,
+    business_id: str,
+    user: CurrentUser = Depends(require_staff),
+):
+    """Quick status change without touching other fields."""
+    db = get_db(request)
+    body = await request.json()
+    status = (body or {}).get("status", "").strip()
+    if status not in _VALID_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Status non valido: {status}. Valori ammessi: {sorted(_VALID_STATUSES)}",
+        )
+
+    ma = await db.fetchrow(
+        "SELECT id FROM meta_applications WHERE business_id = $1",
+        business_id,
+    )
+    if not ma:
+        raise HTTPException(status_code=404, detail="Pratica non trovata.")
+
+    await db.execute(
+        "UPDATE meta_applications SET status = $1::application_status, updated_at = now() WHERE id = $2",
+        status,
+        ma["id"],
+    )
+    await db.execute(
+        """INSERT INTO business_audit_log (business_id, action, actor_id, changes)
+           VALUES ($1, $2, $3, '{}'::jsonb)""",
+        business_id,
+        f"status_changed_to_{status}",
+        str(user.id),
+    )
+    return {"ok": True, "status": status}
+
+
 @router.post("/admin/businesses/{business_id}/logo")
 async def admin_upload_logo(
     request: Request,
