@@ -1,5 +1,7 @@
 # Wamply — WhatsApp Campaign Manager
 
+![Wamply](docs/commercial/wamply-cover.png)
+
 > SaaS per campagne WhatsApp Business massive con agent AI conversazionale
 
 ## Panoramica
