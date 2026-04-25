@@ -16,6 +16,7 @@ from src.services.ai_credits import (
     commit_credits,
     resolve_api_key,
 )
+from src.services.ai_feature_gating import require_ai_feature
 from src.services.plan_limits import check_plan_limit
 
 SUPPORTED_LANGUAGES = {"it", "en", "es", "de", "fr"}
@@ -70,6 +71,7 @@ async def generate_template_ai(
     if len(prompt) > 500:
         raise HTTPException(status_code=400, detail="Prompt troppo lungo (max 500 caratteri).")
 
+    await require_ai_feature(db, str(user.id), "generate")
     reservation = await reserve_credits(db, redis, user.id, "template_generate")
     api_key, _ = await resolve_api_key(db, user.id)
 
@@ -119,6 +121,7 @@ async def improve_template_ai(
     if cached:
         return {"cached": True, **json.loads(cached)}
 
+    await require_ai_feature(db, str(user.id), "improve")
     reservation = await reserve_credits(db, redis, user.id, "template_improve")
     api_key, _ = await resolve_api_key(db, user.id)
 
@@ -219,6 +222,7 @@ async def check_template_compliance(
     if not body_text:
         raise HTTPException(status_code=400, detail="Template senza body.")
 
+    await require_ai_feature(db, str(user.id), "compliance_check")
     reservation = await reserve_credits(db, redis, user.id, "template_compliance")
     api_key, _ = await resolve_api_key(db, user.id)
 
@@ -298,6 +302,8 @@ async def translate_template_ai(
             break
     if not source_body:
         raise HTTPException(status_code=400, detail="Template senza body.")
+
+    await require_ai_feature(db, str(user.id), "translate")
 
     # Resolve key once for the whole batch.
     api_key, _ = await resolve_api_key(db, user.id)

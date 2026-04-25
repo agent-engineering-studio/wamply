@@ -43,11 +43,19 @@ async def admin_overview(request: Request, user: CurrentUser = Depends(require_s
 async def admin_plans(request: Request, user: CurrentUser = Depends(require_staff)):
     db = get_db(request)
     rows = await db.fetch(
-        "SELECT id, name, slug, price_cents, max_campaigns_month, max_contacts, "
-        "max_messages_month, max_templates, max_team_members "
+        "SELECT id, name, display_name, slug, price_cents, "
+        "max_campaigns_month, max_contacts, max_messages_month, "
+        "max_templates, max_team_members, "
+        "msg_included, overage_rates, ai_features, active_segments "
         "FROM plans WHERE active = true ORDER BY price_cents ASC"
     )
-    return {"plans": [{**dict(r), "id": str(r["id"])} for r in rows]}
+    def _serialize(r):
+        d = dict(r)
+        d["id"] = str(d["id"])
+        if d.get("active_segments") is None:
+            d["active_segments"] = []
+        return d
+    return {"plans": [_serialize(r) for r in rows]}
 
 
 @router.get("/users")

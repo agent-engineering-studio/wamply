@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Il tuo piano Wamply è stato aggiornato</title>
+</head>
+<body style="margin:0;padding:0;background:#0F1B33;font-family:Inter,Arial,sans-serif;">
+  <div style="max-width:520px;margin:40px auto;background:#1B2A4A;border-radius:12px;padding:32px;color:#E2E8F0;">
+    <h1 style="color:#0D9488;font-size:22px;margin:0 0 16px;">
+      Ciao {{USER_NAME}}, il tuo piano Wamply ha guadagnato funzioni gratis
+    </h1>
+    <p style="font-size:14px;line-height:1.6;color:#94A3B8;">
+      Abbiamo rinnovato il listino per offrire più valore. Il tuo piano
+      <strong style="color:#F1F5F9;">{{OLD_PLAN_NAME}}</strong> si chiama ora
+      <strong style="color:#0D9488;">{{NEW_PLAN_NAME}}</strong> e include
+      funzioni AI aggiuntive senza aumento di prezzo.
+    </p>
+    <div style="background:#0F1B33;border-radius:8px;padding:16px;margin:24px 0;">
+      <div style="font-size:12px;color:#64748B;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
+        Novità incluse
+      </div>
+      {{NEW_FEATURES_LIST_HTML}}
+    </div>
+    <p style="font-size:13px;color:#94A3B8;">
+      Il prezzo resta <strong style="color:#F1F5F9;">€{{PRICE_EUR}}/mese</strong>. Il canone include
+      ora <strong style="color:#F1F5F9;">{{MSG_INCLUDED}} messaggi WhatsApp</strong>. Oltre la quota,
+      paghi solo ciò che consumi (tariffe dettagliate nel pannello).
+    </p>
+    <a href="{{CTA_URL}}" style="display:inline-block;background:#0D9488;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:8px;">
+      Vai al tuo pannello
+    </a>
+    <p style="font-size:11px;color:#64748B;margin-top:32px;">
+      Hai domande? Rispondi a questa email o scrivi a supporto@wamply.it.
+    </p>
+  </div>
+</body>
+</html>

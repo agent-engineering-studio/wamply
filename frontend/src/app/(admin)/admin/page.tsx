@@ -12,6 +12,7 @@ import { AICostsTab } from "./_components/AICostsTab";
 import { AIRevenueTab } from "./_components/AIRevenueTab";
 import { AISystemKeyTab } from "./_components/AISystemKeyTab";
 import { WhatsAppApplicationsTab } from "./_components/WhatsAppApplicationsTab";
+import { AdminPlanManagementTab } from "./_components/AdminPlanManagementTab";
 import { TAB_PERMISSIONS, type AdminTab } from "./_components/AdminSidebar";
 import { can, usePermissions } from "@/lib/permissions";
 
@@ -32,6 +33,7 @@ const VALID_TABS: ReadonlySet<AdminTab> = new Set<AdminTab>([
   "ai_costs",
   "ai_revenue",
   "ai_key",
+  "plans",
 ]);
 
 const PLAN_COLORS: Record<string, string> = {
@@ -243,6 +245,7 @@ function AdminPageContent() {
       {tab === "ai_costs" && <AICostsTab />}
       {tab === "ai_revenue" && <AIRevenueTab />}
       {tab === "ai_key" && <AISystemKeyTab />}
+      {tab === "plans" && <AdminPlanManagementTab plans={plans as Parameters<typeof AdminPlanManagementTab>[0]["plans"]} />}
 
       <UserEditModal
         user={editingUser}

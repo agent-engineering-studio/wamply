@@ -1,20 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { scorePassword, type PasswordScore } from "@/lib/password-strength";
 import { PasswordStrengthMeter } from "../_components/PasswordStrengthMeter";
+import { PlanPicker } from "./PlanPicker";
+import { PLANS } from "@/lib/plans";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [strength, setStrength] = useState<PasswordScore | null>(null);
+  const rawPlan = searchParams.get("plan") ?? "avvio";
+  const validSlugs = PLANS.map((p) => p.slug);
+  const [planSlug, setPlanSlug] = useState(
+    validSlugs.includes(rawPlan) ? rawPlan : "avvio",
+  );
 
   useEffect(() => {
     if (!password) {
@@ -58,7 +66,7 @@ export default function RegisterPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, plan_slug: planSlug },
         emailRedirectTo: `${window.location.origin}/callback`,
       },
     });
@@ -93,6 +101,26 @@ export default function RegisterPage() {
         <div className="rounded-xl border border-brand-ink-10 bg-white p-6 shadow-card">
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+          )}
+
+          <div className="mb-4">
+            <p className="mb-2 text-[11.5px] font-medium text-brand-ink-60">Piano scelto</p>
+            <PlanPicker selected={planSlug} onSelect={setPlanSlug} />
+          </div>
+
+          {planSlug === "avvio" && (
+            <div className="mb-4 rounded-lg border border-brand-teal/30 bg-brand-teal/5 p-3 text-[12px] text-brand-ink">
+              <span className="font-semibold text-brand-teal">Consigliato:</span>{" "}
+              passa a{" "}
+              <button
+                type="button"
+                onClick={() => setPlanSlug("starter")}
+                className="font-semibold text-brand-teal underline"
+              >
+                Essenziale (€49/mese)
+              </button>{" "}
+              per includere 300 messaggi e la generazione AI.
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
