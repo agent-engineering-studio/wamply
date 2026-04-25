@@ -133,7 +133,7 @@ export function WhatsAppApplicationsTab() {
   const [filter, setFilter] = useState<(typeof FILTER_TABS)[number]["key"]>("to_work");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false); // wired to CreateBusinessModal in Task 5
 
   function reload() {
     setLoading(true);
