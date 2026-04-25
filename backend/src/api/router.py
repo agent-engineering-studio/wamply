@@ -11,12 +11,14 @@ from src.api.business import router as business_router
 from src.api.groups import router as groups_router
 from src.api.messages import router as messages_router
 from src.api.agent_proxy import router as agent_proxy_router
+from src.api.admin_twilio import router as admin_twilio_router
 
 api_router = APIRouter()
 api_router.include_router(plan_router, tags=["plan"])
 api_router.include_router(contacts_router, tags=["contacts"])
 api_router.include_router(campaigns_router, tags=["campaigns"])
 api_router.include_router(admin_router, tags=["admin"])
+api_router.include_router(admin_twilio_router, tags=["admin-twilio"])
 api_router.include_router(settings_router, tags=["settings"])
 api_router.include_router(templates_router, tags=["templates"])
 api_router.include_router(billing_router, tags=["billing"])
