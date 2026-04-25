@@ -50,6 +50,7 @@ async def admin_twilio_overview(
         connection_ok = False
         token_masked = ""
     mss = await twilio_admin._get_config(db, twilio_admin.KEY_MASTER_MSS) or os.getenv("TWILIO_MESSAGING_SERVICE_SID") or ""
+    from_number = await twilio_admin._get_config(db, twilio_admin.KEY_MASTER_FROM) or os.getenv("TWILIO_FROM") or ""
     policy = await twilio_admin.read_policy(db)
     subaccounts = await twilio_admin.aggregate_subaccount_stats(db)
     return {
@@ -58,6 +59,7 @@ async def admin_twilio_overview(
             "auth_token_masked": token_masked,
             "auth_token_source": "db" if enc else ("env" if os.getenv("TWILIO_AUTH_TOKEN") else "none"),
             "messaging_service_sid": mss,
+            "from_number": from_number,
         },
         "policy": policy,
         "subaccounts": subaccounts,
@@ -91,13 +93,18 @@ async def admin_twilio_rotate_master(
     body = await request.json()
     new_token = (body or {}).get("auth_token", "").strip()
     new_sid = (body or {}).get("account_sid")
+    from_number = (body or {}).get("from_number")
     if new_sid is not None:
         new_sid = str(new_sid).strip() or None
+    if from_number is not None:
+        from_number = str(from_number).strip() or None
     await twilio_admin.rotate_master_token(db, new_token, new_sid)
+    if from_number:
+        await twilio_admin.save_master_from(db, from_number)
     await twilio_admin.audit(
         db, actor_id=str(user.id), action="twilio_master_rotated",
         target_id=None,
-        metadata={"sid_changed": bool(new_sid), "token_masked": twilio_admin.mask_token(new_token)},
+        metadata={"sid_changed": bool(new_sid), "from_changed": bool(from_number), "token_masked": twilio_admin.mask_token(new_token)},
     )
     return {"ok": True, "auth_token_masked": twilio_admin.mask_token(new_token)}
 

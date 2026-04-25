@@ -25,6 +25,7 @@ logger = structlog.get_logger()
 KEY_MASTER_SID = "twilio_master_account_sid"
 KEY_MASTER_TOKEN = "twilio_master_auth_token_encrypted"
 KEY_MASTER_MSS = "twilio_master_messaging_service_sid"
+KEY_MASTER_FROM = "twilio_master_from"
 KEY_POLICY = "twilio_provisioning_policy"
 
 
@@ -66,6 +67,13 @@ async def resolve_master_credentials(db: asyncpg.Pool) -> tuple[str, str]:
             detail="Twilio master credentials non configurate (DB vuoto e ENV assente).",
         )
     return sid, token
+
+
+async def save_master_from(db: asyncpg.Pool, from_number: str, new_sid: str | None = None) -> None:
+    """Salva il numero mittente master (es. 'whatsapp:+14155238886') e opzionalmente il SID."""
+    await _set_config(db, KEY_MASTER_FROM, from_number.strip())
+    if new_sid:
+        await _set_config(db, KEY_MASTER_SID, new_sid.strip())
 
 
 async def read_policy(db: asyncpg.Pool) -> dict:

@@ -13,7 +13,7 @@ const SECTIONS: Section[] = [
   {
     href: "/settings/twilio",
     title: "Twilio WhatsApp",
-    description: "Credenziali Twilio per inviare messaggi WhatsApp Business.",
+    description: "Infrastruttura WhatsApp gestita dalla piattaforma — nessuna configurazione richiesta.",
     icon: <TwilioIcon size={24} colored />,
   },
   {

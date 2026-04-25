@@ -71,23 +71,29 @@ async def dispatch_messages(
             subaccount_sid=account_sid,
         )
     else:
-        # Legacy path: read whatsapp_config
-        row = await db.pool.fetchrow(
-            "SELECT twilio_account_sid, twilio_auth_token_encrypted, "
-            "twilio_from, twilio_messaging_service_sid "
-            "FROM whatsapp_config WHERE user_id = $1",
-            user_id,
+        # Master credentials path: admin-configured in system_config / ENV.
+        # Replaces the old per-user whatsapp_config (removed from user settings).
+        _KEY_SID = "twilio_master_account_sid"
+        _KEY_TOKEN = "twilio_master_auth_token_encrypted"
+        _KEY_FROM = "twilio_master_from"
+        _KEY_MSS = "twilio_master_messaging_service_sid"
+        cfg_rows = await db.pool.fetch(
+            "SELECT key, value FROM system_config WHERE key = ANY($1)",
+            [_KEY_SID, _KEY_TOKEN, _KEY_FROM, _KEY_MSS],
         )
-        if not row or not row["twilio_auth_token_encrypted"] or not row["twilio_account_sid"]:
-            raise ValueError("Configurazione Twilio mancante")
-        if not row["twilio_from"] and not row["twilio_messaging_service_sid"]:
+        cfg = {r["key"]: r["value"] for r in cfg_rows}
+        import os as _os
+        account_sid = cfg.get(_KEY_SID) or _os.getenv("TWILIO_ACCOUNT_SID", "")
+        _enc = cfg.get(_KEY_TOKEN) or ""
+        auth_token = decrypt(_enc) if _enc else _os.getenv("TWILIO_AUTH_TOKEN", "")
+        from_ = cfg.get(_KEY_FROM) or _os.getenv("TWILIO_FROM")
+        messaging_service_sid = cfg.get(_KEY_MSS) or _os.getenv("TWILIO_MESSAGING_SERVICE_SID")
+        if not account_sid or not auth_token:
             raise ValueError(
-                "Configurazione Twilio: serve twilio_from o twilio_messaging_service_sid"
+                "Twilio non configurato. "
+                "L'amministratore deve impostare le credenziali master dal pannello Admin → Twilio."
             )
-        account_sid = row["twilio_account_sid"]
-        auth_token = decrypt(row["twilio_auth_token_encrypted"])
-        from_ = row["twilio_from"]
-        messaging_service_sid = row["twilio_messaging_service_sid"]
+        await log.ainfo("dispatcher_using_master", user_id=user_id)
 
     if not from_ and not messaging_service_sid:
         raise ValueError(

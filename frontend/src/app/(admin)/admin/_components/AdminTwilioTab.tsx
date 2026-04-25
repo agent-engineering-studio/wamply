@@ -25,6 +25,7 @@ interface OverviewResponse {
     auth_token_masked: string;
     auth_token_source: "db" | "env" | "none";
     messaging_service_sid: string;
+    from_number: string;
   };
   policy: Policy;
   subaccounts: SubaccountRow[];
@@ -43,7 +44,9 @@ export function AdminTwilioTab() {
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [rotateDraft, setRotateDraft] = useState("");
+  const [rotateSidDraft, setRotateSidDraft] = useState("");
+  const [rotateTokenDraft, setRotateTokenDraft] = useState("");
+  const [rotateFromDraft, setRotateFromDraft] = useState("");
   const [rotateSaving, setRotateSaving] = useState(false);
   const [policyDraft, setPolicyDraft] = useState<Policy | null>(null);
   const [policySaving, setPolicySaving] = useState(false);
@@ -70,20 +73,24 @@ export function AdminTwilioTab() {
   useEffect(() => { reload(); }, []);
 
   async function handleRotate() {
-    if (rotateDraft.trim().length < 20) {
+    if (rotateTokenDraft.trim().length < 20) {
       setMsg({ type: "err", text: "Auth token troppo corto (minimo 20 caratteri)." });
       return;
     }
-    if (!confirm("Ruotare il master auth token? Le chiamate in corso verso Twilio potrebbero fallire brevemente.")) return;
+    if (!confirm("Salvare la configurazione master Twilio? Le chiamate in corso potrebbero fallire brevemente.")) return;
     setRotateSaving(true);
     try {
       const r = await apiFetch("/admin/twilio/rotate-master", {
         method: "POST",
-        body: JSON.stringify({ auth_token: rotateDraft.trim() }),
+        body: JSON.stringify({
+          auth_token: rotateTokenDraft.trim(),
+          account_sid: rotateSidDraft.trim() || undefined,
+          from_number: rotateFromDraft.trim() || undefined,
+        }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setRotateDraft("");
-      setMsg({ type: "ok", text: "Token master ruotato e cifrato in DB." });
+      setRotateTokenDraft("");
+      setMsg({ type: "ok", text: "Credenziali master salvate e cifrate in DB." });
       await reload();
     } catch (e) {
       setMsg({ type: "err", text: e instanceof Error ? e.message : "Errore" });
@@ -160,35 +167,58 @@ export function AdminTwilioTab() {
             <dd className="font-mono text-slate-100">{data.master.auth_token_masked || "—"}</dd>
           </div>
           <div>
+            <dt className="text-slate-500">From (numero mittente)</dt>
+            <dd className="font-mono text-slate-100">{data.master.from_number || "—"}</dd>
+          </div>
+          <div>
             <dt className="text-slate-500">Messaging Service SID</dt>
             <dd className="font-mono text-slate-100">{data.master.messaging_service_sid || "—"}</dd>
           </div>
         </dl>
         <div className="mt-4 border-t border-slate-800 pt-4">
-          <label className="mb-1.5 block text-[11.5px] font-medium uppercase tracking-wider text-slate-400">
-            Ruota auth token master
+          <label className="mb-3 block text-[11.5px] font-medium uppercase tracking-wider text-slate-400">
+            Configura credenziali master
           </label>
-          <div className="flex gap-2">
+          <div className="space-y-2">
             <input
-              type="password"
-              value={rotateDraft}
-              onChange={(e) => setRotateDraft(e.target.value)}
-              placeholder="Incolla il nuovo auth token"
+              type="text"
+              value={rotateSidDraft}
+              onChange={(e) => setRotateSidDraft(e.target.value)}
+              placeholder={`Account SID attuale: ${data.master.account_sid || "non impostato"}`}
               autoComplete="off"
               spellCheck={false}
-              className="flex-1 rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 font-mono text-[12.5px] text-slate-100"
+              className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 font-mono text-[12.5px] text-slate-100 placeholder-slate-600"
+            />
+            <input
+              type="password"
+              value={rotateTokenDraft}
+              onChange={(e) => setRotateTokenDraft(e.target.value)}
+              placeholder="Nuovo auth token (obbligatorio)"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 font-mono text-[12.5px] text-slate-100 placeholder-slate-600"
+            />
+            <input
+              type="text"
+              value={rotateFromDraft}
+              onChange={(e) => setRotateFromDraft(e.target.value)}
+              placeholder={`From mittente (es. whatsapp:+14155238886) — attuale: ${data.master.from_number || "non impostato"}`}
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 font-mono text-[12.5px] text-slate-100 placeholder-slate-600"
             />
             <button
               type="button"
               onClick={handleRotate}
-              disabled={rotateSaving || !rotateDraft.trim()}
+              disabled={rotateSaving || !rotateTokenDraft.trim()}
               className="rounded-pill bg-brand-teal px-5 py-2 text-[12.5px] font-medium text-white hover:bg-brand-teal-dark disabled:opacity-50"
             >
-              {rotateSaving ? "Rotazione…" : "Ruota"}
+              {rotateSaving ? "Salvataggio…" : "Salva credenziali"}
             </button>
           </div>
           <p className="mt-2 text-[11px] text-slate-500">
-            Il token viene cifrato AES-GCM prima del salvataggio in <code>system_config</code>. Non è mai restituito in chiaro dall&apos;API.
+            Le credenziali vengono cifrate AES-GCM in <code>system_config</code>. Non sono mai restituite in chiaro dall&apos;API.
+            Usate da tutte le campagne quando l&apos;utente non ha un subaccount dedicato.
           </p>
         </div>
       </section>
