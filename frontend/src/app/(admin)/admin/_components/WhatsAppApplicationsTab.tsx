@@ -177,6 +177,21 @@ export function WhatsAppApplicationsTab() {
 
   return (
     <div className="space-y-4">
+      {/* KPI cards */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "Totale aziende", value: counts.all, color: "text-slate-100" },
+          { label: "Da lavorare", value: counts.to_work ?? 0, color: (counts.to_work ?? 0) > 0 ? "text-amber-300" : "text-slate-100" },
+          { label: "Approvate / Attive", value: (counts.approved ?? 0) + (counts.active ?? 0), color: "text-emerald-300" },
+          { label: "Sospese / Rifiutate", value: (counts.suspended ?? 0) + (counts.rejected ?? 0), color: (counts.suspended ?? 0) + (counts.rejected ?? 0) > 0 ? "text-rose-300" : "text-slate-100" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-card border border-slate-800 bg-brand-navy-light p-4 shadow-card">
+            <div className={`text-[26px] font-semibold ${k.color}`}>{k.value}</div>
+            <div className="mt-0.5 text-[11px] text-slate-400">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Filters + search */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-1 rounded-[10px] border border-slate-800 bg-brand-navy-light p-[3px]">
