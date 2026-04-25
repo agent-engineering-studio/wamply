@@ -13,6 +13,7 @@ import { AIRevenueTab } from "./_components/AIRevenueTab";
 import { AISystemKeyTab } from "./_components/AISystemKeyTab";
 import { WhatsAppApplicationsTab } from "./_components/WhatsAppApplicationsTab";
 import { AdminPlanManagementTab } from "./_components/AdminPlanManagementTab";
+import { AdminTwilioTab } from "./_components/AdminTwilioTab";
 import { TAB_PERMISSIONS, type AdminTab } from "./_components/AdminSidebar";
 import { can, usePermissions } from "@/lib/permissions";
 
@@ -30,6 +31,7 @@ const VALID_TABS: ReadonlySet<AdminTab> = new Set<AdminTab>([
   "staff",
   "campaigns",
   "whatsapp",
+  "twilio",
   "ai_costs",
   "ai_revenue",
   "ai_key",
@@ -245,6 +247,7 @@ function AdminPageContent() {
       {tab === "ai_costs" && <AICostsTab />}
       {tab === "ai_revenue" && <AIRevenueTab />}
       {tab === "ai_key" && <AISystemKeyTab />}
+      {tab === "twilio" && <AdminTwilioTab />}
       {tab === "plans" && <AdminPlanManagementTab plans={plans as Parameters<typeof AdminPlanManagementTab>[0]["plans"]} />}
 
       <UserEditModal
