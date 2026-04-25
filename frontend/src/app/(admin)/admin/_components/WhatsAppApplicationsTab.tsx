@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { BusinessDetailModal } from "./BusinessDetailModal";
+import { CreateBusinessModal } from "./CreateBusinessModal";
 
 export interface BusinessListItem {
   business_id: string;
@@ -133,7 +134,7 @@ export function WhatsAppApplicationsTab() {
   const [filter, setFilter] = useState<(typeof FILTER_TABS)[number]["key"]>("to_work");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false); // wired to CreateBusinessModal in Task 5
+  const [createOpen, setCreateOpen] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   async function handleStatusChange(businessId: string, newStatus: string) {
@@ -255,6 +256,13 @@ export function WhatsAppApplicationsTab() {
           aria-label="Cerca pratiche"
           className="ml-auto w-72 rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-1.5 text-[12px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="rounded-pill bg-brand-teal px-4 py-1.5 text-[12px] font-medium text-white hover:bg-brand-teal-dark"
+        >
+          + Crea pratica
+        </button>
       </div>
 
       {/* Table */}
@@ -431,6 +439,14 @@ export function WhatsAppApplicationsTab() {
           }}
         />
       )}
+      <CreateBusinessModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          setCreateOpen(false);
+          reload();
+        }}
+      />
     </div>
   );
 }
