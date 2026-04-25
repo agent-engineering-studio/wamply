@@ -63,10 +63,11 @@ export function CreateBusinessModal({ open, onClose, onCreated }: Props) {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            <label htmlFor="cbm-email" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
               Email utente *
             </label>
             <input
+              id="cbm-email"
               type="email"
               value={form.user_email}
               onChange={(e) => setForm({ ...form, user_email: e.target.value })}
@@ -76,10 +77,11 @@ export function CreateBusinessModal({ open, onClose, onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            <label htmlFor="cbm-legal" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
               Ragione sociale *
             </label>
             <input
+              id="cbm-legal"
               type="text"
               value={form.legal_name}
               onChange={(e) => setForm({ ...form, legal_name: e.target.value })}
@@ -89,10 +91,11 @@ export function CreateBusinessModal({ open, onClose, onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            <label htmlFor="cbm-brand" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
               Brand name *
             </label>
             <input
+              id="cbm-brand"
               type="text"
               value={form.brand_name}
               onChange={(e) => setForm({ ...form, brand_name: e.target.value })}
@@ -102,10 +105,11 @@ export function CreateBusinessModal({ open, onClose, onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            <label htmlFor="cbm-vat" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
               Partita IVA
             </label>
             <input
+              id="cbm-vat"
               type="text"
               value={form.vat_number}
               onChange={(e) => setForm({ ...form, vat_number: e.target.value })}
@@ -114,10 +118,11 @@ export function CreateBusinessModal({ open, onClose, onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            <label htmlFor="cbm-status" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
               Stato iniziale
             </label>
             <select
+              id="cbm-status"
               value={form.initial_status}
               onChange={(e) => setForm({ ...form, initial_status: e.target.value as typeof form.initial_status })}
               className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-brand-teal focus:outline-none"

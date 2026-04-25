@@ -440,6 +440,7 @@ export function WhatsAppApplicationsTab() {
         />
       )}
       <CreateBusinessModal
+        key={createOpen ? "open" : "closed"}
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
