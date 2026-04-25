@@ -6,6 +6,7 @@ from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
 from src.services.plan_limits import check_plan_limit
 from src.services.ai_credits import reserve_credits, commit_credits, resolve_api_key
+from src.services.quota_enforcement import check_message_quota
 from src.services.ai_campaigns import (
     personalize_for_contact,
     plan_campaign,
@@ -114,6 +115,69 @@ async def get_campaign(
             live[r["status"]] += r["n"]
     data["stats"] = live
     return data
+
+
+# Map WhatsApp/Twilio template category → internal cost category
+# (marketing = promos, utility = utility+authentication, free_form = service/24h-reply)
+_CATEGORY_TO_COST = {
+    "marketing": "marketing",
+    "utility": "utility",
+    "authentication": "utility",
+    "service_conversations": "free_form",
+    "free_form": "free_form",
+}
+
+
+@router.get("/{campaign_id}/cost-preview")
+async def campaign_cost_preview(
+    request: Request, campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Estimate how much sending this campaign will cost right now.
+
+    Considers current-month usage vs plan msg_included quota, overage rates
+    by message category (derived from the template), and the campaign's
+    target recipient count. For draft campaigns the count is estimated from
+    group_id or the user's opt-in contacts; for launched campaigns it uses
+    the actual stats.total. Unknown categories fall back to 'marketing'
+    (worst-case rate, safer for user expectation)."""
+    db = get_db(request)
+    row = await db.fetchrow(
+        """SELECT c.user_id, c.status::text as status, c.group_id, c.stats,
+                  t.category::text as category
+           FROM campaigns c LEFT JOIN templates t ON t.id = c.template_id
+           WHERE c.id = $1""",
+        campaign_id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+    if str(row["user_id"]) != str(user.id) and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Non autorizzato.")
+
+    # Target count
+    if row["status"] in ("running", "completed"):
+        stats = row["stats"] if isinstance(row["stats"], dict) else json.loads(row["stats"] or "{}")
+        msg_count = int(stats.get("total", 0))
+    elif row["group_id"]:
+        msg_count = await db.fetchval(
+            """SELECT count(*) FROM contact_group_members m
+               JOIN contacts c ON c.id = m.contact_id
+               WHERE m.group_id = $1 AND c.opt_in = true""",
+            row["group_id"],
+        ) or 0
+    else:
+        msg_count = await db.fetchval(
+            "SELECT count(*) FROM contacts WHERE user_id = $1 AND opt_in = true",
+            row["user_id"],
+        ) or 0
+
+    category = _CATEGORY_TO_COST.get((row["category"] or "").lower(), "marketing")
+
+    preview = await check_message_quota(
+        db, user_id=str(row["user_id"]), msg_count=int(msg_count), category=category
+    )
+    preview["template_category"] = row["category"]
+    return preview
 
 
 @router.put("/{campaign_id}")
