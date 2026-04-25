@@ -1,0 +1,30 @@
+{
+  "segmento": "hotel",
+  "label": "Hotel, B&B & Agriturismo",
+  "metaTitle": "WhatsApp per hotel, B&B e agriturismo | Wamply",
+  "metaDescription": "Pre-check-in, conferme prenotazione e richieste di recensione direttamente su WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Gli ospiti arrivano stanchi e il check-in rallenta tutto?",
+    "solution": "Dati del check-in raccolti prima dell'arrivo via WhatsApp, benvenuto in italiano o inglese.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "calendar", "text": "Pre check-in online tramite WhatsApp" },
+    { "icon": "star", "text": "Richiesta recensione dopo il soggiorno" },
+    { "icon": "chat", "text": "Risposte veloci a domande su orari, colazione, parcheggio" }
+  ],
+  "useCases": [
+    { "title": "Pre check-in", "description": "Due giorni prima dell'arrivo, il cliente manda i documenti e sceglie l'orario.", "roi": "Riduce tempo check-in del 60%" },
+    { "title": "Richiesta recensione", "description": "Il giorno della partenza, messaggio gentile con link alla recensione.", "roi": "+40% recensioni raccolte" },
+    { "title": "Info rapide", "description": "Risposte automatiche su orari colazione, parcheggio, Wi-Fi.", "roi": "Meno telefonate alla reception" }
+  ],
+  "templatesPreview": [
+    { "slug": "hotel_precheckin", "title": "Pre check-in", "preview": "Ciao {{nome}}, ti aspettiamo il {{data}} da {{struttura}}. Per velocizzare il check-in, ci mandi un documento rispondendo qui?" },
+    { "slug": "hotel_review", "title": "Richiesta recensione", "preview": "Ciao {{nome}}, grazie per aver scelto {{struttura}}! Se ti va, lasciaci un parere qui: {{link}}" },
+    { "slug": "hotel_info", "title": "Info utili", "preview": "Ciao {{nome}}, benvenuto! Colazione dalle {{ora}}, Wi-Fi {{wifi}}, parcheggio incluso. Qualsiasi cosa, siamo qui." }
+  ],
+  "recommendedPlan": "professional",
+  "testimonial": null,
+  "isPlaceholder": true
+}

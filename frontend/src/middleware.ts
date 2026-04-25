@@ -16,6 +16,16 @@ export async function middleware(request: NextRequest) {
     return intlMiddleware(request);
   }
 
+  // Public marketing routes — skip auth entirely.
+  const isPublicMarketing =
+    pathname === "/soluzioni" ||
+    pathname.startsWith("/soluzioni/") ||
+    pathname === "/piani" ||
+    pathname === "/prova";
+  if (isPublicMarketing) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
