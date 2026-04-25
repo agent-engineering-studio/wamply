@@ -133,6 +133,7 @@ export function WhatsAppApplicationsTab() {
   const [filter, setFilter] = useState<(typeof FILTER_TABS)[number]["key"]>("to_work");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   function reload() {
     setLoading(true);
@@ -233,8 +234,45 @@ export function WhatsAppApplicationsTab() {
           Caricamento...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-card border border-slate-800 bg-brand-navy-light p-8 text-center text-[12.5px] text-slate-500">
-          Nessuna pratica corrisponde ai filtri.
+        <div className="rounded-card border border-slate-800 bg-brand-navy-light p-10 text-center shadow-card">
+          {items.length === 0 ? (
+            // DB is empty — no businesses at all
+            <>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal/15 text-brand-teal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+                  <rect x="2" y="7" width="20" height="14" rx="2" />
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                  <line x1="12" y1="12" x2="12" y2="16" />
+                  <line x1="10" y1="14" x2="14" y2="14" />
+                </svg>
+              </div>
+              <h2 className="mb-1 text-[14px] font-semibold text-slate-100">Nessuna pratica ancora</h2>
+              <p className="mx-auto mb-5 max-w-xs text-[12px] text-slate-400">
+                Quando un utente registra un&apos;azienda e avvia la richiesta WhatsApp Business, appare qui per la lavorazione.
+                Puoi anche creare manualmente una pratica per conto di un cliente.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="rounded-pill bg-brand-teal px-5 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-teal-dark"
+              >
+                + Crea prima pratica
+              </button>
+            </>
+          ) : (
+            // Items exist but filter/search returns nothing
+            <>
+              <h2 className="mb-1 text-[14px] font-semibold text-slate-100">Nessuna pratica corrisponde ai filtri</h2>
+              <p className="text-[12px] text-slate-400">Modifica il filtro o la ricerca per trovare le pratiche.</p>
+              <button
+                type="button"
+                onClick={() => { setFilter("all"); setQuery(""); }}
+                className="mt-4 rounded-pill border border-slate-700 px-4 py-2 text-[12px] font-medium text-slate-300 hover:text-white"
+              >
+                Rimuovi filtri
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-card border border-slate-800 bg-brand-navy-light shadow-card">
