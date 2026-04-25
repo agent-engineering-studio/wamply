@@ -1,0 +1,30 @@
+{
+  "segmento": "immobiliari",
+  "label": "Agenti Immobiliari",
+  "metaTitle": "WhatsApp per agenti immobiliari | Wamply",
+  "metaDescription": "Proponi immobili, gestisci visite e mantieni calda la relazione con acquirenti e venditori su WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Gli acquirenti si raffreddano mentre rincorri 30 contatti al giorno?",
+    "solution": "Tieni caldi tutti i contatti con messaggi mirati, visite confermate, nuovi immobili su misura.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "calendar", "text": "Conferma visite e cambia appuntamenti in un tap" },
+    { "icon": "star", "text": "Nuovi immobili inviati solo a chi cerca quella tipologia" },
+    { "icon": "chat", "text": "Follow-up automatico dopo ogni visita" }
+  ],
+  "useCases": [
+    { "title": "Conferma visita", "description": "L'acquirente conferma o sposta la visita rispondendo al messaggio.", "roi": "Riduce visite saltate del 50%" },
+    { "title": "Nuovo immobile su misura", "description": "Quando entra un immobile, parte un messaggio solo ai contatti compatibili.", "roi": "3× più richieste di visita per immobile nuovo" },
+    { "title": "Follow-up post visita", "description": "Il giorno dopo la visita chiedi un parere e proponi alternative.", "roi": "Aumenta il tasso di conversione del 20%" }
+  ],
+  "templatesPreview": [
+    { "slug": "immobiliari_confirm", "title": "Conferma visita", "preview": "Ciao {{nome}}, confermiamo la visita a {{indirizzo}} il {{data}} alle {{ora}}. Rispondi OK o SPOSTA." },
+    { "slug": "immobiliari_new", "title": "Nuovo immobile", "preview": "Ciao {{nome}}, è entrato un {{tipologia}} in {{zona}} a {{prezzo}}. Ti mando la scheda se ti interessa?" },
+    { "slug": "immobiliari_followup", "title": "Follow-up visita", "preview": "Ciao {{nome}}, che ne pensi di {{immobile}}? Se non è quello giusto ne ho altri due da proporti." }
+  ],
+  "recommendedPlan": "professional",
+  "testimonial": null,
+  "isPlaceholder": true
+}

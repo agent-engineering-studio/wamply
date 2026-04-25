@@ -1,0 +1,30 @@
+{
+  "segmento": "avvocati",
+  "label": "Avvocati & Commercialisti",
+  "metaTitle": "WhatsApp per avvocati, commercialisti e notai | Wamply",
+  "metaDescription": "Comunica scadenze, ricorda udienze e gestisci la relazione col cliente in modo professionale su WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Le scadenze fiscali e le udienze si accumulano e il cliente si dimentica?",
+    "solution": "Un assistente che tiene aggiornati i tuoi clienti su scadenze e documenti, nel tono giusto.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "clock", "text": "Promemoria scadenze fiscali e udienze" },
+    { "icon": "shield", "text": "Comunicazioni formali, nel tono dello studio" },
+    { "icon": "check", "text": "Richieste documenti con un messaggio, senza rincorse" }
+  ],
+  "useCases": [
+    { "title": "Promemoria scadenza", "description": "Il cliente riceve un messaggio con largo anticipo sulla scadenza fiscale.", "roi": "Meno pratiche in urgenza, più tempo per lo studio" },
+    { "title": "Promemoria udienza", "description": "Il giorno prima dell'udienza, messaggio formale con ora e aula.", "roi": "Zero udienze perse per dimenticanza del cliente" },
+    { "title": "Richiesta documenti", "description": "Invio di checklist con la lista documenti da portare al prossimo incontro.", "roi": "Tempo dello studio ridotto del 30%" }
+  ],
+  "templatesPreview": [
+    { "slug": "avvocati_deadline", "title": "Promemoria scadenza", "preview": "Gentile {{nome}}, le ricordiamo la scadenza {{pratica}} il {{data}}. Lo studio è a disposizione per chiarimenti." },
+    { "slug": "avvocati_hearing", "title": "Promemoria udienza", "preview": "Gentile {{nome}}, domani udienza ore {{ora}} presso {{tribunale}} aula {{aula}}. Ci vediamo 30 minuti prima." },
+    { "slug": "avvocati_docs", "title": "Richiesta documenti", "preview": "Gentile {{nome}}, per l'incontro del {{data}} serve: {{checklist}}. Può rispondere quando ha tutto pronto." }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null,
+  "isPlaceholder": true
+}
