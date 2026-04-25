@@ -1,0 +1,30 @@
+{
+  "segmento": "studi_medici",
+  "label": "Studi Medici & Dentisti",
+  "metaTitle": "WhatsApp per studi medici e dentistici | Wamply",
+  "metaDescription": "Conferma visite, riduci i no-show e comunica i risultati agli appuntamenti di controllo. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "I pazienti saltano le visite di controllo e non ti avvertono?",
+    "solution": "Conferma automatiche e promemoria visite su WhatsApp, nel rispetto della privacy.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "calendar", "text": "Promemoria visita 24h e 2h prima" },
+    { "icon": "shield", "text": "Comunicazioni conformi alla privacy del paziente" },
+    { "icon": "check", "text": "Richiamo controlli annuali e follow-up terapie" }
+  ],
+  "useCases": [
+    { "title": "Promemoria visita", "description": "Il paziente riceve l'orario della visita il giorno prima, con possibilità di spostare.", "roi": "Riduce no-show del 45%" },
+    { "title": "Richiamo controllo annuale", "description": "A un anno dalla visita, messaggio automatico per prenotare il controllo.", "roi": "Fino al 40% di pazienti che riprenotano" },
+    { "title": "Follow-up post visita", "description": "Dopo una terapia, il paziente riceve istruzioni e invito al controllo.", "roi": "Aumenta la fidelizzazione del paziente" }
+  ],
+  "templatesPreview": [
+    { "slug": "studi_medici_reminder", "title": "Promemoria visita", "preview": "Gentile {{nome}}, le ricordiamo la visita di domani alle {{ora}} presso {{studio}}. Risponda CONFERMO o SPOSTA." },
+    { "slug": "studi_medici_annual", "title": "Controllo annuale", "preview": "Gentile {{nome}}, è passato un anno dall'ultima visita. Prenoti il controllo annuale rispondendo a questo messaggio." },
+    { "slug": "studi_medici_followup", "title": "Follow-up", "preview": "Gentile {{nome}}, come sta andando dopo la terapia del {{data}}? Se serve possiamo fissare un controllo." }
+  ],
+  "recommendedPlan": "professional",
+  "testimonial": null,
+  "isPlaceholder": true
+}

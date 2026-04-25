@@ -1,0 +1,30 @@
+{
+  "segmento": "ristoranti",
+  "label": "Ristoranti & Bar",
+  "metaTitle": "WhatsApp per ristoranti, pizzerie e bar | Wamply",
+  "metaDescription": "Conferma prenotazioni, promuovi il menu della sera e fidelizza i clienti del tuo locale con WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "I clienti non confermano la prenotazione e il tavolo resta vuoto?",
+    "solution": "Gestisci prenotazioni e promozioni del tuo locale direttamente su WhatsApp.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "calendar", "text": "Conferma prenotazioni con un tap, niente più tavoli vuoti" },
+    { "icon": "star", "text": "Promo serali e menu del giorno ai tuoi clienti abituali" },
+    { "icon": "chat", "text": "Rispondi veloce alle domande sui piatti e gli orari" }
+  ],
+  "useCases": [
+    { "title": "Conferma prenotazione", "description": "Quando il cliente prenota, riceve un WhatsApp di conferma con orario e coperti.", "roi": "Riduce no-show fino al 35%" },
+    { "title": "Menu della sera", "description": "Ogni sera invii un messaggio con il piatto del giorno a chi ti ha autorizzato.", "roi": "+22% coperti nelle serate feriali" },
+    { "title": "Richiamo clienti", "description": "Chi non viene da due mesi riceve un invito personalizzato.", "roi": "Fino al 10% di clienti riattivati ogni mese" }
+  ],
+  "templatesPreview": [
+    { "slug": "ristoranti_confirm", "title": "Conferma prenotazione", "preview": "Ciao {{nome}}, confermiamo il tuo tavolo per {{coperti}} persone alle {{ora}}. A presto da {{locale}}." },
+    { "slug": "ristoranti_menu", "title": "Menu della sera", "preview": "Stasera da {{locale}}: {{piatto}}. Prenota rispondendo a questo messaggio." },
+    { "slug": "ristoranti_winback", "title": "Torna a trovarci", "preview": "Ciao {{nome}}, ci manchi! Torna da {{locale}} questa settimana e offriamo noi il dolce." }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null,
+  "isPlaceholder": true
+}

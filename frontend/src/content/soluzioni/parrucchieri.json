@@ -1,0 +1,41 @@
+{
+  "segmento": "parrucchieri",
+  "label": "Parrucchieri & Estetisti",
+  "metaTitle": "WhatsApp per parrucchieri e centri estetici | Wamply",
+  "metaDescription": "Manda promemoria appuntamenti, promozioni e ricontatti automatici ai clienti del tuo salone su WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Quanti appuntamenti perdi ogni mese per no-show?",
+    "solution": "Ricorda tutto ai tuoi clienti con un messaggio automatico, scritto dall'AI.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "calendar", "text": "Promemoria appuntamento 24h prima, automatico" },
+    { "icon": "gift", "text": "Promo compleanno scritte dall'AI in italiano colloquiale" },
+    { "icon": "users", "text": "Ricontatti clienti inattivi in 1 click" }
+  ],
+  "useCases": [
+    {
+      "title": "Promemoria appuntamento",
+      "description": "Il giorno prima del taglio, il cliente riceve un WhatsApp personalizzato. Risponde 'OK' o 'Sposta'.",
+      "roi": "Riduce no-show del 40% — dato medio clienti Wamply"
+    },
+    {
+      "title": "Promo compleanno",
+      "description": "L'AI scrive il messaggio di auguri + sconto taglio omaggio, tu clicchi invia.",
+      "roi": "+18% conversione a prenotazione vs email"
+    },
+    {
+      "title": "Recall clienti inattivi",
+      "description": "Chi non viene da 90+ giorni riceve 'Ci manchi, torna con -20%'.",
+      "roi": "Riattiva il 12-15% dei clienti dormienti"
+    }
+  ],
+  "templatesPreview": [
+    { "slug": "parrucchieri_reminder_24h", "title": "Promemoria 24h", "preview": "Ciao {{nome}}, ti ricordiamo l'appuntamento di domani alle {{ora}} da {{salone}}. Rispondi OK per confermare o SPOSTA per modificare." },
+    { "slug": "parrucchieri_birthday", "title": "Auguri + promo", "preview": "Buon compleanno {{nome}}! 🎁 Regalati un taglio col -30% entro fine mese — prenota qui: {{link}}" },
+    { "slug": "parrucchieri_winback", "title": "Recall inattivi", "preview": "Ciao {{nome}}, ci manchi! Torna da {{salone}} con il 20% di sconto sul tuo prossimo appuntamento." }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null
+}

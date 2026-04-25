@@ -1,0 +1,30 @@
+{
+  "segmento": "autosaloni",
+  "label": "Autosaloni & Concessionarie",
+  "metaTitle": "WhatsApp per autosaloni e concessionarie | Wamply",
+  "metaDescription": "Test drive, nuovi ingressi e promemoria tagliando per i clienti della concessionaria, via WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Il cliente chiede informazioni su un'auto e poi sparisce?",
+    "solution": "Tieni caldi tutti i contatti con foto, test drive e follow-up mirati su WhatsApp.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "calendar", "text": "Conferma test drive con un messaggio" },
+    { "icon": "sparkles", "text": "Nuovi ingressi usato e km 0 ai contatti in target" },
+    { "icon": "clock", "text": "Promemoria tagliando e scadenza bollo" }
+  ],
+  "useCases": [
+    { "title": "Test drive", "description": "Quando il cliente prenota il test drive, riceve conferma e indicazioni.", "roi": "Meno test drive saltati, più chiusure" },
+    { "title": "Nuovo ingresso", "description": "Entra un usato interessante: foto e scheda ai contatti compatibili.", "roi": "1 trattativa aperta ogni 10 messaggi inviati" },
+    { "title": "Post vendita", "description": "Promemoria tagliando, scadenza bollo, anno di garanzia residua.", "roi": "Fidelizza il 45% dei clienti per il prossimo acquisto" }
+  ],
+  "templatesPreview": [
+    { "slug": "autosaloni_testdrive", "title": "Test drive", "preview": "Ciao {{nome}}, confermiamo il test drive della {{modello}} il {{data}} alle {{ora}} da {{salone}}. Porta patente e documento." },
+    { "slug": "autosaloni_new", "title": "Nuovo ingresso", "preview": "Ciao {{nome}}, è appena entrata una {{modello}} {{anno}} {{km}} km a {{prezzo}}. Ti mando la scheda?" },
+    { "slug": "autosaloni_reminder", "title": "Promemoria tagliando", "preview": "Ciao {{nome}}, la tua {{modello}} ha bisogno del tagliando entro {{data}}. Ti fisso un appuntamento in officina?" }
+  ],
+  "recommendedPlan": "professional",
+  "testimonial": null,
+  "isPlaceholder": true
+}

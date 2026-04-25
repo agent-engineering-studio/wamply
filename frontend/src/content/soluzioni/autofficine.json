@@ -1,0 +1,30 @@
+{
+  "segmento": "autofficine",
+  "label": "Autofficine & Carrozzerie",
+  "metaTitle": "WhatsApp per autofficine e carrozzerie | Wamply",
+  "metaDescription": "Comunica con i clienti sui lavori in corso, ricorda tagliandi e revisioni su WhatsApp. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Il cliente chiama 3 volte per sapere se l'auto è pronta?",
+    "solution": "Aggiornamenti automatici sullo stato lavori e promemoria tagliandi, senza più telefonate.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "clock", "text": "Aggiornamento stato lavori quando l'auto è pronta" },
+    { "icon": "calendar", "text": "Promemoria tagliando e revisione annuale" },
+    { "icon": "check", "text": "Preventivi e conferme via WhatsApp, niente carta" }
+  ],
+  "useCases": [
+    { "title": "Auto pronta", "description": "Appena l'auto è pronta, il cliente riceve un messaggio con l'orario di ritiro.", "roi": "Meno telefonate di controllo, più tempo in officina" },
+    { "title": "Promemoria tagliando", "description": "A 11 mesi dall'ultimo tagliando, messaggio con proposta appuntamento.", "roi": "Fidelizza il 35% dei clienti sull'anno" },
+    { "title": "Preventivo WhatsApp", "description": "Mandi foto del danno e il preventivo scritto, il cliente approva con OK.", "roi": "Tempi di chiusura preventivi ridotti del 40%" }
+  ],
+  "templatesPreview": [
+    { "slug": "autofficine_ready", "title": "Auto pronta", "preview": "Ciao {{nome}}, l'auto {{targa}} è pronta. Puoi passare da {{officina}} entro le {{ora}}." },
+    { "slug": "autofficine_service", "title": "Promemoria tagliando", "preview": "Ciao {{nome}}, tra poco è ora del tagliando sulla {{targa}}. Vuoi che ti fissi un appuntamento?" },
+    { "slug": "autofficine_quote", "title": "Preventivo", "preview": "Ciao {{nome}}, il preventivo per {{lavoro}} è {{prezzo}}€ IVA inclusa, tempo stimato {{giorni}} giorni. Rispondi OK per confermare." }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null,
+  "isPlaceholder": true
+}

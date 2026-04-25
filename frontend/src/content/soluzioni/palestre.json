@@ -1,0 +1,30 @@
+{
+  "segmento": "palestre",
+  "label": "Palestre & Personal Trainer",
+  "metaTitle": "WhatsApp per palestre e personal trainer | Wamply",
+  "metaDescription": "Ricorda gli allenamenti, fidelizza gli iscritti e recupera chi non viene più. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Gli iscritti spariscono dopo un mese e non sai come recuperarli?",
+    "solution": "Allena la tua community con messaggi motivazionali, promemoria e inviti mirati.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "clock", "text": "Promemoria lezione o corso il giorno prima" },
+    { "icon": "sparkles", "text": "Promo rinnovo abbonamento prima della scadenza" },
+    { "icon": "users", "text": "Recall chi non si allena da settimane" }
+  ],
+  "useCases": [
+    { "title": "Promemoria corso", "description": "Il giorno prima del corso, l'iscritto riceve l'orario e la sala.", "roi": "+25% presenze ai corsi serali" },
+    { "title": "Rinnovo abbonamento", "description": "Due settimane prima della scadenza parte un messaggio con sconto rinnovo.", "roi": "+30% tasso di rinnovo" },
+    { "title": "Recall iscritti dormienti", "description": "Chi non viene da 20 giorni riceve una proposta per tornare in sala.", "roi": "Recupera 1 iscritto su 5" }
+  ],
+  "templatesPreview": [
+    { "slug": "palestre_class_reminder", "title": "Promemoria corso", "preview": "Ciao {{nome}}, domani alle {{ora}} c'è {{corso}} con {{trainer}}. Ti aspettiamo." },
+    { "slug": "palestre_renewal", "title": "Rinnovo abbonamento", "preview": "Ciao {{nome}}, il tuo abbonamento scade il {{data}}. Rinnova ora con il 10% di sconto." },
+    { "slug": "palestre_winback", "title": "Recall inattivi", "preview": "Ciao {{nome}}, la sala ti aspetta. Torna entro venerdì e ti regaliamo una PT session." }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null,
+  "isPlaceholder": true
+}
