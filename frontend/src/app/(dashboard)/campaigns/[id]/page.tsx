@@ -5,7 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { CampaignAnalytics } from "./_components/CampaignAnalytics";
 import { CampaignInsights } from "./_components/CampaignInsights";
+import { SendProgress } from "./_components/SendProgress";
 import { TestSendModal } from "../_components/TestSendModal";
 
 interface CampaignStats { total: number; sent: number; delivered: number; read: number; failed: number }
@@ -31,12 +33,27 @@ export default function CampaignDetailPage() {
   const [launching, setLaunching] = useState(false);
   const [testSendOpen, setTestSendOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
   useEffect(() => {
     apiFetch(`/campaigns/${id}`).then((r) => r.json()).then(setCampaign);
   }, [id]);
+
+  useEffect(() => {
+    if (!campaign || campaign.status !== "running") return;
+    const interval = setInterval(() => {
+      apiFetch(`/campaigns/${id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setCampaign(data);
+          if (data.status !== "running") clearInterval(interval);
+        })
+        .catch(() => {/* ignore polling errors */});
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [campaign?.status, id]);
 
   async function handleDelete() {
     if (!confirm(`Eliminare la campagna "${campaign?.name}"?`)) return;
@@ -125,20 +142,38 @@ export default function CampaignDetailPage() {
         ))}
       </div>
 
-      {s.total > 0 && (
+      {campaign.status === "running" && (
         <div className="mb-5 rounded-card border border-slate-800 bg-brand-navy-light p-5 shadow-card">
-          <div className="mb-3 text-[13px] font-semibold text-slate-100">Progresso invio</div>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-            <div className="h-full rounded-full bg-brand-teal transition-all" style={{ width: `${Math.round((s.sent / s.total) * 100)}%` }} />
-          </div>
-          <div className="mt-2 flex justify-between text-[11px] text-slate-400">
-            <span>{s.sent}/{s.total} inviati</span>
-            <span>{s.failed > 0 && <span className="text-red-500">{s.failed} falliti</span>}</span>
-          </div>
+          <SendProgress stats={s} />
         </div>
       )}
 
-      {s.sent > 0 && typeof id === "string" && (
+      {(s.sent > 0 || campaign.status === "completed") && (
+        <div className="mb-5 flex gap-1 border-b border-slate-800 text-[13px]">
+          {(["overview", "analytics"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 font-medium capitalize transition-colors ${
+                activeTab === tab
+                  ? "border-b-2 border-brand-teal text-brand-teal"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {tab === "overview" ? "Panoramica" : "Analitiche"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "analytics" && s.sent > 0 && (
+        <div className="mb-5">
+          <CampaignAnalytics stats={s} />
+        </div>
+      )}
+
+      {activeTab === "overview" && typeof id === "string" && (
         <CampaignInsights campaignId={id} aiEnabled={aiEnabled} />
       )}
 
