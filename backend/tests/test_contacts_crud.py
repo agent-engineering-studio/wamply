@@ -89,3 +89,21 @@ def test_delete_contact_not_found():
     client = TestClient(_make_app(db))
     r = client.delete(f"/contacts/{MISSING_ID}")
     assert r.status_code == 404
+
+
+# ── Invalid UUID ─────────────────────────────────────────────────────────────
+
+def test_update_contact_invalid_uuid():
+    db = AsyncMock()
+    db.fetchrow = AsyncMock(side_effect=Exception("invalid input syntax for type uuid"))
+    client = TestClient(_make_app(db))
+    r = client.put("/contacts/not-a-uuid", json={"name": "X"})
+    assert r.status_code == 422
+
+
+def test_delete_contact_invalid_uuid():
+    db = AsyncMock()
+    db.execute = AsyncMock(side_effect=Exception("invalid input syntax for type uuid"))
+    client = TestClient(_make_app(db))
+    r = client.delete("/contacts/not-a-uuid")
+    assert r.status_code == 422

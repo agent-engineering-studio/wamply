@@ -230,11 +230,16 @@ async def update_contact(
     if not fields:
         raise HTTPException(status_code=400, detail="Nessun campo da aggiornare.")
     params.extend([contact_id, user.id])
-    row = await db.fetchrow(
-        f"UPDATE contacts SET {', '.join(fields)}, updated_at = now() "
-        f"WHERE id = ${idx} AND user_id = ${idx + 1} RETURNING *",
-        *params,
-    )
+    try:
+        row = await db.fetchrow(
+            f"UPDATE contacts SET {', '.join(fields)}, updated_at = now() "
+            f"WHERE id = ${idx} AND user_id = ${idx + 1} RETURNING *",
+            *params,
+        )
+    except Exception as e:
+        if "invalid input syntax" in str(e) or "DataError" in type(e).__name__:
+            raise HTTPException(status_code=422, detail="ID contatto non valido.")
+        raise
     if not row:
         raise HTTPException(status_code=404, detail="Contatto non trovato.")
     d = dict(row)
@@ -253,10 +258,15 @@ async def delete_contact(
     user: CurrentUser = Depends(get_current_user),
 ):
     db = get_db(request)
-    result = await db.execute(
-        "DELETE FROM contacts WHERE id = $1 AND user_id = $2",
-        contact_id, user.id,
-    )
+    try:
+        result = await db.execute(
+            "DELETE FROM contacts WHERE id = $1 AND user_id = $2",
+            contact_id, user.id,
+        )
+    except Exception as e:
+        if "invalid input syntax" in str(e) or "DataError" in type(e).__name__:
+            raise HTTPException(status_code=422, detail="ID contatto non valido.")
+        raise
     if result == "DELETE 0":
         raise HTTPException(status_code=404, detail="Contatto non trovato.")
     return None
