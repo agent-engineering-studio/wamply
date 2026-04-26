@@ -250,6 +250,8 @@ async def test_send_campaign(
     to = (body.get("to") or "").strip()
     if not to:
         raise HTTPException(status_code=400, detail="Il campo 'to' è obbligatorio (es. whatsapp:+39333000001).")
+    if not to.startswith("whatsapp:"):
+        raise HTTPException(status_code=400, detail="Il numero deve includere il prefisso 'whatsapp:' (es. whatsapp:+39333000001).")
 
     row = await db.fetchrow(
         "SELECT id FROM campaigns WHERE id = $1 AND user_id = $2",
@@ -281,10 +283,12 @@ async def delete_campaign(
     )
     if not row:
         raise HTTPException(status_code=404, detail="Campagna non trovata.")
-    if row["status"] in ("running",):
+    # Block deletion of active or queued campaigns: running = currently sending,
+    # scheduled = queued for future send (cancelling must go through a separate flow).
+    if row["status"] in ("running", "scheduled"):
         raise HTTPException(
             status_code=409,
-            detail="Non puoi eliminare una campagna in corso. Attendi il completamento.",
+            detail="Non puoi eliminare una campagna in corso o programmata. Attendi il completamento o annulla la pianificazione.",
         )
     await db.execute("DELETE FROM messages WHERE campaign_id = $1", campaign_id)
     await db.execute(

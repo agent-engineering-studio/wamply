@@ -83,3 +83,46 @@ def test_test_send_missing_to():
     client = TestClient(_make_app(db))
     r = client.post(f"/campaigns/{CAMPAIGN_ID}/test-send", json={})
     assert r.status_code == 400
+
+
+def test_test_send_invalid_to_format():
+    """Number without whatsapp: prefix → 400 (validation before any DB call)."""
+    db = AsyncMock()
+    client = TestClient(_make_app(db))
+    r = client.post(f"/campaigns/{CAMPAIGN_ID}/test-send", json={"to": "+39333000001"})
+    assert r.status_code == 400
+    db.fetchrow.assert_not_called()
+
+
+def test_test_send_value_error_returns_400():
+    """_do_test_send raising ValueError → 400."""
+    db = AsyncMock()
+    db.fetchrow = AsyncMock(return_value={"id": CAMPAIGN_ID})
+    client = TestClient(_make_app(db))
+
+    with patch(
+        "src.api.campaigns._do_test_send",
+        new=AsyncMock(side_effect=ValueError("bad template")),
+    ):
+        r = client.post(f"/campaigns/{CAMPAIGN_ID}/test-send", json={"to": "whatsapp:+39333000001"})
+
+    assert r.status_code == 400
+    assert "bad template" in r.json()["detail"]
+
+
+def test_test_send_campaign_not_found_returns_404():
+    """Campaign ownership check fails (fetchrow returns None) → 404."""
+    db = AsyncMock()
+    db.fetchrow = AsyncMock(return_value=None)
+    client = TestClient(_make_app(db))
+    r = client.post(f"/campaigns/{CAMPAIGN_ID}/test-send", json={"to": "whatsapp:+39333000001"})
+    assert r.status_code == 404
+
+
+def test_delete_scheduled_campaign_blocked():
+    """Scheduled campaigns cannot be deleted → 409."""
+    db = AsyncMock()
+    db.fetchrow = AsyncMock(return_value={"id": CAMPAIGN_ID, "status": "scheduled"})
+    client = TestClient(_make_app(db))
+    r = client.delete(f"/campaigns/{CAMPAIGN_ID}")
+    assert r.status_code == 409
