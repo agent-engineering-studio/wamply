@@ -87,6 +87,25 @@ def test_add_member_success():
     assert body["member_count"] == 1
 
 
+def test_add_member_group_not_owned():
+    db = AsyncMock()
+    # First fetchrow (group ownership check) returns None → 404
+    db.fetchrow = AsyncMock(return_value=None)
+    client = TestClient(_make_app(db))
+    r = client.post(f"/groups/{GROUP_ID}/members", json={"contact_id": CONTACT_ID})
+    assert r.status_code == 404
+
+
+def test_add_member_contact_not_owned():
+    db = AsyncMock()
+    group_row = {"id": GROUP_ID}
+    # First fetchrow → valid group; second fetchrow (contact ownership check) → None → 404
+    db.fetchrow = AsyncMock(side_effect=[group_row, None])
+    client = TestClient(_make_app(db))
+    r = client.post(f"/groups/{GROUP_ID}/members", json={"contact_id": CONTACT_ID})
+    assert r.status_code == 404
+
+
 def test_add_member_no_contact_id():
     db = AsyncMock()
     client = TestClient(_make_app(db))
