@@ -94,7 +94,12 @@ def resolve_logo_path(user_id: str, filename: str) -> Path | None:
     if not m:
         return None
     safe_filename = "logo." + m.group(1)  # reconstruct from regex groups, not raw user input
-    path = BUSINESS_LOGOS_DIR / safe_uid / safe_filename
+    base_dir = BUSINESS_LOGOS_DIR.resolve()
+    path = (BUSINESS_LOGOS_DIR / safe_uid / safe_filename).resolve()
+    try:
+        path.relative_to(base_dir)
+    except ValueError:
+        return None
     if not path.is_file():
         return None
     return path
