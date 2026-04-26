@@ -221,7 +221,7 @@ services:
   # ── Supabase Storage ────────────────────────────────────
   supabase-storage:
     container_name: wcm-supabase-storage
-    image: supabase/storage-api:v1.14.7
+    image: supabase/storage-api:v1.14.6
     ports:
       - "5000:5000"
     environment:
