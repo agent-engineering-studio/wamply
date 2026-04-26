@@ -1,0 +1,156 @@
+name: docker-publish
+
+on:
+  push:
+    branches: [ master ]
+    tags:     [ 'v*.*.*' ]
+    paths:
+      - 'agent/**'
+      - 'backend/**'
+      - '.github/workflows/docker-publish.yml'
+  workflow_dispatch:
+    inputs:
+      push_latest:
+        description: 'Tag the built images as :latest'
+        required: false
+        default: 'true'
+        type: choice
+        options: [ 'true', 'false' ]
+
+permissions:
+  contents: read
+  packages: write    # required to push to GHCR
+  id-token: write    # for future cosign / keyless signing
+
+env:
+  REGISTRY:    ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+
+jobs:
+  lint-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [ agent, backend ]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package (editable + dev extras)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check src
+
+      - name: Pytest
+        run: |
+          if [ -d tests ]; then pytest -q; else echo "no tests yet"; fi
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Vitest
+        run: npm test -- --run
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [ lint-python, lint-frontend ]
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - { name: wcm-agent,   context: agent,   dockerfile: agent/Dockerfile   }
+          - { name: wcm-backend, context: backend,  dockerfile: backend/Dockerfile  }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image owner
+        id: owner
+        run: echo "value=${IMAGE_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.event.inputs.push_latest == 'true' }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.service.name }}
+            org.opencontainers.image.description=${{ matrix.service.name }} — part of wamply WCM
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build & push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to:   type=gha,scope=${{ matrix.service.name }},mode=max
+
+      - name: Job summary
+        run: |
+          {
+            echo "### Published \`${{ matrix.service.name }}\`"
+            echo ""
+            echo "**Digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo ""
+            echo "**Tags:**"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
