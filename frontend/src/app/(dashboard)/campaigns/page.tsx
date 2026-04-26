@@ -32,6 +32,7 @@ export default function CampaignsPage() {
   const [filter, setFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
@@ -42,6 +43,25 @@ export default function CampaignsPage() {
         setCampaigns(d.campaigns || []);
         setLoading(false);
       });
+  }
+
+  async function handleDelete(e: React.MouseEvent, id: string, name: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Eliminare la campagna "${name}"? I dati di invio verranno persi.`)) return;
+    setDeletingId(id);
+    try {
+      const r = await apiFetch(`/campaigns/${id}`, { method: "DELETE" });
+      if (!r.ok && r.status !== 204) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+      reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore durante l'eliminazione.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   useEffect(() => {
@@ -122,6 +142,18 @@ export default function CampaignsPage() {
                     )}
                   </div>
                 </div>
+                {(c.status === "draft" || c.status === "completed" || c.status === "failed") && (
+                  <div className="mt-2 flex items-center justify-end gap-3 border-t border-slate-800/50 pt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(e, c.id, c.name)}
+                      disabled={deletingId === c.id}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 disabled:opacity-40"
+                    >
+                      {deletingId === c.id ? "Eliminazione…" : "Elimina"}
+                    </button>
+                  </div>
+                )}
               </Link>
             );
           })}

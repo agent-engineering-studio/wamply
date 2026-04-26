@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { CampaignInsights } from "./_components/CampaignInsights";
+import { TestSendModal } from "../_components/TestSendModal";
 
 interface CampaignStats { total: number; sent: number; delivered: number; read: number; failed: number }
 interface CampaignDetail {
@@ -28,12 +29,30 @@ export default function CampaignDetailPage() {
   const router = useRouter();
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [testSendOpen, setTestSendOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
   useEffect(() => {
     apiFetch(`/campaigns/${id}`).then((r) => r.json()).then(setCampaign);
   }, [id]);
+
+  async function handleDelete() {
+    if (!confirm(`Eliminare la campagna "${campaign?.name}"?`)) return;
+    setDeleting(true);
+    try {
+      const r = await apiFetch(`/campaigns/${id}`, { method: "DELETE" });
+      if (!r.ok && r.status !== 204) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+      router.push("/campaigns");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore eliminazione.");
+      setDeleting(false);
+    }
+  }
 
   async function handleLaunch() {
     setLaunching(true);
@@ -63,12 +82,33 @@ export default function CampaignDetailPage() {
             {createdLabel ? `Creata il ${createdLabel}` : "Appena creata"}
           </p>
         </div>
-        {["draft", "scheduled"].includes(campaign.status) && (
-          <button onClick={handleLaunch} disabled={launching}
-            className="rounded-sm bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-teal-dark disabled:opacity-50">
-            {launching ? "Avvio..." : "▶ Avvia campagna"}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {campaign.status === "draft" && (
+            <>
+              <button
+                type="button"
+                onClick={() => setTestSendOpen(true)}
+                className="rounded-pill border border-brand-teal/50 px-4 py-2 text-[13px] font-medium text-brand-teal hover:border-brand-teal hover:bg-brand-teal/10"
+              >
+                Invia test
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-pill border border-rose-500/30 px-4 py-2 text-[13px] font-medium text-rose-400 hover:border-rose-400 disabled:opacity-40"
+              >
+                {deleting ? "Eliminazione…" : "Elimina"}
+              </button>
+            </>
+          )}
+          {["draft", "scheduled"].includes(campaign.status) && (
+            <button type="button" onClick={handleLaunch} disabled={launching}
+              className="rounded-sm bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-teal-dark disabled:opacity-50">
+              {launching ? "Avvio..." : "▶ Avvia campagna"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -101,6 +141,12 @@ export default function CampaignDetailPage() {
       {s.sent > 0 && typeof id === "string" && (
         <CampaignInsights campaignId={id} aiEnabled={aiEnabled} />
       )}
+
+      <TestSendModal
+        open={testSendOpen}
+        campaignId={String(id)}
+        onClose={() => setTestSendOpen(false)}
+      />
     </>
   );
 }
