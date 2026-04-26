@@ -27,12 +27,49 @@ const LABELS: Record<string, string> = {
   completed: "completato", running: "in corso", scheduled: "schedulato", draft: "bozza", failed: "fallito",
 };
 
+function CardActions({ campaign, deletingId, resettingId, onDelete, onReset }: {
+  campaign: Campaign;
+  deletingId: string | null;
+  resettingId: string | null;
+  onDelete: (e: React.MouseEvent, id: string, name: string) => void;
+  onReset: (e: React.MouseEvent, c: Campaign) => void;
+}) {
+  const canDelete = !["running", "scheduled"].includes(campaign.status);
+  const canReset = campaign.status !== "draft";
+  if (!canDelete && !canReset) return null;
+  return (
+    <div className="mt-2 flex items-center justify-end gap-3 border-t border-slate-800/50 pt-2">
+      {canReset && (
+        <button
+          type="button"
+          onClick={(e) => onReset(e, campaign)}
+          disabled={resettingId === campaign.id}
+          className="text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-40"
+        >
+          {resettingId === campaign.id ? "Reset…" : "↺ Riporta a bozza"}
+        </button>
+      )}
+      {canDelete && (
+        <button
+          type="button"
+          onClick={(e) => onDelete(e, campaign.id, campaign.name)}
+          disabled={deletingId === campaign.id}
+          className="text-[11px] text-rose-400 hover:text-rose-300 disabled:opacity-40"
+        >
+          {deletingId === campaign.id ? "Eliminazione…" : "Elimina"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [filter, setFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
@@ -43,6 +80,29 @@ export default function CampaignsPage() {
         setCampaigns(d.campaigns || []);
         setLoading(false);
       });
+  }
+
+  async function handleReset(e: React.MouseEvent, c: Campaign) {
+    e.preventDefault();
+    e.stopPropagation();
+    const sent = c.stats?.sent ?? 0;
+    const msg = sent > 0
+      ? `Questa campagna ha già inviato ${sent} messaggi.\n\nRiportarla a bozza cancellerà i log di invio e permetterà di rilanciarla — i destinatari potrebbero ricevere il messaggio di nuovo.\n\nContinuare?`
+      : `Riportare "${c.name}" a bozza?`;
+    if (!confirm(msg)) return;
+    setResettingId(c.id);
+    try {
+      const r = await apiFetch(`/campaigns/${c.id}/reset`, { method: "POST" });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+      reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore durante il reset.");
+    } finally {
+      setResettingId(null);
+    }
   }
 
   async function handleDelete(e: React.MouseEvent, id: string, name: string) {
@@ -142,18 +202,13 @@ export default function CampaignsPage() {
                     )}
                   </div>
                 </div>
-                {(c.status === "draft" || c.status === "completed" || c.status === "failed") && (
-                  <div className="mt-2 flex items-center justify-end gap-3 border-t border-slate-800/50 pt-2">
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, c.id, c.name)}
-                      disabled={deletingId === c.id}
-                      className="text-[11px] text-rose-400 hover:text-rose-300 disabled:opacity-40"
-                    >
-                      {deletingId === c.id ? "Eliminazione…" : "Elimina"}
-                    </button>
-                  </div>
-                )}
+                <CardActions
+                  campaign={c}
+                  deletingId={deletingId}
+                  resettingId={resettingId}
+                  onDelete={handleDelete}
+                  onReset={handleReset}
+                />
               </Link>
             );
           })}
