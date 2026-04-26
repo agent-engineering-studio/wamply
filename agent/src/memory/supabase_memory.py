@@ -68,9 +68,23 @@ class SupabaseMemory:
         ]
 
     async def get_contacts_for_campaign(
-        self, user_id: str, group_id: str | None = None, tags: list[str] | None = None
+        self,
+        user_id: str,
+        group_id: str | None = None,
+        tags: list[str] | None = None,
+        contact_ids: list[str] | None = None,
     ) -> list[dict]:
-        if group_id:
+        if contact_ids:
+            rows = await self.pool.fetch(
+                """
+                SELECT id, phone, name, language, tags, variables
+                FROM contacts
+                WHERE user_id = $1 AND opt_in = true AND id = ANY($2::uuid[])
+                """,
+                user_id,
+                contact_ids,
+            )
+        elif group_id:
             rows = await self.pool.fetch(
                 """
                 SELECT c.id, c.phone, c.name, c.language, c.tags, c.variables

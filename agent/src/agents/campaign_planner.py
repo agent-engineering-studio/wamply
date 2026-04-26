@@ -27,10 +27,12 @@ async def plan_campaign(
     await log.ainfo("planner_start", campaign_id=campaign["id"])
 
     # Fetch contacts
+    seg = campaign.get("segment_query") or {}
     contacts = await fetch_contacts(
         db, user_id,
         group_id=campaign.get("group_id"),
-        tags=campaign.get("segment_query", {}).get("tags"),
+        tags=seg.get("tags"),
+        contact_ids=seg.get("contact_ids"),
     )
 
     if not contacts:

@@ -1,7 +1,10 @@
+import csv
+import io
 import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
 from src.services.twilio_admin import resolve_master_credentials, _get_config, KEY_MASTER_FROM
@@ -361,6 +364,129 @@ async def launch_campaign(
         campaign_id,
     )
     return {"success": True, "campaign_id": str(row["id"]), "launched": True}
+
+
+# ── Duplicate ────────────────────────────────────────────────
+
+@router.post("/{campaign_id}/duplicate", status_code=201)
+async def duplicate_campaign(
+    request: Request, campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    redis = get_redis(request)
+    await check_plan_limit(db, redis, user.id, "campaigns")
+
+    row = await db.fetchrow(
+        "SELECT name, template_id, group_id, segment_query FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    seg = row["segment_query"]
+    if isinstance(seg, str):
+        try:
+            seg = json.loads(seg)
+        except (ValueError, TypeError):
+            seg = {}
+    seg = dict(seg or {})
+    seg.pop("contact_ids", None)  # resend-failed targeting doesn't carry over to clones
+
+    new_row = await db.fetchrow(
+        """INSERT INTO campaigns (user_id, name, template_id, group_id, segment_query, status)
+           VALUES ($1, $2, $3, $4, $5, 'draft') RETURNING *""",
+        user.id, f"{row['name']} (copia)", row["template_id"], row["group_id"], json.dumps(seg),
+    )
+    return _serialize_row(new_row)
+
+
+# ── Resend failed ─────────────────────────────────────────────
+
+@router.post("/{campaign_id}/resend-failed", status_code=201)
+async def resend_failed(
+    request: Request, campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    redis = get_redis(request)
+    await check_plan_limit(db, redis, user.id, "campaigns")
+
+    row = await db.fetchrow(
+        "SELECT name, template_id FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    failed_rows = await db.fetch(
+        "SELECT DISTINCT contact_id::text FROM messages WHERE campaign_id = $1 AND status = 'failed'",
+        campaign_id,
+    )
+    contact_ids = [r["contact_id"] for r in failed_rows]
+    if not contact_ids:
+        raise HTTPException(status_code=400, detail="Nessun messaggio fallito in questa campagna.")
+
+    new_row = await db.fetchrow(
+        """INSERT INTO campaigns (user_id, name, template_id, segment_query, status)
+           VALUES ($1, $2, $3, $4, 'draft') RETURNING *""",
+        user.id, f"{row['name']} — Reinvio falliti",
+        row["template_id"], json.dumps({"contact_ids": contact_ids}),
+    )
+    return _serialize_row(new_row)
+
+
+# ── Export CSV ────────────────────────────────────────────────
+
+@router.get("/{campaign_id}/export")
+async def export_campaign_csv(
+    request: Request, campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    row = await db.fetchrow(
+        "SELECT id FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    rows = await db.fetch(
+        """SELECT c.name AS contact_name, c.phone,
+                  m.status, m.sent_at, m.delivered_at, m.read_at, m.error
+           FROM messages m
+           JOIN contacts c ON c.id = m.contact_id
+           WHERE m.campaign_id = $1
+           ORDER BY m.created_at""",
+        campaign_id,
+    )
+    if not rows:
+        raise HTTPException(status_code=400, detail="Nessun messaggio da esportare.")
+
+    def _fmt(dt) -> str:
+        return dt.strftime("%Y-%m-%d %H:%M") if dt else ""
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Nome", "Telefono", "Stato", "Inviato", "Consegnato", "Letto", "Errore"])
+    for r in rows:
+        writer.writerow([
+            r["contact_name"] or "",
+            r["phone"],
+            r["status"],
+            _fmt(r["sent_at"]),
+            _fmt(r["delivered_at"]),
+            _fmt(r["read_at"]),
+            r["error"] or "",
+        ])
+
+    content = buf.getvalue().encode("utf-8-sig")  # utf-8-sig → Excel opens it correctly
+    filename = f"campagna-{campaign_id[:8]}.csv"
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ── AI: preview personalizzazione ────────────────────────────

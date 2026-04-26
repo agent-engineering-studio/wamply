@@ -6,6 +6,9 @@ async def fetch_contacts(
     user_id: str,
     group_id: str | None = None,
     tags: list[str] | None = None,
+    contact_ids: list[str] | None = None,
 ) -> list[dict]:
-    """Fetch opt-in contacts for a campaign, filtered by group or tags."""
-    return await db.get_contacts_for_campaign(user_id, group_id=group_id, tags=tags)
+    """Fetch opt-in contacts for a campaign, filtered by group, tags, or explicit ID list."""
+    return await db.get_contacts_for_campaign(
+        user_id, group_id=group_id, tags=tags, contact_ids=contact_ids
+    )

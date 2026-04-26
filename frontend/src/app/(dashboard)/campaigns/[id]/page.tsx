@@ -33,6 +33,8 @@ export default function CampaignDetailPage() {
   const [launching, setLaunching] = useState(false);
   const [testSendOpen, setTestSendOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [resendingFailed, setResendingFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
@@ -68,6 +70,51 @@ export default function CampaignDetailPage() {
     } catch (e) {
       alert(e instanceof Error ? e.message : "Errore eliminazione.");
       setDeleting(false);
+    }
+  }
+
+  async function handleDuplicate() {
+    setDuplicating(true);
+    try {
+      const r = await apiFetch(`/campaigns/${id}/duplicate`, { method: "POST" });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+      const newCampaign = await r.json();
+      router.push(`/campaigns/${newCampaign.id}`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore nella duplicazione.");
+      setDuplicating(false);
+    }
+  }
+
+  async function handleResendFailed() {
+    if (!confirm(`Creare una nuova campagna con i ${s.failed} messaggi falliti?`)) return;
+    setResendingFailed(true);
+    try {
+      const r = await apiFetch(`/campaigns/${id}/resend-failed`, { method: "POST" });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+      const newCampaign = await r.json();
+      router.push(`/campaigns/${newCampaign.id}`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore nella creazione della campagna.");
+      setResendingFailed(false);
+    }
+  }
+
+  async function handleExportCsv() {
+    try {
+      const r = await apiFetch(`/campaigns/${id}/export`);
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `campagna-${String(id).slice(0, 8)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore nell'esportazione.");
     }
   }
 
@@ -118,6 +165,35 @@ export default function CampaignDetailPage() {
                 {deleting ? "Eliminazione…" : "Elimina"}
               </button>
             </>
+          )}
+          {s.failed > 0 && campaign.status !== "running" && (
+            <button
+              type="button"
+              onClick={handleResendFailed}
+              disabled={resendingFailed}
+              className="rounded-pill border border-amber-500/40 px-4 py-2 text-[13px] font-medium text-amber-400 hover:border-amber-400 hover:bg-amber-400/10 disabled:opacity-40"
+            >
+              {resendingFailed ? "Creazione…" : `↩ Reinvia ${s.failed} falliti`}
+            </button>
+          )}
+          {s.sent > 0 && (
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="rounded-pill border border-slate-600 px-4 py-2 text-[13px] font-medium text-slate-300 hover:border-slate-400 hover:text-slate-100"
+            >
+              ↓ Esporta CSV
+            </button>
+          )}
+          {campaign.status !== "running" && (
+            <button
+              type="button"
+              onClick={handleDuplicate}
+              disabled={duplicating}
+              className="rounded-pill border border-slate-600 px-4 py-2 text-[13px] font-medium text-slate-300 hover:border-slate-400 hover:text-slate-100 disabled:opacity-40"
+            >
+              {duplicating ? "Duplicazione…" : "Duplica"}
+            </button>
           )}
           {["draft", "scheduled"].includes(campaign.status) && (
             <button type="button" onClick={handleLaunch} disabled={launching}
