@@ -5,6 +5,10 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "pg_net";
 
+-- Required by supabase/realtime (full profile)
+CREATE SCHEMA IF NOT EXISTS _realtime;
+GRANT ALL ON SCHEMA _realtime TO supabase_admin;
+
 -- ── Enums ────────────────────────────────────────────────
 
 CREATE TYPE user_role AS ENUM ('user', 'admin');
