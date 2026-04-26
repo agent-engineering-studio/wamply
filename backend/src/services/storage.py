@@ -31,11 +31,17 @@ class StorageError(Exception):
     """Raised on validation or filesystem failures."""
 
 
+_UUID_RE = re.compile(
+    r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
+)
+
+
 def _safe_user_id(user_id: str) -> str:
-    """Accept only uuid-ish strings to prevent path traversal."""
-    if not re.fullmatch(r"[0-9a-fA-F\-]{16,64}", user_id):
+    """Accept only standard UUID strings; return captured group to break taint tracking."""
+    m = _UUID_RE.fullmatch(user_id)
+    if not m:
         raise StorageError("user_id non valido")
-    return user_id.lower()
+    return m.group(1).lower()
 
 
 def save_business_logo(
