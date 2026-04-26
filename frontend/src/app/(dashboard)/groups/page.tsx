@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api-client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { SmartGroupWizard } from "./_components/SmartGroupWizard";
 import { GroupModal } from "./_components/GroupModal";
+import { GroupMembersModal } from "./_components/GroupMembersModal";
 
 interface Group {
   id: string;
@@ -21,6 +22,7 @@ export default function GroupsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | undefined>(undefined);
+  const [membersModalGroup, setMembersModalGroup] = useState<Group | null>(null);
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
@@ -142,6 +144,13 @@ export default function GroupsPage() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
+                    onClick={() => setMembersModalGroup(g)}
+                    className="text-[11px] font-medium text-brand-teal hover:text-brand-teal-dark"
+                  >
+                    Membri
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { setEditingGroup(g); setGroupModalOpen(true); }}
                     className="text-[11px] font-medium text-slate-400 hover:text-slate-200"
                   >
@@ -168,6 +177,16 @@ export default function GroupsPage() {
         onClose={() => setGroupModalOpen(false)}
         onSaved={() => { setGroupModalOpen(false); reload(); }}
       />
+
+      {membersModalGroup && (
+        <GroupMembersModal
+          open={!!membersModalGroup}
+          groupId={membersModalGroup.id}
+          groupName={membersModalGroup.name}
+          onClose={() => setMembersModalGroup(null)}
+          onChanged={() => reload()}
+        />
+      )}
 
       <SmartGroupWizard
         open={wizardOpen}
