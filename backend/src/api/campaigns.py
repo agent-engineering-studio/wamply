@@ -1,6 +1,9 @@
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
@@ -444,12 +447,13 @@ async def preview_personalization(
                 "error": e.detail,
             })
             break
-        except Exception as e:  # noqa: BLE001 — per-contact error recovery
+        except Exception:  # noqa: BLE001 — per-contact error recovery
+            logger.exception("Campaign send failed for contact %s", contact_dict["id"])
             results.append({
                 "contact_id": contact_dict["id"],
                 "contact_name": contact_dict["name"] or contact_dict["phone"],
                 "ok": False,
-                "error": str(e),
+                "error": "Invio non riuscito",
             })
 
     return {"results": results}

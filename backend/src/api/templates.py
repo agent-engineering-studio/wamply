@@ -1,7 +1,10 @@
 import hashlib
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
@@ -348,8 +351,9 @@ async def translate_template_ai(
             # Credits exhausted mid-batch → stop, record remaining as failed.
             results.append({"language": target, "ok": False, "error": e.detail})
             break
-        except Exception as e:  # noqa: BLE001 — record failure per language
-            results.append({"language": target, "ok": False, "error": str(e)})
+        except Exception:  # noqa: BLE001 — record failure per language
+            logger.exception("Translation to %s failed", target)
+            results.append({"language": target, "ok": False, "error": "Traduzione non riuscita"})
 
     return {"results": results}
 

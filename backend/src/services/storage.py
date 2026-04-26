@@ -84,14 +84,11 @@ def resolve_logo_path(user_id: str, filename: str) -> Path | None:
         safe_uid = _safe_user_id(user_id)
     except StorageError:
         return None
-    if not re.fullmatch(r"logo\.(png|jpg|jpeg|webp|svg)", filename):
+    m = re.fullmatch(r"logo\.(png|jpg|jpeg|webp|svg)", filename)
+    if not m:
         return None
-    path = BUSINESS_LOGOS_DIR / safe_uid / filename
-    # Defensive: ensure path stays inside storage root
-    try:
-        path.resolve().relative_to(BUSINESS_LOGOS_DIR.resolve())
-    except (ValueError, OSError):
-        return None
+    safe_filename = "logo." + m.group(1)  # reconstruct from regex groups, not raw user input
+    path = BUSINESS_LOGOS_DIR / safe_uid / safe_filename
     if not path.is_file():
         return None
     return path

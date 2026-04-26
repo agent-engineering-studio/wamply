@@ -1,6 +1,9 @@
 import csv
 import io
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 
@@ -258,9 +261,10 @@ async def import_contacts(
                 user.id, phone, name, email, language, tags,
             )
             imported += 1
-        except Exception as e:
+        except Exception:
+            logger.exception("CSV import failed at row %d (phone=%s)", i, phone)
             skipped += 1
-            errors.append(f"Riga {i} ({phone}): {e}")
+            errors.append(f"Riga {i} ({phone}): formato o valore non valido")
 
     return {"imported": imported, "skipped": skipped, "errors": errors[:10]}
 
