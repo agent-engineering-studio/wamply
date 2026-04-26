@@ -35,6 +35,7 @@ export default function CampaignDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [resendingFailed, setResendingFailed] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
@@ -71,6 +72,20 @@ export default function CampaignDetailPage() {
       alert(e instanceof Error ? e.message : "Errore eliminazione.");
       setDeleting(false);
     }
+  }
+
+  async function handleReset() {
+    if (!confirm("Riportare la campagna a bozza? I messaggi parziali verranno eliminati.")) return;
+    setResetting(true);
+    try {
+      const r = await apiFetch(`/campaigns/${id}/reset`, { method: "POST" });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+      const updated = await r.json();
+      setCampaign(updated);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore nel reset.");
+    }
+    setResetting(false);
   }
 
   async function handleDuplicate() {
@@ -166,6 +181,16 @@ export default function CampaignDetailPage() {
               </button>
             </>
           )}
+          {campaign.status !== "draft" && (
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={resetting}
+              className="rounded-pill border border-slate-600 px-4 py-2 text-[13px] font-medium text-slate-400 hover:border-slate-400 hover:text-slate-200 disabled:opacity-40"
+            >
+              {resetting ? "Reset…" : "↺ Reimposta a bozza"}
+            </button>
+          )}
           {s.failed > 0 && campaign.status !== "running" && (
             <button
               type="button"
@@ -185,16 +210,14 @@ export default function CampaignDetailPage() {
               ↓ Esporta CSV
             </button>
           )}
-          {campaign.status !== "running" && (
-            <button
-              type="button"
-              onClick={handleDuplicate}
-              disabled={duplicating}
-              className="rounded-pill border border-slate-600 px-4 py-2 text-[13px] font-medium text-slate-300 hover:border-slate-400 hover:text-slate-100 disabled:opacity-40"
-            >
-              {duplicating ? "Duplicazione…" : "Duplica"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleDuplicate}
+            disabled={duplicating}
+            className="rounded-pill border border-slate-600 px-4 py-2 text-[13px] font-medium text-slate-300 hover:border-slate-400 hover:text-slate-100 disabled:opacity-40"
+          >
+            {duplicating ? "Duplicazione…" : "Duplica"}
+          </button>
           {["draft", "scheduled"].includes(campaign.status) && (
             <button type="button" onClick={handleLaunch} disabled={launching}
               className="rounded-sm bg-brand-teal px-5 py-2 text-[13px] font-medium text-white shadow-[0_1px_4px_rgba(37,211,102,.3)] hover:bg-brand-teal-dark disabled:opacity-50">

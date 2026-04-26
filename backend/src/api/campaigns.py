@@ -366,6 +366,36 @@ async def launch_campaign(
     return {"success": True, "campaign_id": str(row["id"]), "launched": True}
 
 
+# ── Reset to draft ───────────────────────────────────────────
+
+@router.post("/{campaign_id}/reset")
+async def reset_campaign(
+    request: Request, campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Reset a stuck/failed campaign back to draft so it can be reconfigured and relaunched."""
+    db = get_db(request)
+    row = await db.fetchrow(
+        "SELECT id, status FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+    if row["status"] == "draft":
+        raise HTTPException(status_code=400, detail="La campagna è già in bozza.")
+
+    await db.execute("DELETE FROM messages WHERE campaign_id = $1", campaign_id)
+    updated = await db.fetchrow(
+        """UPDATE campaigns
+           SET status = 'draft', started_at = NULL, completed_at = NULL,
+               stats = '{"total":0,"sent":0,"delivered":0,"read":0,"failed":0}'::jsonb,
+               updated_at = now()
+           WHERE id = $1 RETURNING *""",
+        campaign_id,
+    )
+    return _serialize_row(updated)
+
+
 # ── Duplicate ────────────────────────────────────────────────
 
 @router.post("/{campaign_id}/duplicate", status_code=201)
