@@ -3,7 +3,6 @@ import json
 import asyncpg
 
 from src.config import settings
-from src.utils.telemetry import log
 
 
 class SupabaseMemory:
