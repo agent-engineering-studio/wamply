@@ -210,6 +210,7 @@ services:
       ERL_AFLAGS: -proto_dist inet_tcp
       ENABLE_TAILSCALE: "false"
       DNS_NODES: "''"
+      RLIMIT_NOFILE: "1048576"
     depends_on:
       supabase-db:
         condition: service_healthy
