@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { SmartTagsModal } from "./_components/SmartTagsModal";
+import { ContactModal } from "./_components/ContactModal";
 
 interface Contact {
   id: string;
@@ -31,6 +32,8 @@ export default function ContactsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [tagsModalOpen, setTagsModalOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | undefined>(undefined);
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
@@ -49,6 +52,17 @@ export default function ContactsPage() {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Eliminare "${name || id}"? L'operazione non può essere annullata.`)) return;
+    try {
+      const r = await apiFetch(`/contacts/${id}`, { method: "DELETE" });
+      if (!r.ok && r.status !== 204) throw new Error(`HTTP ${r.status}`);
+      reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Errore durante l'eliminazione.");
+    }
+  }
 
   const allTags = [...new Set(contacts.flatMap((c) => c.tags ?? []))];
 
@@ -81,6 +95,7 @@ export default function ContactsPage() {
           </button>
           <button
             type="button"
+            onClick={() => { setEditingContact(undefined); setContactModalOpen(true); }}
             className="rounded-sm bg-brand-teal px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-teal-dark"
           >
             + Aggiungi
@@ -221,7 +236,7 @@ export default function ContactsPage() {
             const colorIdx = c.phone.charCodeAt(c.phone.length - 1) % colors.length;
 
             return (
-              <div key={c.id} className="flex items-center gap-3 border-b border-slate-800/50 px-4 py-2.5 last:border-0 hover:bg-brand-navy-deep">
+              <div key={c.id} className="group flex items-center gap-3 border-b border-slate-800/50 px-4 py-2.5 last:border-0 hover:bg-brand-navy-deep">
                 <div className={`flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${colors[colorIdx]}`}>
                   {initials}
                 </div>
@@ -235,6 +250,22 @@ export default function ContactsPage() {
                       {tag}
                     </span>
                   ))}
+                </div>
+                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => { setEditingContact(c); setContactModalOpen(true); }}
+                    className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] font-medium text-slate-300 hover:border-slate-500 hover:text-slate-100"
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id, c.name ?? "")}
+                    className="rounded-sm border border-rose-700/50 px-2 py-1 text-[11px] font-medium text-rose-400 hover:border-rose-500 hover:text-rose-300"
+                  >
+                    Elimina
+                  </button>
                 </div>
               </div>
             );
@@ -268,6 +299,7 @@ export default function ContactsPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => { setEditingContact(undefined); setContactModalOpen(true); }}
                   className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-300 hover:border-slate-600 hover:text-slate-100"
                 >
                   + Aggiungi manuale
@@ -292,6 +324,13 @@ export default function ContactsPage() {
           </button>
         </div>
       )}
+
+      <ContactModal
+        open={contactModalOpen}
+        contact={editingContact}
+        onClose={() => setContactModalOpen(false)}
+        onSaved={() => { setContactModalOpen(false); reload(); }}
+      />
 
       <SmartTagsModal
         open={tagsModalOpen}
