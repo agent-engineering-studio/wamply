@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { BusinessDetailModal } from "./BusinessDetailModal";
+import { CreateBusinessModal } from "./CreateBusinessModal";
 
 export interface BusinessListItem {
   business_id: string;
@@ -133,6 +134,26 @@ export function WhatsAppApplicationsTab() {
   const [filter, setFilter] = useState<(typeof FILTER_TABS)[number]["key"]>("to_work");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  async function handleStatusChange(businessId: string, newStatus: string) {
+    try {
+      const r = await apiFetch(`/admin/businesses/${businessId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.business_id === businessId ? { ...it, status: newStatus as BusinessListItem["status"] } : it
+        )
+      );
+      setMsg({ type: "ok", text: `Stato aggiornato: ${newStatus}` });
+    } catch (e) {
+      setMsg({ type: "err", text: e instanceof Error ? e.message : "Errore" });
+    }
+  }
 
   function reload() {
     setLoading(true);
@@ -175,8 +196,36 @@ export function WhatsAppApplicationsTab() {
     });
   }, [items, filter, query]);
 
+  const toWork = counts.to_work ?? 0;
+  const suspendedRejected = (counts.suspended ?? 0) + (counts.rejected ?? 0);
+
   return (
     <div className="space-y-4">
+      {msg && (
+        <div className={`rounded-sm border px-3 py-2 text-[12px] ${
+          msg.type === "ok"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+            : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+        }`}>
+          {msg.text}
+          <button type="button" onClick={() => setMsg(null)} className="ml-2 text-slate-500 hover:text-slate-300">×</button>
+        </div>
+      )}
+      {/* KPI cards */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "Totale aziende", value: counts.all, color: "text-slate-100" },
+          { label: "Da lavorare", value: toWork, color: toWork > 0 ? "text-amber-300" : "text-slate-100" },
+          { label: "Approvate / Attive", value: (counts.approved ?? 0) + (counts.active ?? 0), color: "text-emerald-300" },
+          { label: "Sospese / Rifiutate", value: suspendedRejected, color: suspendedRejected > 0 ? "text-rose-300" : "text-slate-100" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-card border border-slate-800 bg-brand-navy-light p-4 shadow-card">
+            <div className={`text-[26px] font-semibold ${k.color}`}>{k.value}</div>
+            <div className="mt-0.5 text-[11px] text-slate-400">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Filters + search */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-1 rounded-[10px] border border-slate-800 bg-brand-navy-light p-[3px]">
@@ -207,6 +256,13 @@ export function WhatsAppApplicationsTab() {
           aria-label="Cerca pratiche"
           className="ml-auto w-72 rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-1.5 text-[12px] text-slate-100 placeholder:text-slate-500 focus:border-brand-teal focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="rounded-pill bg-brand-teal px-4 py-1.5 text-[12px] font-medium text-white hover:bg-brand-teal-dark"
+        >
+          + Crea pratica
+        </button>
       </div>
 
       {/* Table */}
@@ -215,8 +271,45 @@ export function WhatsAppApplicationsTab() {
           Caricamento...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-card border border-slate-800 bg-brand-navy-light p-8 text-center text-[12.5px] text-slate-500">
-          Nessuna pratica corrisponde ai filtri.
+        <div className="rounded-card border border-slate-800 bg-brand-navy-light p-10 text-center shadow-card">
+          {items.length === 0 ? (
+            // DB is empty — no businesses at all
+            <>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-teal/15 text-brand-teal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
+                  <rect x="2" y="7" width="20" height="14" rx="2" />
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                  <line x1="12" y1="12" x2="12" y2="16" />
+                  <line x1="10" y1="14" x2="14" y2="14" />
+                </svg>
+              </div>
+              <h2 className="mb-1 text-[14px] font-semibold text-slate-100">Nessuna pratica ancora</h2>
+              <p className="mx-auto mb-5 max-w-xs text-[12px] text-slate-400">
+                Quando un utente registra un&apos;azienda e avvia la richiesta WhatsApp Business, appare qui per la lavorazione.
+                Puoi anche creare manualmente una pratica per conto di un cliente.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="rounded-pill bg-brand-teal px-5 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-teal-dark"
+              >
+                + Crea prima pratica
+              </button>
+            </>
+          ) : (
+            // Items exist but filter/search returns nothing
+            <>
+              <h2 className="mb-1 text-[14px] font-semibold text-slate-100">Nessuna pratica corrisponde ai filtri</h2>
+              <p className="text-[12px] text-slate-400">Modifica il filtro o la ricerca per trovare le pratiche.</p>
+              <button
+                type="button"
+                onClick={() => { setFilter("all"); setQuery(""); }}
+                className="mt-4 rounded-pill border border-slate-700 px-4 py-2 text-[12px] font-medium text-slate-300 hover:text-white"
+              >
+                Rimuovi filtri
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-card border border-slate-800 bg-brand-navy-light shadow-card">
@@ -307,13 +400,26 @@ export function WhatsAppApplicationsTab() {
                       {formatDate(it.business_created_at)}
                     </td>
                     <td className="px-3.5 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(it.business_id)}
-                        className="rounded-pill border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:bg-brand-navy-deep hover:text-white"
-                      >
-                        Apri
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <select
+                          value={it.status ?? ""}
+                          onChange={(e) => handleStatusChange(it.business_id, e.target.value)}
+                          aria-label={`Cambia stato pratica ${it.brand_name}`}
+                          className="rounded-sm border border-slate-700 bg-brand-navy-deep px-2 py-1 text-[11px] text-slate-200 focus:border-brand-teal focus:outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {(["draft","awaiting_docs","submitted_to_meta","in_review","approved","rejected","active","suspended"] as const).map((s) => (
+                            <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(it.business_id)}
+                          className="rounded-pill border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:bg-brand-navy-deep hover:text-white"
+                        >
+                          Dettaglio
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -333,6 +439,15 @@ export function WhatsAppApplicationsTab() {
           }}
         />
       )}
+      <CreateBusinessModal
+        key={createOpen ? "open" : "closed"}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          setCreateOpen(false);
+          reload();
+        }}
+      />
     </div>
   );
 }

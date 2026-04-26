@@ -5,6 +5,8 @@ Admin endpoints: `/admin/businesses/*` for the marketing partner to manage
 Meta applications on behalf of low-tech customers.
 """
 
+import json
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
@@ -160,6 +162,63 @@ async def admin_list_businesses(
     return {"businesses": rows}
 
 
+@router.post("/admin/businesses/create")
+async def admin_create_business(
+    request: Request,
+    user: CurrentUser = Depends(require_staff),
+):
+    """Staff creates a business + meta application on behalf of a user."""
+    db = get_db(request)
+    body = await request.json()
+
+    user_email = (body.get("user_email") or "").strip().lower()
+    legal_name = (body.get("legal_name") or "").strip()
+    brand_name = (body.get("brand_name") or "").strip()
+    if not user_email or not legal_name or not brand_name:
+        raise HTTPException(status_code=400, detail="user_email, legal_name e brand_name sono obbligatori.")
+
+    # Resolve user_id from email
+    target_user = await db.fetchrow("SELECT id FROM users WHERE email = $1", user_email)
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"Utente con email {user_email!r} non trovato.")
+    target_user_id = str(target_user["id"])
+
+    # Upsert business profile
+    business = await upsert_business(db, target_user_id, str(user.id), {
+        "legal_name": legal_name,
+        "brand_name": brand_name,
+        "vat_number": body.get("vat_number"),
+    })
+
+    # Ensure meta_application exists
+    initial_status = body.get("initial_status", "draft")
+    if initial_status not in {"draft", "awaiting_docs", "submitted_to_meta"}:
+        initial_status = "draft"
+
+    existing_ma = await db.fetchrow(
+        "SELECT id FROM meta_applications WHERE business_id = $1", business["id"]
+    )
+    if not existing_ma:
+        await db.execute(
+            """INSERT INTO meta_applications (business_id, status)
+               VALUES ($1, $2::application_status)""",
+            business["id"], initial_status,
+        )
+    else:
+        await db.execute(
+            "UPDATE meta_applications SET status = $1::application_status WHERE id = $2",
+            initial_status, existing_ma["id"],
+        )
+
+    # Log audit event
+    await db.execute(
+        """INSERT INTO business_audit_log (business_id, actor_id, action, changes)
+           VALUES ($1, $2, 'admin_created', $3::jsonb)""",
+        business["id"], str(user.id), json.dumps({"email": user_email}),
+    )
+    return {"ok": True, "business_id": str(business["id"])}
+
+
 @router.get("/admin/businesses/{business_id}")
 async def admin_get_business(
     request: Request,
@@ -211,6 +270,50 @@ async def admin_update_business(
         "meta_application": meta,
         "missing_fields": missing,
     }
+
+
+_VALID_STATUSES = {
+    "draft", "awaiting_docs", "submitted_to_meta",
+    "in_review", "approved", "rejected", "active", "suspended",
+}
+
+
+@router.patch("/admin/businesses/{business_id}/status")
+async def admin_patch_business_status(
+    request: Request,
+    business_id: str,
+    user: CurrentUser = Depends(require_staff),
+):
+    """Quick status change without touching other fields."""
+    db = get_db(request)
+    body = await request.json()
+    status = (body or {}).get("status", "").strip()
+    if status not in _VALID_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Status non valido: {status}. Valori ammessi: {sorted(_VALID_STATUSES)}",
+        )
+
+    ma = await db.fetchrow(
+        "SELECT id FROM meta_applications WHERE business_id = $1",
+        business_id,
+    )
+    if not ma:
+        raise HTTPException(status_code=404, detail="Pratica non trovata.")
+
+    await db.execute(
+        "UPDATE meta_applications SET status = $1::application_status, updated_at = now() WHERE id = $2",
+        status,
+        ma["id"],
+    )
+    await db.execute(
+        """INSERT INTO business_audit_log (business_id, action, actor_id, changes)
+           VALUES ($1, $2, $3, '{}'::jsonb)""",
+        business_id,
+        f"status_changed_to_{status}",
+        str(user.id),
+    )
+    return {"ok": True, "status": status}
 
 
 @router.post("/admin/businesses/{business_id}/logo")
