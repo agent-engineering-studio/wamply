@@ -52,3 +52,7 @@ htmlcov/
 
 # Git worktrees
 .worktrees/
+
+# Demo config profiles (contain real credentials)
+demo/configs/
+!demo/configs/.gitkeep

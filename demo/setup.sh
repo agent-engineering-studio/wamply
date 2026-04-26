@@ -48,6 +48,94 @@ set_env_var() {
   fi
 }
 
+# ── Config profiles ───────────────────────────────────────────────────────────
+CONFIGS_DIR="${SCRIPT_DIR}/configs"
+CONFIG_VARS=("TWILIO_ACCOUNT_SID" "TWILIO_AUTH_TOKEN" "TWILIO_FROM" "TWILIO_MESSAGING_SERVICE_SID")
+
+save_config() {
+  local name="$1"
+  mkdir -p "$CONFIGS_DIR"
+  local profile="${CONFIGS_DIR}/${name}.env"
+  : > "$profile"
+  for var in "${CONFIG_VARS[@]}"; do
+    local val
+    val=$(grep -E "^${var}=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
+    [ -n "$val" ] && printf '%s=%s\n' "$var" "$val" >> "$profile"
+  done
+  log_ok "Profilo '$name' salvato in demo/configs/${name}.env"
+}
+
+load_config() {
+  local name="$1"
+  local profile="${CONFIGS_DIR}/${name}.env"
+  if [ ! -f "$profile" ]; then
+    log_warn "Profilo '$name' non trovato"
+    return 1
+  fi
+  while IFS='=' read -r key val; do
+    [[ "$key" =~ ^# ]] && continue
+    [ -z "$key" ] && continue
+    set_env_var "$key" "$val"
+  done < "$profile"
+  log_ok "Profilo '$name' caricato"
+
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "wcm-"; then
+    echo ""
+    echo -e "  Vuoi riavviare i servizi applicativi per applicare le nuove credenziali?"
+    echo -e "  ${BOLD}[1]${NC} Sì — riavvia backend e agent (docker compose restart backend agent)"
+    echo -e "  ${BOLD}[2]${NC} No — riavvia manualmente quando vuoi"
+    local restart_choice
+    restart_choice=$(ask_choice "Scelta" "1")
+    if [ "$restart_choice" = "1" ]; then
+      cd "$ROOT_DIR"
+      docker compose restart backend agent
+      log_ok "Servizi riavviati con le nuove credenziali"
+    fi
+  fi
+}
+
+list_configs() {
+  if [ ! -d "$CONFIGS_DIR" ] || [ -z "$(ls -A "$CONFIGS_DIR"/*.env 2>/dev/null)" ]; then
+    echo -e "  ${YELLOW}Nessun profilo salvato in demo/configs/${NC}"
+    return
+  fi
+  echo -e "  Profili disponibili:"
+  for f in "$CONFIGS_DIR"/*.env; do
+    local name
+    name=$(basename "$f" .env)
+    echo -e "  • ${BOLD}${name}${NC}"
+  done
+}
+
+manage_configs() {
+  echo ""
+  echo -e "  ${BOLD}Gestione configurazioni${NC}"
+  echo ""
+  list_configs
+  echo ""
+  echo -e "  ${BOLD}[1]${NC} Carica un profilo"
+  echo -e "  ${BOLD}[2]${NC} Salva configurazione attuale come profilo"
+  echo -e "  ${BOLD}[3]${NC} Torna al menu principale"
+  echo ""
+  local choice
+  choice=$(ask_choice "Scelta" "3")
+  case "$choice" in
+    1)
+      local name
+      name=$(ask "Nome profilo da caricare")
+      [ -n "$name" ] && load_config "$name"
+      ;;
+    2)
+      local name
+      name=$(ask "Nome del nuovo profilo (es. cliente-acme)")
+      [ -n "$name" ] && save_config "$name"
+      ;;
+    *)
+      echo "  Annullato."
+      ;;
+  esac
+}
+
 # ── Banner ────────────────────────────────────────────────────────────────────
 clear
 echo -e "${CYAN}${BOLD}"
@@ -159,7 +247,8 @@ if $CONTAINERS_RUNNING; then
   echo -e "  Cosa vuoi fare?"
   echo -e "  ${BOLD}[1]${NC} Mostra URL e credenziali (avvio rapido)"
   echo -e "  ${BOLD}[2]${NC} Riavvia senza perdere i dati  (docker compose restart)"
-  echo -e "  ${BOLD}[3]${NC} Reset completo — CANCELLA il database e ricomincia"
+  echo -e "  ${BOLD}[3]${NC} Gestisci configurazioni / cambia Twilio"
+  echo -e "  ${BOLD}[4]${NC} Reset completo — CANCELLA il database e ricomincia"
   echo ""
   RUNNING_CHOICE=$(ask_choice "Scelta" "1")
   case "$RUNNING_CHOICE" in
@@ -169,6 +258,10 @@ if $CONTAINERS_RUNNING; then
       log_ok "Servizi riavviati"
       ;;
     3)
+      manage_configs
+      SKIP_SETUP=true
+      ;;
+    4)
       log_warn "Reset completo: tutti i dati del database verranno eliminati."
       CONFIRM=$(ask "Digita 'reset' per confermare" "")
       [ "$CONFIRM" != "reset" ] && { echo "  Annullato."; exit 0; }
@@ -184,10 +277,14 @@ elif $IMAGES_EXIST; then
   echo ""
   echo -e "  Cosa vuoi fare?"
   echo -e "  ${BOLD}[1]${NC} Avvia con i dati esistenti  (make up)"
-  echo -e "  ${BOLD}[2]${NC} Reset completo — CANCELLA il database e ricomincia"
+  echo -e "  ${BOLD}[2]${NC} Gestisci configurazioni / cambia Twilio"
+  echo -e "  ${BOLD}[3]${NC} Reset completo — CANCELLA il database e ricomincia"
   echo ""
   IMG_CHOICE=$(ask_choice "Scelta" "1")
-  [ "$IMG_CHOICE" = "2" ] && IMAGES_EXIST=false
+  case "$IMG_CHOICE" in
+    2) manage_configs ;;
+    3) IMAGES_EXIST=false ;;
+  esac
 else
   log_ok "Prima installazione — verrà eseguito il build completo"
 fi

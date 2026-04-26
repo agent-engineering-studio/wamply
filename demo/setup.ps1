@@ -49,6 +49,83 @@ function Set-EnvVar {
   [System.IO.File]::WriteAllText($EnvFile, $raw, [System.Text.Encoding]::UTF8)
 }
 
+# ── Config profiles ───────────────────────────────────────────────────────────
+$ConfigsDir = Join-Path $ScriptDir "configs"
+$ConfigVars = @("TWILIO_ACCOUNT_SID","TWILIO_AUTH_TOKEN","TWILIO_FROM","TWILIO_MESSAGING_SERVICE_SID")
+
+function Save-Config {
+  param($Name)
+  if (-not (Test-Path $ConfigsDir)) { New-Item -ItemType Directory $ConfigsDir | Out-Null }
+  $profilePath = Join-Path $ConfigsDir "${Name}.env"
+  $envContent = Get-Content $EnvFile -Raw
+  $lines = @()
+  foreach ($var in $ConfigVars) {
+    if ($envContent -match "(?m)^${var}=(.*)") {
+      $lines += "${var}=$($Matches[1])"
+    }
+  }
+  [System.IO.File]::WriteAllText($profilePath, ($lines -join "`n") + "`n", [System.Text.Encoding]::UTF8)
+  Write-Ok "Profilo '$Name' salvato in demo\configs\${Name}.env"
+}
+
+function Import-Config {
+  param($Name)
+  $profilePath = Join-Path $ConfigsDir "${Name}.env"
+  if (-not (Test-Path $profilePath)) { Write-Warn "Profilo '$Name' non trovato"; return }
+  foreach ($line in (Get-Content $profilePath)) {
+    if ($line -match "^([^#=]+)=(.*)") {
+      Set-EnvVar $Matches[1] $Matches[2]
+    }
+  }
+  Write-Ok "Profilo '$Name' caricato"
+
+  $running = (docker ps --format "{{.Names}}" 2>$null) -match "wcm-"
+  if ($running) {
+    Write-Host ""
+    Write-Host "  Vuoi riavviare i servizi applicativi per applicare le nuove credenziali?" -ForegroundColor White
+    Write-Host "  [1] Si — riavvia backend e agent" -ForegroundColor White
+    Write-Host "  [2] No — riavvia manualmente" -ForegroundColor White
+    $r = Invoke-Ask "Scelta" "1"
+    if ($r -eq "1") {
+      Set-Location $RootDir
+      docker compose restart backend agent
+      Write-Ok "Servizi riavviati con le nuove credenziali"
+    }
+  }
+}
+
+function Show-Configs {
+  if (-not (Test-Path $ConfigsDir)) { Write-Host "  Nessun profilo salvato in demo\configs\" -ForegroundColor Yellow; return }
+  $files = Get-ChildItem $ConfigsDir -Filter "*.env" -ErrorAction SilentlyContinue
+  if (-not $files) { Write-Host "  Nessun profilo salvato in demo\configs\" -ForegroundColor Yellow; return }
+  Write-Host "  Profili disponibili:" -ForegroundColor White
+  foreach ($f in $files) { Write-Host "  * $($f.BaseName)" -ForegroundColor White }
+}
+
+function Open-ConfigMenu {
+  Write-Host ""
+  Write-Host "  Gestione configurazioni" -ForegroundColor Cyan
+  Write-Host ""
+  Show-Configs
+  Write-Host ""
+  Write-Host "  [1] Carica un profilo" -ForegroundColor White
+  Write-Host "  [2] Salva configurazione attuale come profilo" -ForegroundColor White
+  Write-Host "  [3] Torna al menu principale" -ForegroundColor White
+  Write-Host ""
+  $choice = Invoke-Ask "Scelta" "3"
+  switch ($choice) {
+    "1" {
+      $name = Invoke-Ask "Nome profilo da caricare"
+      if ($name) { Import-Config $name }
+    }
+    "2" {
+      $name = Invoke-Ask "Nome del nuovo profilo (es. cliente-acme)"
+      if ($name) { Save-Config $name }
+    }
+    default { Write-Host "  Annullato." }
+  }
+}
+
 function Test-DockerRunning {
   $result = & docker info 2>&1
   return $LASTEXITCODE -eq 0
@@ -145,7 +222,8 @@ if ($containersRunning) {
   Write-Host "  Cosa vuoi fare?" -ForegroundColor White
   Write-Host "  [1] Mostra URL e credenziali (nessuna azione)" -ForegroundColor White
   Write-Host "  [2] Riavvia i container senza perdere i dati" -ForegroundColor White
-  Write-Host "  [3] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
+  Write-Host "  [3] Gestisci configurazioni / cambia Twilio" -ForegroundColor White
+  Write-Host "  [4] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
   Write-Host ""
   $choice = Invoke-Ask "Scelta" "1"
   switch ($choice) {
@@ -155,6 +233,10 @@ if ($containersRunning) {
       Write-Ok "Servizi riavviati"
     }
     "3" {
+      Open-ConfigMenu
+      $skipSetup = $true
+    }
+    "4" {
       Write-Warn "Reset completo: tutti i dati verranno eliminati."
       $confirm = Invoke-Ask "Digita 'reset' per confermare"
       if ($confirm -ne "reset") { Write-Host "  Annullato."; exit 0 }
@@ -166,10 +248,14 @@ if ($containersRunning) {
   Write-Ok "Immagini Docker trovate — riavvio senza rebuild"
   Write-Host ""
   Write-Host "  [1] Avvia con i dati esistenti  (nessun rebuild)" -ForegroundColor White
-  Write-Host "  [2] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
+  Write-Host "  [2] Gestisci configurazioni / cambia Twilio" -ForegroundColor White
+  Write-Host "  [3] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
   Write-Host ""
   $choice = Invoke-Ask "Scelta" "1"
-  if ($choice -eq "2") { $imagesExist = $false }
+  switch ($choice) {
+    "2" { Open-ConfigMenu }
+    "3" { $imagesExist = $false }
+  }
 } else {
   Write-Ok "Prima installazione — verrà eseguito il build completo"
 }
