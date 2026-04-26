@@ -3,10 +3,7 @@ import io
 import logging
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
-
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
-
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
 from src.services.plan_limits import check_plan_limit
@@ -16,6 +13,8 @@ from src.services.ai_credits import (
     reserve_credits,
     resolve_api_key,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contacts")
 

@@ -3,9 +3,6 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-
-logger = logging.getLogger(__name__)
-
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
 from src.services.ai_template import (
@@ -21,6 +18,8 @@ from src.services.ai_credits import (
 )
 from src.services.ai_feature_gating import require_ai_feature
 from src.services.plan_limits import check_plan_limit
+
+logger = logging.getLogger(__name__)
 
 SUPPORTED_LANGUAGES = {"it", "en", "es", "de", "fr"}
 

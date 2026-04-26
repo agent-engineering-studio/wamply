@@ -9,8 +9,6 @@ The smart-group flow:
      `contact_group_members` by running the filter server-side.
 """
 
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.jwt import CurrentUser, get_current_user
@@ -95,7 +93,7 @@ async def create_group(
         if filt:
             tags_any = [t for t in (filt.get("tags_any") or []) if isinstance(t, str)]
             tags_all = [t for t in (filt.get("tags_all") or []) if isinstance(t, str)]
-            languages = [l for l in (filt.get("languages") or []) if isinstance(l, str)]
+            languages = [lang for lang in (filt.get("languages") or []) if isinstance(lang, str)]
 
             clauses = ["user_id = $1", "opt_in = true"]
             params: list = [user.id]

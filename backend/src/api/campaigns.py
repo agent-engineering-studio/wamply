@@ -2,9 +2,6 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-
-logger = logging.getLogger(__name__)
-
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
 from src.services.twilio_admin import resolve_master_credentials, _get_config, KEY_MASTER_FROM
@@ -18,6 +15,8 @@ from src.services.ai_campaigns import (
     analyze_campaign_performance,
 )
 from src.services.ai_assists import dashboard_insight
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/campaigns")
 

@@ -1,7 +1,7 @@
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db
