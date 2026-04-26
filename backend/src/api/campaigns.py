@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
+from src.services.twilio_admin import resolve_master_credentials, _get_config, KEY_MASTER_FROM
 from src.services.plan_limits import check_plan_limit
 from src.services.ai_credits import reserve_credits, commit_credits, resolve_api_key
 from src.services.quota_enforcement import check_message_quota
@@ -207,6 +208,90 @@ async def update_campaign(
     if not row:
         raise HTTPException(status_code=404, detail="Campagna non trovata.")
     return _serialize_row(row)
+
+
+async def _do_test_send(db, campaign_id: str, user_id: str, to: str) -> dict:
+    row = await db.fetchrow(
+        """SELECT c.template_id, t.twilio_sid, t.components
+           FROM campaigns c LEFT JOIN templates t ON t.id = c.template_id
+           WHERE c.id = $1 AND c.user_id = $2""",
+        campaign_id, user_id,
+    )
+    if not row:
+        raise ValueError("Campagna non trovata.")
+    if not row["twilio_sid"]:
+        raise ValueError("Questa campagna non ha un template Twilio valido.")
+
+    account_sid, auth_token = await resolve_master_credentials(db)
+    from_ = await _get_config(db, KEY_MASTER_FROM) or ""
+
+    if not account_sid or not auth_token:
+        raise ValueError("Credenziali Twilio master non configurate. Contatta l'amministratore.")
+
+    from twilio.rest import Client as TwilioClient
+    client = TwilioClient(account_sid, auth_token)
+    msg = client.messages.create(
+        to=to,
+        from_=from_,
+        content_sid=row["twilio_sid"],
+        content_variables="{}",
+    )
+    return {"sid": msg.sid, "status": msg.status}
+
+
+@router.post("/{campaign_id}/test-send")
+async def test_send_campaign(
+    request: Request,
+    campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    body = await request.json()
+    to = (body.get("to") or "").strip()
+    if not to:
+        raise HTTPException(status_code=400, detail="Il campo 'to' è obbligatorio (es. whatsapp:+39333000001).")
+
+    row = await db.fetchrow(
+        "SELECT id FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    try:
+        result = await _do_test_send(db, campaign_id, str(user.id), to)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Twilio error: {e}")
+
+    return result
+
+
+@router.delete("/{campaign_id}", status_code=204)
+async def delete_campaign(
+    request: Request,
+    campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    row = await db.fetchrow(
+        "SELECT id, status FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+    if row["status"] in ("running",):
+        raise HTTPException(
+            status_code=409,
+            detail="Non puoi eliminare una campagna in corso. Attendi il completamento.",
+        )
+    await db.execute("DELETE FROM messages WHERE campaign_id = $1", campaign_id)
+    await db.execute(
+        "DELETE FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    return None
 
 
 @router.post("/{campaign_id}/launch")
