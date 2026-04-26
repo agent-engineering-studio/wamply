@@ -211,6 +211,11 @@ services:
       ENABLE_TAILSCALE: "false"
       DNS_NODES: "''"
       RLIMIT_NOFILE: "1048576"
+      APP_NAME: realtime
+      SLOT_NAME: supabase_realtime_rls
+      QUEUE_TARGET: 5000
+      QUEUE_INTERVAL: 5000
+      DB_POOL: 5
     depends_on:
       supabase-db:
         condition: service_healthy
