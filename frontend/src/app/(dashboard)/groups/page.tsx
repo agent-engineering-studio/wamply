@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { SmartGroupWizard } from "./_components/SmartGroupWizard";
+import { GroupModal } from "./_components/GroupModal";
 
 interface Group {
   id: string;
@@ -18,6 +19,8 @@ export default function GroupsPage() {
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<Group | undefined>(undefined);
   const { status: agentStatus } = useAgentStatus();
   const aiEnabled = !!agentStatus?.active;
 
@@ -56,6 +59,14 @@ export default function GroupsPage() {
             {groups.length} {groups.length === 1 ? "gruppo" : "gruppi"}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => { setEditingGroup(undefined); setGroupModalOpen(true); }}
+          className="flex items-center gap-1.5 rounded-sm border border-slate-700 bg-brand-navy-light px-3.5 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:border-slate-600"
+        >
+          + Crea manuale
+        </button>
         <button
           type="button"
           onClick={() => aiEnabled && setWizardOpen(true)}
@@ -69,6 +80,7 @@ export default function GroupsPage() {
           </svg>
           Crea con AI
         </button>
+        </div>
       </div>
 
       {loading ? (
@@ -127,19 +139,35 @@ export default function GroupsPage() {
                   </svg>
                   {g.member_count} contatti
                 </span>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(g.id, g.name)}
-                  disabled={deletingId === g.id}
-                  className="text-[11px] font-medium text-rose-400 hover:text-rose-300 disabled:opacity-40"
-                >
-                  {deletingId === g.id ? "Elimino..." : "Elimina"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setEditingGroup(g); setGroupModalOpen(true); }}
+                    className="text-[11px] font-medium text-slate-400 hover:text-slate-200"
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(g.id, g.name)}
+                    disabled={deletingId === g.id}
+                    className="text-[11px] font-medium text-rose-400 hover:text-rose-300 disabled:opacity-40"
+                  >
+                    {deletingId === g.id ? "Elimino..." : "Elimina"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <GroupModal
+        open={groupModalOpen}
+        group={editingGroup}
+        onClose={() => setGroupModalOpen(false)}
+        onSaved={() => { setGroupModalOpen(false); reload(); }}
+      />
 
       <SmartGroupWizard
         open={wizardOpen}
