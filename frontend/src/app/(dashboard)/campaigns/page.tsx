@@ -27,6 +27,26 @@ const LABELS: Record<string, string> = {
   completed: "completato", running: "in corso", scheduled: "schedulato", draft: "bozza", failed: "fallito",
 };
 
+function IconBtn({ onClick, disabled, title, className, children }: {
+  onClick: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  title: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors disabled:opacity-40 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function CardActions({ campaign, deletingId, resettingId, onDelete, onReset }: {
   campaign: Campaign;
   deletingId: string | null;
@@ -37,27 +57,39 @@ function CardActions({ campaign, deletingId, resettingId, onDelete, onReset }: {
   const canDelete = !["running", "scheduled"].includes(campaign.status);
   const canReset = campaign.status !== "draft";
   if (!canDelete && !canReset) return null;
+
   return (
-    <div className="mt-2 flex items-center justify-end gap-3 border-t border-slate-800/50 pt-2">
+    <div className="flex items-center gap-1">
       {canReset && (
-        <button
-          type="button"
+        <IconBtn
           onClick={(e) => onReset(e, campaign)}
           disabled={resettingId === campaign.id}
-          className="text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-40"
+          title="Riporta a bozza"
+          className="text-slate-500 hover:bg-slate-700 hover:text-slate-200"
         >
-          {resettingId === campaign.id ? "Reset…" : "↺ Riporta a bozza"}
-        </button>
+          {resettingId === campaign.id
+            ? <span className="text-[10px]">…</span>
+            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+          }
+        </IconBtn>
       )}
       {canDelete && (
-        <button
-          type="button"
+        <IconBtn
           onClick={(e) => onDelete(e, campaign.id, campaign.name)}
           disabled={deletingId === campaign.id}
-          className="text-[11px] text-rose-400 hover:text-rose-300 disabled:opacity-40"
+          title="Elimina campagna"
+          className="text-rose-500/70 hover:bg-rose-500/10 hover:text-rose-400"
         >
-          {deletingId === campaign.id ? "Eliminazione…" : "Elimina"}
-        </button>
+          {deletingId === campaign.id
+            ? <span className="text-[10px]">…</span>
+            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+              </svg>
+          }
+        </IconBtn>
       )}
     </div>
   );
@@ -161,8 +193,8 @@ export default function CampaignsPage() {
 
       <div className="mb-5 flex gap-1.5">
         {[null, "running", "completed", "scheduled", "draft"].map((s) => (
-          <button key={s ?? "all"} onClick={() => setFilter(s)}
-            className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === s ? "bg-green-100 text-green-800" : "bg-slate-800 text-slate-400 hover:bg-slate-800"}`}>
+          <button type="button" key={s ?? "all"} onClick={() => setFilter(s)}
+            className={`rounded-pill px-3 py-1 text-[11px] font-medium ${filter === s ? "bg-green-100 text-green-800" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}>
             {s ? LABELS[s] || s : "Tutte"}
           </button>
         ))}
@@ -171,17 +203,17 @@ export default function CampaignsPage() {
       {loading ? (
         <div className="animate-pulse text-slate-500">Caricamento...</div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {campaigns.map((c) => {
             const pct = c.stats?.total > 0 ? Math.round((c.stats.sent / c.stats.total) * 100) : 0;
             return (
               <Link key={c.id} href={`/campaigns/${c.id}`}
-                className="block rounded-card border border-slate-800 bg-brand-navy-light p-4 shadow-card transition-shadow hover:shadow-md">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
+                className="group block rounded-card border border-slate-800 bg-brand-navy-light p-4 shadow-card transition-all hover:border-slate-700 hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-[14px] font-medium text-slate-100">
-                      {c.name}
-                      <span className={`rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${STATUS_BADGES[c.status] || "bg-gray-100"}`}>
+                      <span className="truncate">{c.name}</span>
+                      <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${STATUS_BADGES[c.status] || "bg-gray-100"}`}>
                         {LABELS[c.status] || c.status}
                       </span>
                     </div>
@@ -193,25 +225,44 @@ export default function CampaignsPage() {
                         <span className="text-slate-400">Inviati <strong className="text-slate-100">{c.stats.sent}</strong></span>
                         <span className="text-slate-400">Consegnati <strong className="text-brand-teal">{c.stats.total > 0 ? Math.round((c.stats.delivered / c.stats.total) * 100) : 0}%</strong></span>
                         <span className="text-slate-400">Letti <strong className="text-brand-teal">{c.stats.total > 0 ? Math.round((c.stats.read / c.stats.total) * 100) : 0}%</strong></span>
+                        {c.stats.failed > 0 && (
+                          <span className="text-slate-400">Falliti <strong className="text-rose-400">{c.stats.failed}</strong></span>
+                        )}
                       </div>
                     )}
                     {pct > 0 && (
-                      <div className="mt-1.5 h-[5px] w-full overflow-hidden rounded-full bg-slate-800">
+                      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-800">
                         <div className="h-full rounded-full bg-brand-teal" style={{ width: `${pct}%` }} />
                       </div>
                     )}
                   </div>
+
+                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+                    onClick={(e) => e.preventDefault()}>
+                    <Link
+                      href={`/campaigns/${c.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      title="Apri dettaglio"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-700 hover:text-slate-200"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </Link>
+                    <CardActions
+                      campaign={c}
+                      deletingId={deletingId}
+                      resettingId={resettingId}
+                      onDelete={handleDelete}
+                      onReset={handleReset}
+                    />
+                  </div>
                 </div>
-                <CardActions
-                  campaign={c}
-                  deletingId={deletingId}
-                  resettingId={resettingId}
-                  onDelete={handleDelete}
-                  onReset={handleReset}
-                />
               </Link>
             );
           })}
+
           {campaigns.length === 0 && (
             <div className="rounded-card border border-slate-800 bg-brand-navy-light p-10 text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-300">
@@ -220,9 +271,7 @@ export default function CampaignsPage() {
                   <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
                 </svg>
               </div>
-              <h2 className="mb-1 text-[14px] font-semibold text-slate-100">
-                Nessuna campagna ancora
-              </h2>
+              <h2 className="mb-1 text-[14px] font-semibold text-slate-100">Nessuna campagna ancora</h2>
               <p className="mx-auto mb-5 max-w-sm text-[12px] text-slate-400">
                 {aiEnabled
                   ? "Lascia che Wamply ti guidi: descrivi l'obiettivo e ricevi segmento, template e orario consigliati in pochi secondi."
@@ -230,11 +279,8 @@ export default function CampaignsPage() {
               </p>
               <div className="flex items-center justify-center gap-2">
                 {aiEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => setWizardOpen(true)}
-                    className="flex items-center gap-1.5 rounded-pill bg-indigo-500 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-indigo-400"
-                  >
+                  <button type="button" onClick={() => setWizardOpen(true)}
+                    className="flex items-center gap-1.5 rounded-pill bg-indigo-500 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-indigo-400">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
                       <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
                       <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
@@ -242,10 +288,8 @@ export default function CampaignsPage() {
                     Crea con AI (30 secondi)
                   </button>
                 )}
-                <Link
-                  href="/campaigns/new"
-                  className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-300 hover:border-slate-600 hover:text-slate-100"
-                >
+                <Link href="/campaigns/new"
+                  className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-300 hover:border-slate-600 hover:text-slate-100">
                   Crea manualmente
                 </Link>
               </div>
@@ -257,10 +301,7 @@ export default function CampaignsPage() {
       <AICampaignWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        onCreated={() => {
-          setWizardOpen(false);
-          reload();
-        }}
+        onCreated={() => { setWizardOpen(false); reload(); }}
       />
     </>
   );

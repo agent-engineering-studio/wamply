@@ -127,7 +127,12 @@ export default function TemplateEditorPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <EditorForm form={form} errors={errors} onChange={setForm} />
+          <EditorForm
+            form={form}
+            templateId={isNew ? null : params.id}
+            errors={errors}
+            onChange={setForm}
+          />
         </div>
         <div className="lg:col-span-2">
           <PreviewBubble form={form} />

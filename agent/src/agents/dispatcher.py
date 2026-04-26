@@ -50,10 +50,14 @@ async def dispatch_messages(
     if ma_row and ma_row["twilio_subaccount_sid"] and ma_row["twilio_subaccount_auth_token_encrypted"]:
         # Block the dispatch if the WABA isn't approved yet.
         if ma_row["ma_status"] not in ("approved", "active"):
-            raise ValueError(
+            _err = (
                 f"WhatsApp non ancora attivato (stato: {ma_row['ma_status']}). "
                 "Attendi l'approvazione Meta prima di inviare campagne."
             )
+            await log.aerror("dispatcher_config_error", campaign_id=campaign_id, error=_err)
+            for msg in messages:
+                await update_message_failed(db, redis, campaign_id, msg["message_id"], _err)
+            return {"sent": 0, "failed": len(messages), "paused": False}
         account_sid = ma_row["twilio_subaccount_sid"]
         auth_token_raw = ma_row["twilio_subaccount_auth_token_encrypted"]
         if isinstance(auth_token_raw, (bytes, bytearray)):
@@ -89,23 +93,33 @@ async def dispatch_messages(
         from_ = cfg.get(_KEY_FROM) or _os.getenv("TWILIO_FROM")
         messaging_service_sid = cfg.get(_KEY_MSS) or _os.getenv("TWILIO_MESSAGING_SERVICE_SID")
         if not account_sid or not auth_token:
-            raise ValueError(
+            _err = (
                 "Twilio non configurato. "
                 "L'amministratore deve impostare le credenziali master dal pannello Admin → Twilio."
             )
+            await log.aerror("dispatcher_config_error", campaign_id=campaign_id, error=_err)
+            for msg in messages:
+                await update_message_failed(db, redis, campaign_id, msg["message_id"], _err)
+            return {"sent": 0, "failed": len(messages), "paused": False}
         await log.ainfo("dispatcher_using_master", user_id=user_id)
 
+    # Validate config before touching individual messages.
+    # Any config error marks ALL messages failed so the campaign still completes.
+    config_error: str | None = None
     if not from_ and not messaging_service_sid:
-        raise ValueError(
-            "Configurazione Twilio incompleta: serve un numero attivo o messaging_service_sid."
-        )
-
+        config_error = "Configurazione Twilio incompleta: serve un numero attivo o messaging_service_sid."
     content_sid = template.get("twilio_content_sid")
     if not content_sid:
-        raise ValueError(
-            f"Template {template.get('name')} senza twilio_content_sid: "
-            "creare il Content Template su Twilio Console e salvare il SID."
+        config_error = (
+            f"Template '{template.get('name')}' non registrato su Twilio: "
+            "salvare il Content SID dalla pagina Templates."
         )
+
+    if config_error:
+        await log.aerror("dispatcher_config_error", campaign_id=campaign_id, error=config_error)
+        for msg in messages:
+            await update_message_failed(db, redis, campaign_id, msg["message_id"], config_error)
+        return {"sent": 0, "failed": len(messages), "paused": False}
 
     sent = 0
     failed = 0

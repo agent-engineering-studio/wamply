@@ -6,6 +6,7 @@ import type { Template } from "@/lib/templates/types";
 import { bodyText } from "@/lib/templates/preview-meta";
 import { TranslateDialog } from "./TranslateDialog";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { apiFetch } from "@/lib/api-client";
 
 const CATEGORY_STYLES: Record<string, string> = {
   marketing: "bg-brand-navy-light text-brand-teal",
@@ -16,17 +17,41 @@ const CATEGORY_STYLES: Record<string, string> = {
 export function TemplateCard({
   template,
   onDelete,
+  onSynced,
 }: {
   template: Template;
   onDelete: (id: string) => void;
+  onSynced?: (id: string, sid: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [translateOpen, setTranslateOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const preview = bodyText(template.components);
   const { status: agent } = useAgentStatus();
   const aiEnabled = !!agent?.active;
   const date = new Date(template.created_at).toLocaleDateString("it-IT");
+  const needsSync = !template.twilio_content_sid;
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const r = await apiFetch(`/templates/${template.id}/sync-to-twilio`, { method: "POST" });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || `Errore ${r.status}`);
+      }
+      const data = await r.json();
+      onSynced?.(template.id, data.twilio_content_sid);
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : "Errore nella sincronizzazione.");
+    } finally {
+      setSyncing(false);
+      setMenuOpen(false);
+    }
+  }
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -72,6 +97,14 @@ export function TemplateCard({
                 }`}
               />
             )}
+            {needsSync && (
+              <span
+                title="Non sincronizzato con Twilio: non utilizzabile per invii"
+                className="rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300"
+              >
+                ⚠ Twilio
+              </span>
+            )}
           </div>
         </div>
 
@@ -101,6 +134,21 @@ export function TemplateCard({
               >
                 Modifica
               </Link>
+              <button
+                type="button"
+                onClick={handleSync}
+                disabled={syncing}
+                className={`block w-full px-3 py-1.5 text-left text-[12.5px] hover:bg-brand-navy-deep disabled:opacity-50 ${
+                  needsSync ? "text-amber-300" : "text-slate-300"
+                }`}
+                title={needsSync ? "Registra il template su Twilio" : "Ricrea il Content SID con il body attuale"}
+              >
+                {syncing
+                  ? "Sincronizzo…"
+                  : needsSync
+                    ? "🔄 Sincronizza con Twilio"
+                    : "🔄 Ri-sincronizza con Twilio"}
+              </button>
               {aiEnabled && (
                 <button
                   type="button"
@@ -129,6 +177,12 @@ export function TemplateCard({
       </div>
 
       <p className="mb-3 line-clamp-3 text-[12px] text-slate-400">{preview}</p>
+
+      {syncError && (
+        <div className="mb-3 rounded-sm border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300">
+          {syncError}
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-[11px] text-slate-500">
         <span>Creato il {date}</span>

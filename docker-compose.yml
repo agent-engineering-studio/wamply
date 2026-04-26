@@ -82,6 +82,11 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - STORAGE_ROOT=/var/wamply-storage
+      # Public URL Twilio uses to fetch template media. In dev set this to your
+      # ngrok/cloudflared tunnel URL (e.g. https://wamply.ngrok.app). If unset,
+      # template media uploads still work but Twilio can't reach localhost,
+      # so create_content will fail with a clear error.
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-}
       - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
       - AGENT_SECRET=${AGENT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -216,6 +221,21 @@ services:
       QUEUE_TARGET: 5000
       QUEUE_INTERVAL: 5000
       DB_POOL: 5
+    restart: unless-stopped
+    # When supabase-db restarts its container IP changes; the Erlang VM caches
+    # the old DNS resolution forever and this process stays "alive" but unable
+    # to connect (nxdomain loop). The HTTP health endpoint keeps responding so
+    # `restart: on-failure` never fires. We use a TCP probe to the DB host
+    # from inside this container — when DNS goes stale the probe fails, the
+    # autoheal sidecar (below) sees the unhealthy state and restarts us.
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/supabase-db/5432' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      autoheal: "true"
     depends_on:
       supabase-db:
         condition: service_healthy
@@ -223,6 +243,23 @@ services:
       - full
     networks:
       - wcm-network
+
+  # ── Autoheal: restarts containers labeled autoheal=true when unhealthy ──
+  # Specifically targets supabase-realtime which gets stuck in a DNS-cache
+  # nxdomain loop after every supabase-db restart. Generic mechanism — any
+  # service that adds the `autoheal: "true"` label gets the same recovery.
+  autoheal:
+    container_name: wcm-autoheal
+    image: willfarrell/autoheal:1.2.0
+    restart: unless-stopped
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: "10"
+      AUTOHEAL_START_PERIOD: "30"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    profiles:
+      - full
 
   # ── Supabase Storage ────────────────────────────────────
   supabase-storage:

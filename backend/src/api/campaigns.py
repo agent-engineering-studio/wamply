@@ -2,6 +2,9 @@ import csv
 import io
 import json
 import logging
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -266,7 +269,27 @@ async def _do_test_send(db, campaign_id: str, user_id: str, to: str) -> dict:
             from_=from_,
             body=body,
         )
-    return {"sid": msg.sid, "status": msg.status}
+
+    logger.info(
+        "test_send",
+        campaign_id=campaign_id,
+        to=to,
+        from_=from_,
+        content_sid=content_sid,
+        twilio_sid=msg.sid,
+        twilio_status=msg.status,
+        twilio_error_code=msg.error_code,
+        twilio_error_message=msg.error_message,
+    )
+
+    return {
+        "sid": msg.sid,
+        "status": msg.status,
+        "error_code": msg.error_code,
+        "error_message": msg.error_message,
+        "to": msg.to,
+        "from_": msg.from_,
+    }
 
 
 @router.post("/{campaign_id}/test-send")
@@ -298,6 +321,48 @@ async def test_send_campaign(
         raise HTTPException(status_code=502, detail=f"Twilio error: {e}")
 
     return result
+
+
+@router.get("/{campaign_id}/test-send/{message_sid}/status")
+async def test_send_status(
+    request: Request,
+    campaign_id: str,
+    message_sid: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    row = await db.fetchrow(
+        "SELECT id FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    try:
+        account_sid, auth_token = await resolve_master_credentials(db)
+        if not account_sid or not auth_token:
+            raise HTTPException(status_code=503, detail="Credenziali Twilio non configurate.")
+        from twilio.rest import Client as TwilioClient
+        client = TwilioClient(account_sid, auth_token)
+        msg = client.messages(message_sid).fetch()
+        logger.info(
+            "test_send_status_poll",
+            campaign_id=campaign_id,
+            twilio_sid=message_sid,
+            twilio_status=msg.status,
+            twilio_error_code=msg.error_code,
+            twilio_error_message=msg.error_message,
+        )
+        return {
+            "sid": msg.sid,
+            "status": msg.status,
+            "error_code": msg.error_code,
+            "error_message": msg.error_message,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Twilio error: {e}")
 
 
 @router.delete("/{campaign_id}", status_code=204)
@@ -338,13 +403,38 @@ async def launch_campaign(
     await check_plan_limit(db, redis, user.id, "campaigns")
 
     row = await db.fetchrow(
-        "SELECT id, status FROM campaigns WHERE id = $1 AND user_id = $2",
+        "SELECT id, status, group_id FROM campaigns WHERE id = $1 AND user_id = $2",
         campaign_id, user.id,
     )
     if not row:
         raise HTTPException(status_code=404, detail="Campagna non trovata.")
     if row["status"] not in ("draft", "scheduled"):
         raise HTTPException(status_code=400, detail=f"La campagna è in stato '{row['status']}'.")
+
+    # Pre-flight: ensure there's at least one opt-in contact in the selection.
+    # Without this the agent would queue, dequeue, then fail in the planner with
+    # "Nessun contatto trovato" — leaving the user with a permanently 'failed'
+    # campaign and zero feedback. Catch it here with a clear error.
+    if row["group_id"]:
+        optin_count = await db.fetchval(
+            """SELECT count(*) FROM contact_group_members m
+               JOIN contacts c ON c.id = m.contact_id
+               WHERE m.group_id = $1 AND c.opt_in = true""",
+            row["group_id"],
+        ) or 0
+    else:
+        optin_count = await db.fetchval(
+            "SELECT count(*) FROM contacts WHERE user_id = $1 AND opt_in = true",
+            user.id,
+        ) or 0
+    if optin_count == 0:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Nessun contatto con opt-in attivo nella selezione. "
+                "Aggiorna l'opt-in dei contatti o scegli un gruppo con almeno un opt-in prima di lanciare."
+            ),
+        )
 
     # Gate: block launch if WhatsApp sender not yet activated (Meta approval flow).
     # Users still on legacy whatsapp_config (pre-multi-tenant) skip this check.
@@ -383,7 +473,7 @@ async def launch_campaign(
             ma["business_id"], user.id, campaign_id, str(ma["id"]),
         )
 
-    await redis.lpush("campaigns", campaign_id)
+    await redis.lpush("queue:campaigns", campaign_id)
     await db.execute(
         "UPDATE campaigns SET status = 'running', started_at = now() WHERE id = $1",
         campaign_id,
@@ -489,6 +579,160 @@ async def resend_failed(
         row["template_id"], json.dumps({"contact_ids": contact_ids}),
     )
     return _serialize_row(new_row)
+
+
+# ── Send to new contacts (not yet reached in this campaign) ──
+
+@router.post("/{campaign_id}/send-to-new")
+async def send_to_new_contacts(
+    request: Request,
+    campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Find contacts in this campaign's group that have no message record yet, launch a send."""
+    db = get_db(request)
+    campaign = await db.fetchrow(
+        "SELECT name, template_id, group_id, segment_query, status FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+    if campaign["status"] == "running":
+        raise HTTPException(status_code=409, detail="La campagna è già in esecuzione.")
+
+    # Find contacts eligible but not yet messaged
+    group_id = campaign["group_id"]
+    if group_id:
+        new_contacts = await db.fetch(
+            """SELECT c.id FROM contacts c
+               JOIN contact_group_members m ON m.contact_id = c.id
+               WHERE m.group_id = $1 AND c.opt_in = true
+                 AND c.id NOT IN (
+                     SELECT contact_id FROM messages WHERE campaign_id = $2
+                 )""",
+            group_id, campaign_id,
+        )
+    else:
+        new_contacts = await db.fetch(
+            """SELECT c.id FROM contacts c
+               WHERE c.user_id = $1 AND c.opt_in = true
+                 AND c.id NOT IN (
+                     SELECT contact_id FROM messages WHERE campaign_id = $2
+                 )""",
+            user.id, campaign_id,
+        )
+
+    contact_ids = [str(r["id"]) for r in new_contacts]
+    if not contact_ids:
+        raise HTTPException(status_code=400, detail="Nessun nuovo contatto da raggiungere.")
+
+    # Create a child campaign targeting only the new contacts
+    new_row = await db.fetchrow(
+        """INSERT INTO campaigns (user_id, name, template_id, segment_query, status)
+           VALUES ($1, $2, $3, $4, 'draft') RETURNING *""",
+        user.id, f"{campaign['name']} — Nuovi contatti",
+        campaign["template_id"], json.dumps({"contact_ids": contact_ids}),
+    )
+    logger.info("send_to_new", campaign_id=campaign_id, new_count=len(contact_ids))
+    return {**_serialize_row(new_row), "new_count": len(contact_ids)}
+
+
+# ── Count unsent contacts for a campaign ─────────────────────
+
+@router.get("/{campaign_id}/unsent-count")
+async def unsent_contacts_count(
+    request: Request,
+    campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    campaign = await db.fetchrow(
+        "SELECT group_id, user_id FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    group_id = campaign["group_id"]
+    if group_id:
+        n = await db.fetchval(
+            """SELECT count(*) FROM contacts c
+               JOIN contact_group_members m ON m.contact_id = c.id
+               WHERE m.group_id = $1 AND c.opt_in = true
+                 AND c.id NOT IN (SELECT contact_id FROM messages WHERE campaign_id = $2)""",
+            group_id, campaign_id,
+        )
+    else:
+        n = await db.fetchval(
+            """SELECT count(*) FROM contacts c
+               WHERE c.user_id = $1 AND c.opt_in = true
+                 AND c.id NOT IN (SELECT contact_id FROM messages WHERE campaign_id = $2)""",
+            user.id, campaign_id,
+        )
+    return {"unsent_count": int(n or 0)}
+
+
+# ── Messages list (per-contact status) ───────────────────────
+
+@router.get("/{campaign_id}/messages")
+async def list_campaign_messages(
+    request: Request,
+    campaign_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    page: int = 1,
+    page_size: int = 50,
+    status: str | None = None,
+):
+    db = get_db(request)
+    row = await db.fetchrow(
+        "SELECT id FROM campaigns WHERE id = $1 AND user_id = $2",
+        campaign_id, user.id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Campagna non trovata.")
+
+    offset = (page - 1) * page_size
+    filters = "WHERE m.campaign_id = $1"
+    params: list = [campaign_id]
+    if status:
+        params.append(status)
+        filters += f" AND m.status = ${len(params)}"
+
+    total = await db.fetchval(
+        f"SELECT count(*) FROM messages m {filters}", *params
+    )
+    rows = await db.fetch(
+        f"""SELECT m.id, m.status::text, m.error, m.sent_at, m.delivered_at, m.read_at,
+                   c.name AS contact_name, c.phone
+            FROM messages m
+            JOIN contacts c ON c.id = m.contact_id
+            {filters}
+            ORDER BY m.created_at DESC
+            LIMIT ${len(params)+1} OFFSET ${len(params)+2}""",
+        *params, page_size, offset,
+    )
+
+    def _fmt(dt) -> str | None:
+        return dt.strftime("%Y-%m-%dT%H:%M:%S") if dt else None
+
+    return {
+        "total": int(total or 0),
+        "page": page,
+        "page_size": page_size,
+        "messages": [
+            {
+                "id": str(r["id"]),
+                "status": r["status"],
+                "error": r["error"],
+                "sent_at": _fmt(r["sent_at"]),
+                "delivered_at": _fmt(r["delivered_at"]),
+                "read_at": _fmt(r["read_at"]),
+                "contact_name": r["contact_name"],
+                "phone": r["phone"],
+            }
+            for r in rows
+        ],
+    }
 
 
 # ── Export CSV ────────────────────────────────────────────────

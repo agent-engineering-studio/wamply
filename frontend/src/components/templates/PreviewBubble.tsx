@@ -28,7 +28,8 @@ function highlight(text: string): React.ReactNode[] {
 export function PreviewBubble({ form }: { form: TemplateFormState }) {
   const [showRendered, setShowRendered] = useState(false);
 
-  const headerText = form.header?.text ?? "";
+  const headerText = form.header && form.header.format === "TEXT" ? form.header.text : "";
+  const headerMedia = form.header && form.header.format !== "TEXT" ? form.header : null;
   const bodyText = form.body.text;
   const footerText = form.footer?.text ?? "";
   const buttons = form.buttons;
@@ -57,6 +58,19 @@ export function PreviewBubble({ form }: { form: TemplateFormState }) {
           {form.header && headerText && (
             <div className="mb-1 text-[13px] font-semibold text-[#1F2937]">
               {showRendered ? renderText(headerText) : highlight(headerText)}
+            </div>
+          )}
+          {headerMedia && headerMedia.media_url && (
+            <div className="mb-1.5 overflow-hidden rounded-md bg-white">
+              {headerMedia.format === "IMAGE" ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={headerMedia.media_url} alt="Header" className="max-h-48 w-full object-cover" />
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-[#1F2937]">
+                  <span>{headerMedia.format === "VIDEO" ? "🎬" : "📄"}</span>
+                  <span className="truncate">{headerMedia.media_url.split("/").pop()}</span>
+                </div>
+              )}
             </div>
           )}
           <div className="whitespace-pre-wrap text-[13px] leading-snug text-[#1F2937]">

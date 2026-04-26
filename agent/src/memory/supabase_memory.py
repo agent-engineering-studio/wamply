@@ -11,8 +11,15 @@ class SupabaseMemory:
     def __init__(self) -> None:
         self._pool: asyncpg.Pool | None = None
 
+    @staticmethod
+    async def _init_conn(conn: asyncpg.Connection) -> None:
+        await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
+        await conn.set_type_codec("json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
+
     async def connect(self) -> None:
-        self._pool = await asyncpg.create_pool(settings.database_url, min_size=2, max_size=10)
+        self._pool = await asyncpg.create_pool(
+            settings.database_url, min_size=2, max_size=10, init=self._init_conn
+        )
 
     async def close(self) -> None:
         if self._pool:
@@ -149,7 +156,7 @@ class SupabaseMemory:
         if stats:
             await self.pool.execute(
                 """
-                UPDATE campaigns SET status = $2, stats = $3::jsonb,
+                UPDATE campaigns SET status = $2::campaign_status, stats = $3::jsonb,
                     started_at = CASE WHEN $2 = 'running' AND started_at IS NULL THEN now() ELSE started_at END,
                     completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN now() ELSE completed_at END,
                     updated_at = now()
@@ -162,7 +169,7 @@ class SupabaseMemory:
         else:
             await self.pool.execute(
                 """
-                UPDATE campaigns SET status = $2,
+                UPDATE campaigns SET status = $2::campaign_status,
                     started_at = CASE WHEN $2 = 'running' AND started_at IS NULL THEN now() ELSE started_at END,
                     completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN now() ELSE completed_at END,
                     updated_at = now()
@@ -198,10 +205,10 @@ class SupabaseMemory:
     ) -> None:
         await self.pool.execute(
             """
-            UPDATE messages SET status = $2, provider_message_id = $3, error = $4,
-                sent_at = CASE WHEN $2 = 'sent' THEN now() ELSE sent_at END,
-                delivered_at = CASE WHEN $2 = 'delivered' THEN now() ELSE delivered_at END,
-                read_at = CASE WHEN $2 = 'read' THEN now() ELSE read_at END
+            UPDATE messages SET status = $2::message_status, provider_message_id = $3, error = $4,
+                sent_at = CASE WHEN $2::message_status = 'sent' THEN now() ELSE sent_at END,
+                delivered_at = CASE WHEN $2::message_status = 'delivered' THEN now() ELSE delivered_at END,
+                read_at = CASE WHEN $2::message_status = 'read' THEN now() ELSE read_at END
             WHERE id = $1
             """,
             message_id,

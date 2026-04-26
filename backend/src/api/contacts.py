@@ -19,6 +19,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/contacts")
 
 
+@router.get("/count")
+async def count_contacts(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    n = await db.fetchval(
+        "SELECT count(*) FROM contacts WHERE user_id = $1 AND opt_in = true", user.id
+    )
+    return {"count": int(n or 0)}
+
+
 @router.get("")
 async def list_contacts(
     request: Request,

@@ -15,6 +15,16 @@ const STATUS_MAP: Record<string, string> = {
   undelivered: "failed",
 };
 
+// Twilio error codes that indicate the recipient has opted out / blocked the
+// business. When we hit one of these we flip the contact's opt_in to false so
+// future campaigns don't waste sends on them.
+//
+// References:
+// - 63015 Channel disabled (recipient blocked the channel)
+// - 63037 Recipient opted-out
+// - 63045 Recipient opted out (newer)
+const OPT_OUT_ERROR_CODES = new Set(["63015", "63037", "63045"]);
+
 export async function POST(req: NextRequest) {
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   if (!authToken) {
@@ -55,6 +65,22 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient();
   await supabase.from("messages").update(update).eq("provider_message_id", messageSid);
+
+  // Auto opt-out: if the failure code says the recipient blocked us or
+  // opted out, flip the contact's opt_in flag so future campaigns skip them.
+  if (status === "failed" && params.ErrorCode && OPT_OUT_ERROR_CODES.has(params.ErrorCode)) {
+    const { data: msg } = await supabase
+      .from("messages")
+      .select("contact_id")
+      .eq("provider_message_id", messageSid)
+      .single();
+    if (msg?.contact_id) {
+      await supabase
+        .from("contacts")
+        .update({ opt_in: false, opt_in_date: new Date().toISOString() })
+        .eq("id", msg.contact_id);
+    }
+  }
 
   return NextResponse.json({ success: true });
 }

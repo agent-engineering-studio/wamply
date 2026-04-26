@@ -6,6 +6,7 @@ import type {
   Language,
   TemplateCategory,
   HeaderComponent,
+  HeaderFormat,
   FooterComponent,
 } from "@/lib/templates/types";
 import { insertAtCursor } from "@/lib/templates/variables";
@@ -13,6 +14,7 @@ import { VariableToolbar } from "./VariableToolbar";
 import { ButtonsEditor } from "./ButtonsEditor";
 import { ImproveWithAI } from "./ImproveWithAI";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { apiFetch } from "@/lib/api-client";
 
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: "it", label: "Italiano" },
@@ -29,16 +31,21 @@ const CATEGORIES: { value: TemplateCategory; label: string }[] = [
 
 export function EditorForm({
   form,
+  templateId,
   errors,
   onChange,
 }: {
   form: TemplateFormState;
+  templateId: string | null;
   errors: Record<string, string>;
   onChange: (next: TemplateFormState) => void;
 }) {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const headerRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [improveOpen, setImproveOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { status: agent } = useAgentStatus();
   const aiEnabled = !!agent?.active;
 
@@ -49,7 +56,7 @@ export function EditorForm({
   }
 
   function insertIntoHeader(token: string) {
-    if (!headerRef.current || !form.header) return;
+    if (!headerRef.current || !form.header || form.header.format !== "TEXT") return;
     const nextText = insertAtCursor(headerRef.current, token);
     onChange({ ...form, header: { type: "HEADER", format: "TEXT", text: nextText } });
   }
@@ -59,6 +66,45 @@ export function EditorForm({
       ? null
       : { type: "HEADER", format: "TEXT", text: "" };
     onChange({ ...form, header: next });
+  }
+
+  function setHeaderFormat(fmt: HeaderFormat) {
+    if (fmt === "TEXT") {
+      onChange({ ...form, header: { type: "HEADER", format: "TEXT", text: "" } });
+    } else {
+      onChange({ ...form, header: { type: "HEADER", format: fmt, media_url: "" } });
+    }
+  }
+
+  async function handleMediaUpload(file: File) {
+    if (!templateId) {
+      setUploadError("Salva prima il template per caricare un file.");
+      return;
+    }
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await apiFetch(`/templates/${templateId}/media`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || `Errore ${r.status}`);
+      }
+      const data = await r.json();
+      onChange({
+        ...form,
+        header: { type: "HEADER", format: data.format, media_url: data.media_url },
+      });
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Errore upload.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   function toggleFooter() {
@@ -122,22 +168,120 @@ export function EditorForm({
           </button>
         </div>
         {form.header && (
-          <>
-            <input
-              ref={headerRef}
-              value={form.header.text}
-              maxLength={60}
-              onChange={(e) =>
-                onChange({ ...form, header: { type: "HEADER", format: "TEXT", text: e.target.value } })
-              }
-              placeholder="Testo header"
-              className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px]"
-            />
-            <VariableToolbar onInsert={insertIntoHeader} />
-            {errors["header.text"] && (
-              <div className="mt-1 text-[11px] text-red-600">{errors["header.text"]}</div>
+          <div className="space-y-3">
+            {/* Format selector — emoji + label, low IT-culture friendly */}
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  { v: "TEXT", label: "Testo", icon: "Aa" },
+                  { v: "IMAGE", label: "Immagine", icon: "🖼️" },
+                  { v: "VIDEO", label: "Video", icon: "🎬" },
+                  { v: "DOCUMENT", label: "PDF", icon: "📄" },
+                ] as { v: HeaderFormat; label: string; icon: string }[]
+              ).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setHeaderFormat(opt.v)}
+                  className={`flex items-center gap-1.5 rounded-pill px-3 py-1 text-[12px] font-medium transition-colors ${
+                    form.header?.format === opt.v
+                      ? "bg-brand-teal text-white"
+                      : "border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+                  }`}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {form.header.format === "TEXT" ? (
+              <>
+                <input
+                  ref={headerRef}
+                  value={form.header.text}
+                  maxLength={60}
+                  onChange={(e) =>
+                    onChange({ ...form, header: { type: "HEADER", format: "TEXT", text: e.target.value } })
+                  }
+                  placeholder="Testo header"
+                  className="w-full rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[13px]"
+                />
+                <VariableToolbar onInsert={insertIntoHeader} />
+                {errors["header.text"] && (
+                  <div className="mt-1 text-[11px] text-red-600">{errors["header.text"]}</div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-2">
+                {form.header.media_url ? (
+                  <div className="space-y-2">
+                    {form.header.format === "IMAGE" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={form.header.media_url}
+                        alt="Anteprima"
+                        className="max-h-48 rounded-sm border border-slate-700 object-contain"
+                      />
+                    ) : (
+                      <div className="rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-3 text-[12px] text-slate-300">
+                        File caricato: <span className="font-mono text-slate-100">{form.header.media_url.split("/").pop()}</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading || !templateId}
+                      className="rounded-pill border border-slate-700 px-3 py-1 text-[11.5px] text-slate-300 hover:border-slate-500 disabled:opacity-40"
+                    >
+                      {uploading ? "Carico…" : "Sostituisci"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading || !templateId}
+                    className="flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-slate-700 bg-brand-navy-deep px-3 py-6 text-[12.5px] text-slate-400 transition-colors hover:border-brand-teal/50 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {uploading
+                      ? "Caricamento…"
+                      : !templateId
+                        ? "Salva prima il template per caricare il file"
+                        : "📎 Scegli un file dal tuo computer"}
+                  </button>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  aria-label="Carica file media per l'header"
+                  title="Carica file media per l'header"
+                  accept={
+                    form.header.format === "IMAGE"
+                      ? "image/png,image/jpeg,image/webp"
+                      : form.header.format === "VIDEO"
+                        ? "video/mp4,video/3gpp"
+                        : "application/pdf"
+                  }
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleMediaUpload(f);
+                  }}
+                />
+                <p className="text-[10.5px] text-slate-500">
+                  {form.header.format === "IMAGE" && "PNG, JPEG o WebP — max 16 MB"}
+                  {form.header.format === "VIDEO" && "MP4 o 3GP — max 16 MB"}
+                  {form.header.format === "DOCUMENT" && "PDF — max 16 MB"}
+                </p>
+                {uploadError && (
+                  <div className="rounded-sm border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11.5px] text-rose-300">
+                    {uploadError}
+                  </div>
+                )}
+              </div>
             )}
-          </>
+          </div>
         )}
       </div>
 

@@ -42,12 +42,20 @@ async def list_groups(
     db = get_db(request)
     rows = await db.fetch(
         """SELECT g.id, g.name, g.description, g.created_at, g.updated_at,
-                  COALESCE(m.n, 0)::int AS member_count
+                  COALESCE(m.n, 0)::int AS member_count,
+                  COALESCE(o.n, 0)::int AS opt_in_count
            FROM contact_groups g
            LEFT JOIN (
                SELECT group_id, count(*) AS n
                FROM contact_group_members GROUP BY group_id
            ) m ON m.group_id = g.id
+           LEFT JOIN (
+               SELECT cgm.group_id, count(*) AS n
+               FROM contact_group_members cgm
+               JOIN contacts c ON c.id = cgm.contact_id
+               WHERE c.opt_in = true
+               GROUP BY cgm.group_id
+           ) o ON o.group_id = g.id
            WHERE g.user_id = $1
            ORDER BY g.created_at DESC""",
         user.id,

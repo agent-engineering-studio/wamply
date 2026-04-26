@@ -43,6 +43,6 @@ async def finalize_campaign(
         "failed": progress["failed"],
     }
 
-    status = "completed" if progress["failed"] < progress["total"] else "failed"
+    status = "completed"
     await db.update_campaign_status(campaign_id, status, stats)
     return {"status": status, "stats": stats}

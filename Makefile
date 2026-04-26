@@ -41,6 +41,9 @@ rebuild:
 	docker compose up -d
 	@echo Stack completo riavviato con il codice aggiornato.
 
+refresh: down build up-full
+	@echo Stack completo riavviato con le immagini ricostruite.
+	
 reset:
 	docker compose down -v
 	docker compose up -d --build

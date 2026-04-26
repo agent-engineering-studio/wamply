@@ -99,7 +99,16 @@ export default function TemplatesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((t) => (
-            <TemplateCard key={t.id} template={t} onDelete={handleDelete} />
+            <TemplateCard
+              key={t.id}
+              template={t}
+              onDelete={handleDelete}
+              onSynced={(id, sid) =>
+                setTemplates((list) =>
+                  list ? list.map((x) => (x.id === id ? { ...x, twilio_content_sid: sid } : x)) : list,
+                )
+              }
+            />
           ))}
         </div>
       )}

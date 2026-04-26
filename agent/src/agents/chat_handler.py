@@ -170,8 +170,8 @@ async def execute_tool(
     if tool_name == "add_contact":
         row = await pool.fetchrow(
             """
-            INSERT INTO contacts (user_id, phone, name, email, language, tags)
-            VALUES ($1, $2, $3, $4, $5, $6::text[])
+            INSERT INTO contacts (user_id, phone, name, email, language, tags, opt_in, opt_in_date)
+            VALUES ($1, $2, $3, $4, $5, $6::text[], true, now())
             ON CONFLICT (user_id, phone) DO NOTHING
             RETURNING id
             """,
@@ -245,8 +245,8 @@ async def execute_tool(
         for c in contacts_list:
             row = await pool.fetchrow(
                 """
-                INSERT INTO contacts (user_id, phone, name, email, language, tags)
-                VALUES ($1, $2, $3, $4, $5, $6::text[])
+                INSERT INTO contacts (user_id, phone, name, email, language, tags, opt_in, opt_in_date)
+                VALUES ($1, $2, $3, $4, $5, $6::text[], true, now())
                 ON CONFLICT (user_id, phone) DO NOTHING
                 RETURNING id
                 """,

@@ -19,6 +19,12 @@ interface Template {
   category: string;
 }
 
+interface Group {
+  id: string;
+  name: string;
+  member_count: number;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -26,6 +32,8 @@ interface Props {
 }
 
 type Step = "objective" | "review" | "confirm";
+
+const ALL_CONTACTS = "__all__";
 
 const OBJECTIVE_EXAMPLES = [
   "Promo saldi estivi per clienti Milano con almeno 1 acquisto negli ultimi 6 mesi",
@@ -38,9 +46,11 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
   const [step, setStep] = useState<Step>("objective");
   const [objective, setObjective] = useState("");
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [suggestion, setSuggestion] = useState<PlannerSuggestion | null>(null);
   const [name, setName] = useState("");
   const [chosenTemplateId, setChosenTemplateId] = useState<string | null>(null);
+  const [chosenGroupId, setChosenGroupId] = useState<string>(ALL_CONTACTS);
   const [launchMode, setLaunchMode] = useState<"now" | "later">("now");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +60,10 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
     apiFetch("/templates")
       .then((r) => r.json())
       .then((d) => setTemplates(d.templates || []))
+      .catch(() => {});
+    apiFetch("/groups")
+      .then((r) => r.json())
+      .then((d) => setGroups(d.groups || []))
       .catch(() => {});
   }, [open]);
 
@@ -61,6 +75,7 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
       setSuggestion(null);
       setName("");
       setChosenTemplateId(null);
+      setChosenGroupId(ALL_CONTACTS);
       setLaunchMode("now");
       setError(null);
       setLoading(false);
@@ -117,7 +132,7 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
         body: JSON.stringify({
           name: name.trim(),
           template_id: chosenTemplateId || null,
-          group_id: null,
+          group_id: chosenGroupId === ALL_CONTACTS ? null : chosenGroupId,
         }),
       });
       const campaign = await res.json();
@@ -142,11 +157,11 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
         className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-card border border-indigo-500/30 bg-brand-navy-light shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-slate-800 bg-linear-to-r from-indigo-500/10 to-brand-teal/5 px-5 py-4">
@@ -240,6 +255,31 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
                 <div className="mt-1 text-[11.5px] text-slate-400">
                   ~{suggestion.estimated_audience.toLocaleString("it-IT")} destinatari stimati
                 </div>
+              </div>
+
+              {/* Recipients group */}
+              <div>
+                <label htmlFor="wiz-group" className="mb-1 block text-[11.5px] font-medium uppercase tracking-wider text-slate-400">
+                  Destinatari
+                </label>
+                <select
+                  id="wiz-group"
+                  value={chosenGroupId}
+                  onChange={(e) => setChosenGroupId(e.target.value)}
+                  className="w-full rounded-sm border border-slate-700 bg-brand-navy-deep px-3 py-2 text-[13px] text-slate-100 focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value={ALL_CONTACTS}>Tutti i contatti con opt-in</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.member_count} contatti)
+                    </option>
+                  ))}
+                </select>
+                {groups.length === 0 && (
+                  <div className="mt-1 text-[10.5px] text-slate-500">
+                    Nessuna lista creata. <a href="/groups" className="text-indigo-300 hover:underline">Creane una</a> per targettizzare un segmento.
+                  </div>
+                )}
               </div>
 
               {/* Template */}
@@ -373,6 +413,14 @@ export function AICampaignWizard({ open, onClose, onCreated }: Props) {
               <div className="rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2.5 text-[11.5px] text-slate-400">
                 <div className="mb-1 font-medium text-slate-200">Riepilogo</div>
                 <div>Nome: <span className="text-slate-100">{name || "—"}</span></div>
+                <div>
+                  Destinatari:{" "}
+                  <span className="text-slate-100">
+                    {chosenGroupId === ALL_CONTACTS
+                      ? "Tutti i contatti con opt-in"
+                      : groups.find((g) => g.id === chosenGroupId)?.name ?? "—"}
+                  </span>
+                </div>
                 <div>
                   Template:{" "}
                   <span className="text-slate-100">

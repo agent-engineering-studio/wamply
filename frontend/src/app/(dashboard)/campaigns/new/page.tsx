@@ -10,7 +10,7 @@ import { CampaignPlanner } from "./_components/CampaignPlanner";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 interface Template { id: string; name: string; category: string; }
-interface Group { id: string; name: string; }
+interface Group { id: string; name: string; member_count: number; }
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -27,8 +27,7 @@ export default function NewCampaignPage() {
 
   useEffect(() => {
     apiFetch("/templates").then((r) => r.json()).then((d) => setTemplates(d.templates || []));
-    // Groups API doesn't exist yet — will be empty
-    apiFetch("/contacts?page=1").then(() => {});
+    apiFetch("/groups").then((r) => r.json()).then((d) => setGroups(d.groups || []));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -98,6 +97,32 @@ export default function NewCampaignPage() {
                 per inviare campagne personalizzate.
               </p>
             )}
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-[11.5px] font-medium text-slate-400">Destinatari</label>
+            <div className="space-y-2">
+              <label className={`flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors ${groupId === "" ? "border-brand-teal/50 bg-brand-teal/5" : "border-slate-800 hover:border-slate-700"}`}>
+                <input type="radio" name="audience" value="" checked={groupId === ""} onChange={() => setGroupId("")} className="accent-brand-teal" />
+                <span className="text-[13px] text-slate-200">Tutti i contatti opt-in</span>
+              </label>
+              {groups.map((g) => (
+                <label key={g.id} className={`flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors ${groupId === g.id ? "border-brand-teal/50 bg-brand-teal/5" : "border-slate-800 hover:border-slate-700"}`}>
+                  <input type="radio" name="audience" value={g.id} checked={groupId === g.id} onChange={() => setGroupId(g.id)} className="accent-brand-teal" />
+                  <div>
+                    <div className="text-[13px] text-slate-200">{g.name}</div>
+                    <div className="text-[11px] text-slate-500">{g.member_count} contatti</div>
+                  </div>
+                </label>
+              ))}
+              {groups.length === 0 && (
+                <p className="text-[11px] text-slate-500">
+                  Nessun gruppo creato.{" "}
+                  <Link href="/groups" className="text-brand-teal hover:underline">Crea un gruppo</Link>{" "}
+                  per targetizzare un segmento specifico.
+                </p>
+              )}
+            </div>
           </div>
 
           <div>

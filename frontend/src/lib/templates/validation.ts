@@ -43,10 +43,16 @@ export function validateTemplate(form: TemplateFormState): ValidationResult {
   }
 
   if (form.header) {
-    if (!form.header.text.trim()) {
-      errors["header.text"] = "Se abilitato, l'header deve contenere del testo.";
-    } else if (form.header.text.length > 60) {
-      errors["header.text"] = "L'header può avere al massimo 60 caratteri.";
+    if (form.header.format === "TEXT") {
+      if (!form.header.text.trim()) {
+        errors["header.text"] = "Se abilitato, l'header deve contenere del testo.";
+      } else if (form.header.text.length > 60) {
+        errors["header.text"] = "L'header può avere al massimo 60 caratteri.";
+      }
+    } else {
+      if (!form.header.media_url) {
+        errors["header.media"] = "Carica un file per l'header.";
+      }
     }
   }
 
@@ -67,7 +73,9 @@ export function validateTemplate(form: TemplateFormState): ValidationResult {
 
   const textFields: [string, string][] = [
     ["body.text", form.body.text],
-    ...(form.header ? ([["header.text", form.header.text]] as [string, string][]) : []),
+    ...(form.header && form.header.format === "TEXT"
+      ? ([["header.text", form.header.text]] as [string, string][])
+      : []),
   ];
   for (const [field, value] of textFields) {
     const bad = invalidVariables(value);
