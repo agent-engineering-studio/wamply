@@ -131,6 +131,134 @@ async def create_group(
     return out
 
 
+@router.get("/{group_id}/members")
+async def list_group_members(
+    request: Request,
+    group_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    group_row = await db.fetchrow(
+        "SELECT id FROM contact_groups WHERE id = $1 AND user_id = $2",
+        group_id, user.id,
+    )
+    if not group_row:
+        raise HTTPException(status_code=404, detail="Gruppo non trovato.")
+    rows = await db.fetch(
+        """SELECT c.id, c.phone, c.name FROM contact_group_members m
+           JOIN contacts c ON c.id = m.contact_id
+           WHERE m.group_id = $1 ORDER BY c.name NULLS LAST""",
+        group_id,
+    )
+    members = []
+    for r in rows:
+        d = dict(r)
+        d["id"] = str(d["id"])
+        members.append(d)
+    return {"members": members}
+
+
+@router.post("/{group_id}/members", status_code=201)
+async def add_group_member(
+    request: Request,
+    group_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    body = await request.json()
+    contact_id = (body.get("contact_id") or "").strip()
+    if not contact_id:
+        raise HTTPException(status_code=400, detail="contact_id obbligatorio.")
+
+    group_row = await db.fetchrow(
+        "SELECT id FROM contact_groups WHERE id = $1 AND user_id = $2",
+        group_id, user.id,
+    )
+    if not group_row:
+        raise HTTPException(status_code=404, detail="Gruppo non trovato.")
+
+    contact_row = await db.fetchrow(
+        "SELECT id FROM contacts WHERE id = $1 AND user_id = $2",
+        contact_id, user.id,
+    )
+    if not contact_row:
+        raise HTTPException(status_code=404, detail="Contatto non trovato.")
+
+    await db.execute(
+        "INSERT INTO contact_group_members (contact_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        contact_id, group_id,
+    )
+    count_row = await db.fetchrow(
+        "SELECT count(*)::int AS n FROM contact_group_members WHERE group_id = $1",
+        group_id,
+    )
+    return {"group_id": group_id, "member_count": count_row["n"] if count_row else 0}
+
+
+@router.delete("/{group_id}/members/{contact_id}", status_code=204)
+async def remove_group_member(
+    request: Request,
+    group_id: str,
+    contact_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    group_row = await db.fetchrow(
+        "SELECT id FROM contact_groups WHERE id = $1 AND user_id = $2",
+        group_id, user.id,
+    )
+    if not group_row:
+        raise HTTPException(status_code=404, detail="Gruppo non trovato.")
+
+    await db.execute(
+        "DELETE FROM contact_group_members WHERE contact_id = $1 AND group_id = $2",
+        contact_id, group_id,
+    )
+    return None
+
+
+@router.put("/{group_id}")
+async def update_group(
+    request: Request,
+    group_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    if "name" in body and not name:
+        raise HTTPException(status_code=400, detail="Il nome del gruppo è obbligatorio.")
+    description = (body.get("description") or "").strip() or None
+
+    fields, params = [], []
+    idx = 1
+    if "name" in body and name:
+        fields.append(f"name = ${idx}")
+        params.append(name)
+        idx += 1
+    if "description" in body:
+        fields.append(f"description = ${idx}")
+        params.append(description)
+        idx += 1
+    if not fields:
+        raise HTTPException(status_code=400, detail="Nessun campo da aggiornare.")
+
+    params.extend([group_id, user.id])
+    try:
+        row = await db.fetchrow(
+            f"UPDATE contact_groups SET {', '.join(fields)}, updated_at = now() "
+            f"WHERE id = ${idx} AND user_id = ${idx + 1} RETURNING *",
+            *params,
+        )
+    except Exception as e:
+        if "invalid input syntax" in str(e) or "DataError" in type(e).__name__:
+            raise HTTPException(status_code=422, detail="ID gruppo non valido.")
+        raise
+    if not row:
+        raise HTTPException(status_code=404, detail="Gruppo non trovato.")
+    return _serialize(row)
+
+
 @router.delete("/{group_id}", status_code=204)
 async def delete_group(
     request: Request,
