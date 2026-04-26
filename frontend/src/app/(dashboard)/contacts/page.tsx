@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api-client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { SmartTagsModal } from "./_components/SmartTagsModal";
 import { ContactModal } from "./_components/ContactModal";
+import { CsvImportModal } from "./_components/CsvImportModal";
 
 interface Contact {
   id: string;
@@ -32,6 +33,7 @@ export default function ContactsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [tagsModalOpen, setTagsModalOpen] = useState(false);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | undefined>(undefined);
   const { status: agentStatus } = useAgentStatus();
@@ -89,6 +91,7 @@ export default function ContactsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setCsvModalOpen(true)}
             className="rounded-sm border border-slate-800 bg-brand-navy-light px-3 py-2 text-[12px] font-medium text-slate-400 hover:bg-brand-navy-deep"
           >
             Importa CSV
@@ -293,6 +296,7 @@ export default function ContactsPage() {
               <div className="flex items-center justify-center gap-2">
                 <button
                   type="button"
+                  onClick={() => setCsvModalOpen(true)}
                   className="rounded-pill bg-brand-teal px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-teal-dark"
                 >
                   Importa CSV
@@ -330,6 +334,12 @@ export default function ContactsPage() {
         contact={editingContact}
         onClose={() => setContactModalOpen(false)}
         onSaved={() => { setContactModalOpen(false); reload(); }}
+      />
+
+      <CsvImportModal
+        open={csvModalOpen}
+        onClose={() => setCsvModalOpen(false)}
+        onImported={() => { setCsvModalOpen(false); reload(); }}
       />
 
       <SmartTagsModal
