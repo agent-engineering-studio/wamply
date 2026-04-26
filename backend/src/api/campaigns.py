@@ -215,17 +215,30 @@ async def update_campaign(
     return _serialize_row(row)
 
 
+def _extract_body_text(components) -> str:
+    import json
+    if not components:
+        return ""
+    if isinstance(components, str):
+        try:
+            components = json.loads(components)
+        except Exception:
+            return components
+    for comp in components:
+        if isinstance(comp, dict) and comp.get("type", "").upper() == "BODY":
+            return comp.get("text", "")
+    return ""
+
+
 async def _do_test_send(db, campaign_id: str, user_id: str, to: str) -> dict:
     row = await db.fetchrow(
-        """SELECT c.template_id, t.twilio_sid, t.components
+        """SELECT c.template_id, t.twilio_content_sid, t.components
            FROM campaigns c LEFT JOIN templates t ON t.id = c.template_id
            WHERE c.id = $1 AND c.user_id = $2""",
         campaign_id, user_id,
     )
     if not row:
         raise ValueError("Campagna non trovata.")
-    if not row["twilio_sid"]:
-        raise ValueError("Questa campagna non ha un template Twilio valido.")
 
     account_sid, auth_token = await resolve_master_credentials(db)
     from_ = await _get_config(db, KEY_MASTER_FROM) or ""
@@ -235,12 +248,24 @@ async def _do_test_send(db, campaign_id: str, user_id: str, to: str) -> dict:
 
     from twilio.rest import Client as TwilioClient
     client = TwilioClient(account_sid, auth_token)
-    msg = client.messages.create(
-        to=to,
-        from_=from_,
-        content_sid=row["twilio_sid"],
-        content_variables="{}",
-    )
+
+    content_sid = row["twilio_content_sid"]
+    if content_sid:
+        msg = client.messages.create(
+            to=to,
+            from_=from_,
+            content_sid=content_sid,
+            content_variables="{}",
+        )
+    else:
+        body = _extract_body_text(row["components"])
+        if not body:
+            raise ValueError("Il template non ha testo né un Content SID configurato.")
+        msg = client.messages.create(
+            to=to,
+            from_=from_,
+            body=body,
+        )
     return {"sid": msg.sid, "status": msg.status}
 
 
