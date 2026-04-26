@@ -210,3 +210,53 @@ async def apply_tags(
             if result.endswith("1"):
                 updated += 1
     return {"updated": updated}
+
+
+@router.put("/{contact_id}")
+async def update_contact(
+    request: Request,
+    contact_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    body = await request.json()
+    fields, params = [], []
+    idx = 1
+    for key in ["phone", "name", "email", "language", "tags", "variables"]:
+        if key in body:
+            fields.append(f"{key} = ${idx}")
+            params.append(body[key])
+            idx += 1
+    if not fields:
+        raise HTTPException(status_code=400, detail="Nessun campo da aggiornare.")
+    params.extend([contact_id, user.id])
+    row = await db.fetchrow(
+        f"UPDATE contacts SET {', '.join(fields)}, updated_at = now() "
+        f"WHERE id = ${idx} AND user_id = ${idx + 1} RETURNING *",
+        *params,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Contatto non trovato.")
+    d = dict(row)
+    for k, v in d.items():
+        if hasattr(v, "hex"):
+            d[k] = str(v)
+        elif hasattr(v, "isoformat"):
+            d[k] = v.isoformat()
+    return d
+
+
+@router.delete("/{contact_id}", status_code=204)
+async def delete_contact(
+    request: Request,
+    contact_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    db = get_db(request)
+    result = await db.execute(
+        "DELETE FROM contacts WHERE id = $1 AND user_id = $2",
+        contact_id, user.id,
+    )
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail="Contatto non trovato.")
+    return None
