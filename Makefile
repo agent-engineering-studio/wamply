@@ -34,6 +34,13 @@ down:
 build:
 	docker compose build
 
+rebuild:
+	docker compose build backend agent
+	docker compose stop frontend
+	$(RM_NEXT)
+	docker compose up -d backend agent frontend
+	@echo Backend, agent e frontend riavviati con il codice aggiornato.
+
 reset:
 	docker compose down -v
 	docker compose up -d --build
@@ -59,12 +66,6 @@ setup: env reset
 	@echo   User 1: user1@test.local    / User123!
 	@echo   User 2: user2@test.local    / User123!
 	@echo ========================================================
-
-rebuild:
-	docker compose stop frontend
-	$(RM_NEXT)
-	docker compose up -d frontend
-	@echo Frontend rebuilt from scratch.
 
 # ── Local Debug (no app containers) ──────────────────────
 
