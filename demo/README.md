@@ -9,7 +9,7 @@ Script di installazione e avvio per demo locali e testing interno.
 ## Requisiti minimi
 
 | Requisito | Note |
-|-----------|------|
+| --------- | ---- |
 | Windows 10+ / macOS 10.15+ / Linux (Ubuntu 20+) | — |
 | Connessione internet | Per il primo build (~5-10 min) |
 | 8 GB RAM liberi | Docker + tutti i servizi |
@@ -54,7 +54,7 @@ oppure da PowerShell:
 Se Wamply è già in esecuzione, lo script propone:
 
 | Scelta | Azione |
-|--------|--------|
+| ------ | ------ |
 | **1** | Mostra solo URL e credenziali |
 | **2** | Riavvia i container (nessuna perdita di dati) |
 | **3** | Gestisci configurazioni / cambia Twilio |
@@ -65,17 +65,17 @@ Se Wamply è già in esecuzione, lo script propone:
 ## URL e credenziali demo
 
 | Servizio | URL |
-|----------|-----|
-| Frontend | http://localhost:3000 |
-| Admin panel | http://localhost:3000/admin |
-| Email (Mailhog) | http://localhost:8025 |
-| Redis UI | http://localhost:8001 |
+| -------- | --- |
+| Frontend | <http://localhost:3000> |
+| Admin panel | <http://localhost:3000/admin> |
+| Email (Mailhog) | <http://localhost:8025> |
+| Redis UI | <http://localhost:8001> |
 
 | Account | Email | Password |
-|---------|-------|----------|
-| Admin | admin@wcm.local | Admin123! |
-| Utente 1 | user1@test.local | User123! |
-| Utente 2 | user2@test.local | User123! |
+| ------- | ----- | -------- |
+| Admin | `admin@wcm.local` | Admin123! |
+| Utente 1 | `user1@test.local` | User123! |
+| Utente 2 | `user2@test.local` | User123! |
 
 > La **Claude API Key** si imposta nell'admin panel → tab "Claude API".
 
@@ -89,7 +89,7 @@ I profili vengono salvati in `demo/configs/` (esclusi da git — contengono cred
 
 ### Flusso tipico
 
-```
+```bash
 # Prima della demo con il cliente Acme
 ./demo/setup.sh  →  [3] Gestisci configurazioni  →  [2] Salva  →  "cliente-acme"
 
@@ -130,7 +130,8 @@ Aprire Docker Desktop dal menu Start, completare il setup iniziale (accettare i 
 **Porta già in uso**
 Un altro processo occupa la porta 3000, 8025 o 8001. Fermare il processo o modificare le porte in `docker-compose.yml`.
 
-**Build fallisce dopo un reset**
+### Build fallisce dopo un reset
+
 ```bash
 docker system prune -f
 ./demo/setup.sh   # o setup.bat su Windows
