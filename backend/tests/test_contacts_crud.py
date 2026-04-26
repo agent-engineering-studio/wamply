@@ -107,3 +107,42 @@ def test_delete_contact_invalid_uuid():
     client = TestClient(_make_app(db))
     r = client.delete("/contacts/not-a-uuid")
     assert r.status_code == 422
+
+
+# ── POST /contacts/import ────────────────────────────────────────────────────
+
+def test_import_csv_success():
+    import io as _io
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value="INSERT 0 1")
+    client = TestClient(_make_app(db))
+
+    csv_content = b"phone,name,email,language,tags\n+39333000001,Mario Rossi,mario@example.com,it,vip\n"
+    r = client.post(
+        "/contacts/import",
+        files={"file": ("contacts.csv", _io.BytesIO(csv_content), "text/csv")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["imported"] == 1
+    assert body["skipped"] == 0
+    assert body["errors"] == []
+
+
+def test_import_csv_missing_phone():
+    import io as _io
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value="INSERT 0 1")
+    client = TestClient(_make_app(db))
+
+    csv_content = b"phone,name\n,Mario Rossi\n"
+    r = client.post(
+        "/contacts/import",
+        files={"file": ("contacts.csv", _io.BytesIO(csv_content), "text/csv")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["imported"] == 0
+    assert body["skipped"] == 1
+    assert len(body["errors"]) == 1
+    assert "telefono mancante" in body["errors"][0]

@@ -1,6 +1,8 @@
+import csv
+import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 
 from src.auth.jwt import CurrentUser, get_current_user
 from src.dependencies import get_db, get_redis
@@ -210,6 +212,57 @@ async def apply_tags(
             if result.endswith("1"):
                 updated += 1
     return {"updated": updated}
+
+
+@router.post("/import")
+async def import_contacts(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+    file: UploadFile = File(...),
+):
+    db = get_db(request)
+
+    raw = await file.read()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")
+
+    reader = csv.DictReader(io.StringIO(text))
+    imported = 0
+    skipped = 0
+    errors: list[str] = []
+
+    for i, row in enumerate(reader, start=2):
+        phone = (row.get("phone") or "").strip()
+        if not phone:
+            skipped += 1
+            errors.append(f"Riga {i}: telefono mancante.")
+            continue
+        name = (row.get("name") or "").strip() or None
+        email = (row.get("email") or "").strip() or None
+        language = (row.get("language") or "it").strip()
+        tags_raw = (row.get("tags") or "").strip()
+        tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if tags_raw else []
+
+        try:
+            await db.execute(
+                """INSERT INTO contacts (user_id, phone, name, email, language, tags, opt_in, opt_in_date)
+                   VALUES ($1, $2, $3, $4, $5, $6, true, now())
+                   ON CONFLICT (user_id, phone) DO UPDATE
+                   SET name = EXCLUDED.name,
+                       email = EXCLUDED.email,
+                       language = EXCLUDED.language,
+                       tags = EXCLUDED.tags,
+                       updated_at = now()""",
+                user.id, phone, name, email, language, tags,
+            )
+            imported += 1
+        except Exception as e:
+            skipped += 1
+            errors.append(f"Riga {i} ({phone}): {e}")
+
+    return {"imported": imported, "skipped": skipped, "errors": errors[:10]}
 
 
 @router.put("/{contact_id}")
