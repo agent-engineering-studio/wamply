@@ -56,7 +56,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Auth service unreachable (e.g. during container startup): allow public
+    // routes through, block protected routes with a redirect to login.
+  }
   const path = request.nextUrl.pathname;
 
   // ── Protected routes: require login ───────────────────

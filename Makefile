@@ -38,8 +38,8 @@ rebuild:
 	docker compose build backend agent
 	docker compose stop frontend
 	$(RM_NEXT)
-	docker compose up -d backend agent frontend
-	@echo Backend, agent e frontend riavviati con il codice aggiornato.
+	docker compose up -d
+	@echo Stack completo riavviato con il codice aggiornato.
 
 reset:
 	docker compose down -v
