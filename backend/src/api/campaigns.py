@@ -2,9 +2,6 @@ import csv
 import io
 import json
 import logging
-import structlog
-
-logger = structlog.get_logger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
