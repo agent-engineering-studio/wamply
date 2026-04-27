@@ -24,9 +24,11 @@ async def get_my_plan(request: Request, user: CurrentUser = Depends(get_current_
         return {"error": "Piano non trovato."}, 500
 
     usage = await db.fetchrow(
-        "SELECT campaigns_used, messages_used, contacts_count FROM usage_counters WHERE user_id = $1 AND period_start = $2",
+        """SELECT campaigns_used, messages_used, contacts_count
+           FROM usage_counters
+           WHERE user_id = $1
+             AND period_start = date_trunc('month', now())::date""",
         user.id,
-        date.today(),
     )
 
     plan_dict = dict(plan)

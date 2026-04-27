@@ -29,19 +29,42 @@ const ICONS: Record<string, React.ReactNode> = {
   settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
 };
 
-function UsageBar({ label, used, total, color }: { label: string; used: number; total: number; color: string }) {
+const USAGE_ICONS: Record<string, React.ReactNode> = {
+  campaigns: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+  contacts: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>,
+  credits: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+};
+
+function UsageBar({
+  label,
+  used,
+  total,
+  color,
+  href,
+  icon,
+}: {
+  label: string;
+  used: number;
+  total: number;
+  color: string;
+  href: string;
+  icon: keyof typeof USAGE_ICONS;
+}) {
   const pct = total > 0 ? Math.round((used / total) * 100) : 0;
   const display = total >= 10000 ? `${(used / 1000).toFixed(1)}k/${(total / 1000).toFixed(0)}k` : `${used}/${total}`;
   return (
-    <div className="mb-1.5">
+    <Link href={href} className="block mb-1.5 rounded-sm px-1 py-0.5 -mx-1 hover:bg-brand-navy-deep transition-colors">
       <div className="flex justify-between text-[11px] text-slate-400 mb-0.5">
-        <span>{label}</span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 shrink-0 text-slate-400">{USAGE_ICONS[icon]}</span>
+          {label}
+        </span>
         <span className="text-slate-100">{display}</span>
       </div>
       <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -69,10 +92,25 @@ interface AgentStatus {
   plan_slug?: string;
 }
 
+interface PlanUsage {
+  plan: {
+    name: string;
+    max_campaigns_month: number;
+    max_contacts: number;
+    max_messages_month: number;
+  };
+  usage: {
+    campaigns_used: number;
+    messages_used: number;
+    contacts_count: number;
+  };
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
+  const [planUsage, setPlanUsage] = useState<PlanUsage | null>(null);
   const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
@@ -80,13 +118,15 @@ export function Sidebar() {
       .then((r) => r.json())
       .then((data) => setAgentStatus(data))
       .catch(() => {});
+    apiFetch("/me/plan")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.plan && data?.usage) setPlanUsage(data);
+      })
+      .catch(() => {});
   }, []);
   const agentActive = !!agentStatus?.active;
-  const showCreditsNav = !!agentStatus && (
-    agentStatus.has_byok ||
-    agentStatus.ai_credits_limit > 0 ||
-    (agentStatus.plan_slug && agentStatus.plan_slug !== "free")
-  );
+  const hasByok = !!agentStatus?.has_byok;
 
   useEffect(() => {
     let cancelled = false;
@@ -149,7 +189,7 @@ export function Sidebar() {
         <div className="text-[12.5px] font-medium text-slate-100">Azienda SRL</div>
         <div className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-teal">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="#0D9488"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Piano Professional
+          {planUsage ? `Piano ${planUsage.plan.name}` : " "}
         </div>
       </div>
 
@@ -171,26 +211,6 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Crediti AI */}
-      {showCreditsNav && (
-        <div className="mx-2 mb-1">
-          <Link
-            href="/settings/credits"
-            className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
-              pathname.startsWith("/settings/credits")
-                ? "bg-brand-navy text-white shadow-[0_2px_8px_rgba(27,42,74,.3)]"
-                : "text-slate-400 hover:bg-brand-navy-deep hover:text-slate-100"
-            }`}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.75 w-3.75">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            Crediti AI
-          </Link>
-        </div>
-      )}
-
       {/* Admin */}
       {user?.role === "admin" && (
         <div className="mx-2 mb-1">
@@ -208,34 +228,93 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Agent AI */}
+      {/* Agent AI — link con glow + sparkle */}
       {agentActive && (
         <div className="mx-2 mb-1">
-          <Link href="/agent"
-            className={`flex items-center gap-2 rounded-sm px-2.5 py-2 text-[13px] transition-colors ${
+          <Link
+            href="/agent"
+            className={`group relative flex items-center gap-2 overflow-hidden rounded-sm px-2.5 py-2 text-[13px] font-medium transition-all ${
               pathname.startsWith("/agent")
                 ? "bg-brand-teal text-white shadow-teal"
-                : "text-brand-teal bg-brand-teal/10 hover:bg-brand-teal/15"
-            }`}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.75 w-3.75">
+                : "bg-linear-to-r from-brand-teal/15 via-brand-teal/10 to-brand-teal/15 text-brand-teal ring-1 ring-brand-teal/25 hover:from-brand-teal/25 hover:via-brand-teal/20 hover:to-brand-teal/25 hover:ring-brand-teal/50"
+            }`}
+          >
+            {!pathname.startsWith("/agent") && (
+              <span className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-brand-teal/40 opacity-0 group-hover:opacity-100 animate-pulse" />
+            )}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.75 w-3.75 shrink-0">
               <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
               <circle cx="9" cy="14" r="1" fill="currentColor" />
               <circle cx="15" cy="14" r="1" fill="currentColor" />
             </svg>
-            Agent AI
+            <span className="flex-1">Agent AI</span>
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 shrink-0 opacity-80">
+              <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
+              <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
+            </svg>
           </Link>
         </div>
       )}
 
+      {/* Card "Chiedi a Wamply" — CTA AI evidente sopra le barre utilizzo */}
+      {agentActive && !pathname.startsWith("/agent") && (
+        <Link
+          href="/agent"
+          className="group relative mx-2.5 mb-2 mt-1 block overflow-hidden rounded-card border border-brand-teal/40 bg-linear-to-br from-brand-teal/15 via-brand-navy-light to-brand-navy p-2.5 transition-all hover:border-brand-teal/70 hover:shadow-teal"
+        >
+          <div className="pointer-events-none absolute -right-2 -top-2 h-12 w-12 rounded-full bg-brand-teal/20 blur-xl transition-opacity group-hover:bg-brand-teal/40" />
+          <div className="relative flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-brand-teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
+                <circle cx="9" cy="14" r="1" fill="currentColor" />
+                <circle cx="15" cy="14" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[12px] font-semibold text-slate-100">Chiedi a Wamply</div>
+              <div className="truncate text-[10.5px] text-slate-400">
+                Pianifica una campagna in 30 secondi
+              </div>
+            </div>
+          </div>
+        </Link>
+      )}
+
       {/* Usage */}
-      <div className="mx-2.5 mb-1.5">
-        <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
-          Utilizzo mese
+      {planUsage && (
+        <div className="mx-2.5 mb-1.5">
+          <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+            Utilizzo mese
+          </div>
+          <UsageBar
+            label="Campagne"
+            href="/campaigns"
+            icon="campaigns"
+            used={planUsage.usage.campaigns_used}
+            total={planUsage.plan.max_campaigns_month}
+            color="bg-brand-teal"
+          />
+          <UsageBar
+            label="Contatti"
+            href="/contacts"
+            icon="contacts"
+            used={planUsage.usage.contacts_count}
+            total={planUsage.plan.max_contacts}
+            color="bg-brand-amber"
+          />
+          {!hasByok && agentStatus && agentStatus.ai_credits_limit > 0 && (
+            <UsageBar
+              label="Crediti AI"
+              href="/settings/credits"
+              icon="credits"
+              used={Math.round(agentStatus.ai_credits_used)}
+              total={agentStatus.ai_credits_limit}
+              color="bg-brand-teal"
+            />
+          )}
         </div>
-        <UsageBar label="Campagne" used={4} total={20} color="bg-brand-teal" />
-        <UsageBar label="Contatti" used={3847} total={5000} color="bg-brand-amber" />
-        <UsageBar label="Messaggi AI" used={8490} total={15000} color="bg-brand-teal" />
-      </div>
+      )}
 
       {/* User + Logout */}
       <div className="border-t border-slate-800 px-2.5 py-2">

@@ -15,6 +15,7 @@ import { ButtonsEditor } from "./ButtonsEditor";
 import { ImproveWithAI } from "./ImproveWithAI";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { apiFetch } from "@/lib/api-client";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: "it", label: "Italiano" },
@@ -295,9 +296,10 @@ export function EditorForm({
                 type="button"
                 onClick={() => setImproveOpen(true)}
                 disabled={!form.body.text.trim()}
-                className="flex items-center gap-1 rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-2.5 py-1 text-[11px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-40"
+                className="flex items-center gap-1.5 rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-2.5 py-1 text-[11px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-40"
               >
                 ✨ Migliora
+                <CreditBadge operation="template_improve" />
               </button>
             )}
             <span className="text-[11px] text-slate-500">{form.body.text.length} / 1024</span>

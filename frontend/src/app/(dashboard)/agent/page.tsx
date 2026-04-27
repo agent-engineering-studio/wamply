@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { createClient } from "@/lib/supabase/client";
 import { PromptPalette, type PromptCategory } from "./_components/PromptPalette";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -90,16 +91,38 @@ const CATEGORIES: PromptCategory[] = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+function firstName(fullName: string, email: string): string {
+  const source = fullName.trim() || email.split("@")[0] || "";
+  const part = source.split(/\s+/).filter(Boolean)[0] || "";
+  if (!part) return "";
+  return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+}
+
 export default function AgentPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [userFirstName, setUserFirstName] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (cancelled || !data.user) return;
+      const fullName = (data.user.user_metadata?.full_name as string | undefined) ?? "";
+      setUserFirstName(firstName(fullName, data.user.email ?? ""));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function sendPrompt(prompt: string) {
     if (!prompt.trim() || sending) return;
@@ -160,7 +183,9 @@ export default function AgentPage() {
     <div className="flex h-[calc(100vh-64px)] flex-col">
       {/* Header */}
       <div className="mb-4 shrink-0">
-        <h1 className="text-[15px] font-semibold text-slate-100">Agent AI</h1>
+        <h1 className="text-[15px] font-semibold text-slate-100">
+          Agent AI{userFirstName ? ` · ${userFirstName}` : ""}
+        </h1>
         <p className="text-[11px] text-slate-400">
           Assistente intelligente per gestire contatti, campagne e messaggi
         </p>
@@ -177,7 +202,9 @@ export default function AgentPage() {
                 <circle cx="15" cy="14" r="1" fill="currentColor" />
               </svg>
             </div>
-            <h2 className="text-[14px] font-semibold text-slate-100">Ciao! Come posso aiutarti?</h2>
+            <h2 className="text-[14px] font-semibold text-slate-100">
+              {userFirstName ? `Ciao ${userFirstName}, come posso aiutarti?` : "Ciao! Come posso aiutarti?"}
+            </h2>
             <p className="mt-1.5 max-w-sm text-[12px] text-slate-400">
               Scrivi una richiesta in linguaggio naturale oppure apri i{" "}
               <span className="text-brand-teal">prompt rapidi</span> dal pulsante qui sotto

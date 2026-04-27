@@ -140,6 +140,8 @@ async def get_agent_status(request: Request, user: CurrentUser = Depends(get_cur
         "ai_credits_limit": credits["ai_credits_limit"],
         "ai_credits_used": credits["ai_credits_used"],
         "ai_credits_remaining": credits["ai_credits_remaining"],
+        "topup_credits": credits.get("topup_credits", 0),
+        "plan_slug": credits.get("plan_slug"),
         "source": credits["source"],
     }
 

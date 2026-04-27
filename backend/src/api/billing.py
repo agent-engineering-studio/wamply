@@ -9,6 +9,7 @@ from src.services.billing import (
     create_checkout_session,
     create_portal_session,
     handle_stripe_webhook,
+    set_subscription_cancel_at_period_end,
 )
 from src.services.credit_topup import (
     can_purchase_topup,
@@ -69,6 +70,39 @@ async def portal(
         raise HTTPException(status_code=503, detail=str(e))
 
     return {"portal_url": url}
+
+
+@router.post("/subscription/cancel")
+async def cancel_subscription(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Schedule cancellation at the end of the current billing period.
+    The subscription remains active until current_period_end."""
+    db = get_db(request)
+    try:
+        result = await set_subscription_cancel_at_period_end(db, str(user.id), True)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    return result
+
+
+@router.post("/subscription/resume")
+async def resume_subscription(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Reverse a scheduled cancellation while still within the paid period."""
+    db = get_db(request)
+    try:
+        result = await set_subscription_cancel_at_period_end(db, str(user.id), False)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    return result
 
 
 @router.post("/webhook")

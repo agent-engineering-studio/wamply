@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 interface Suggestion {
   name: string;
@@ -301,9 +302,10 @@ export function SmartGroupWizard({ open, onClose, onCreated }: Props) {
               type="button"
               onClick={runSuggest}
               disabled={loading || description.trim().length < 5}
-              className="rounded-pill bg-indigo-500 px-4 py-1.5 text-[12.5px] font-semibold text-white hover:bg-indigo-400 disabled:opacity-40"
+              className="flex items-center gap-2 rounded-pill bg-indigo-500 px-4 py-1.5 text-[12.5px] font-semibold text-white hover:bg-indigo-400 disabled:opacity-40"
             >
               {loading ? "Analisi..." : "Analizza →"}
+              {!loading && <CreditBadge operation="group_suggest" className="bg-white/20 text-white" />}
             </button>
           ) : (
             <button

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import type { ComplianceReport, RiskLevel } from "@/lib/templates/types";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 interface Props {
   templateId: string;
@@ -75,9 +76,10 @@ export function ComplianceBanner({ templateId, report, onUpdated }: Props) {
           type="button"
           onClick={runCheck}
           disabled={loading}
-          className="rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-3 py-1.5 text-[12px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-pill border border-brand-teal/40 bg-brand-teal/10 px-3 py-1.5 text-[12px] font-medium text-brand-teal hover:bg-brand-teal/15 disabled:opacity-50"
         >
           {loading ? "Analisi…" : "Verifica conformità"}
+          <CreditBadge operation="template_compliance" />
         </button>
         {error && (
           <div className="ml-3 rounded-sm bg-red-500/10 px-2 py-1 text-[11px] text-red-300">

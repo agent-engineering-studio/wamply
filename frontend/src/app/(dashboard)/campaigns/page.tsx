@@ -239,17 +239,6 @@ export default function CampaignsPage() {
 
                   <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                     onClick={(e) => e.preventDefault()}>
-                    <Link
-                      href={`/campaigns/${c.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      title="Apri dettaglio"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-700 hover:text-slate-200"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </Link>
                     <CardActions
                       campaign={c}
                       deletingId={deletingId}

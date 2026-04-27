@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 interface PlannerSuggestion {
   segment_description: string;
@@ -67,9 +68,8 @@ export function CampaignPlanner({ templates, aiEnabled, onApplyTemplate }: Props
               <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
             </svg>
             Pianifica con AI
-            <span className="rounded-pill bg-indigo-500/20 px-2 py-0.5 text-[10px] font-medium text-indigo-300">
-              Analisi approfondita · 5 crediti
-            </span>
+            <CreditBadge operation="campaign_planner" />
+            <span className="text-[10px] font-medium text-indigo-300/70">analisi approfondita</span>
           </div>
           <div className="mt-0.5 text-[11.5px] text-slate-400">
             Descrivi l&apos;obiettivo in linguaggio naturale. Wamply suggerisce segmento, template e orario migliori.

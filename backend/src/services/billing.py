@@ -44,6 +44,52 @@ async def _get_or_create_customer(db: asyncpg.Pool, user_id: str, email: str) ->
     return customer.id
 
 
+async def set_subscription_cancel_at_period_end(
+    db: asyncpg.Pool,
+    user_id: str,
+    cancel: bool,
+) -> dict:
+    """Toggle cancel_at_period_end on the user's active Stripe subscription.
+
+    When `cancel=True`, the subscription stays active through the current
+    period end and is then cancelled by Stripe. When `cancel=False`, an
+    already-scheduled cancellation is reversed.
+
+    The local DB is updated optimistically so the UI reflects the change
+    immediately; the `customer.subscription.updated` webhook will arrive
+    shortly after and re-sync as the source of truth.
+    """
+    if not stripe.api_key:
+        raise RuntimeError("STRIPE_SECRET_KEY non configurato.")
+
+    row = await db.fetchrow(
+        "SELECT stripe_subscription_id FROM subscriptions WHERE user_id = $1",
+        user_id,
+    )
+    if not row or not row["stripe_subscription_id"]:
+        raise ValueError("Nessun abbonamento Stripe attivo da modificare.")
+
+    stripe_sub = stripe.Subscription.modify(
+        row["stripe_subscription_id"],
+        cancel_at_period_end=cancel,
+    )
+
+    await db.execute(
+        "UPDATE subscriptions SET cancel_at_period_end = $1, updated_at = now() "
+        "WHERE user_id = $2",
+        bool(stripe_sub.cancel_at_period_end),
+        user_id,
+    )
+    return {
+        "cancel_at_period_end": bool(stripe_sub.cancel_at_period_end),
+        "current_period_end": _ts_to_dt(
+            getattr(stripe_sub["items"].data[0], "current_period_end", None)
+            if stripe_sub["items"].data
+            else None
+        ),
+    }
+
+
 async def create_portal_session(
     db: asyncpg.Pool,
     user_id: str,

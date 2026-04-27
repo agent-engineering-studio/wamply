@@ -61,7 +61,10 @@ OPERATION_CREDITS: dict[Operation, float] = {
     "template_improve":     3.0,
     "template_compliance":  3.0,  # Opus
     "template_translate":   1.0,  # Haiku
-    "personalize_message":  0.5,  # Haiku
+    # Personalize is covered by the plan's `msg_included` quota — sending a
+    # campaign with personalization debits messages, not AI credits. The
+    # preview endpoint (max 5 sample contacts) is free for the same reason.
+    "personalize_message":  0.0,  # Haiku — bundled with msg quota
     "campaign_planner":     5.0,  # Opus
     "campaign_insight":     2.0,  # Sonnet
     "group_suggest":        2.0,  # Sonnet

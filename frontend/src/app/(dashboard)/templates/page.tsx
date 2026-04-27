@@ -7,6 +7,7 @@ import type { Template } from "@/lib/templates/types";
 import { TemplateCard } from "./_components/TemplateCard";
 import { GenerateWithAI } from "./_components/GenerateWithAI";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[] | null>(null);
@@ -63,6 +64,7 @@ export default function TemplatesPage() {
               className="flex items-center gap-1.5 rounded-sm border border-brand-teal/40 bg-brand-teal/10 px-3 py-2 text-[13px] font-medium text-brand-teal hover:bg-brand-teal/15"
             >
               <span>✨</span> Genera con AI
+              <CreditBadge operation="template_generate" />
             </button>
           )}
           <Link

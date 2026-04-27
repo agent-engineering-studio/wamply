@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 interface Props {
   open: boolean;
@@ -140,9 +141,10 @@ export function GenerateWithAI({ open, onClose }: Props) {
               <button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || loading}
-                className="rounded-pill bg-brand-teal px-5 py-2 text-[13px] font-medium text-slate-950 hover:bg-brand-teal/90 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-pill bg-brand-teal px-5 py-2 text-[13px] font-medium text-slate-950 hover:bg-brand-teal/90 disabled:opacity-50"
               >
                 {loading ? "Generazione…" : "Genera"}
+                <CreditBadge operation="template_generate" className="bg-slate-950/15 text-slate-950" />
               </button>
             </div>
           </>

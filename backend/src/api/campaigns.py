@@ -798,8 +798,10 @@ async def preview_personalization(
     """Generate N (≤5) personalized messages for sample contacts to preview
     what the campaign will look like before launch.
 
-    Each personalization call is charged as 1 'personalize_message' credit
-    (0.5c). Cached upstream: no — preview is always fresh, user may iterate."""
+    Personalization is bundled with the plan's msg_included quota — no AI
+    credit is charged for preview or for the real send. BYOK rate-limit
+    still applies (60 req/min) to protect infra. Cached upstream: no —
+    preview is always fresh, user may iterate."""
     body_payload = await request.json()
     template_id = body_payload.get("template_id")
     contact_ids = body_payload.get("contact_ids") or []

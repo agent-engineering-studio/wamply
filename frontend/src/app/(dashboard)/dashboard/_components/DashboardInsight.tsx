@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { CreditBadge } from "@/components/shared/CreditBadge";
 
 interface Insight {
   headline: string;
@@ -46,9 +47,7 @@ export function DashboardInsight({ aiEnabled }: Props) {
               <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
             </svg>
             {insight ? "Analisi AI" : "Chiedi all'AI cosa notare"}
-            <span className="rounded-pill bg-indigo-500/20 px-2 py-0.5 text-[10px] font-medium text-indigo-300">
-              2 crediti
-            </span>
+            <CreditBadge operation="dashboard_insight" />
           </div>
           <div className="mt-0.5 text-[11.5px] text-slate-400">
             {insight

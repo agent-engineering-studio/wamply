@@ -164,9 +164,21 @@ export function TranslateDialog({
               <button
                 onClick={handleTranslate}
                 disabled={loading || selected.length === 0}
-                className="rounded-pill bg-brand-teal px-5 py-2 text-[13px] font-medium text-slate-950 hover:bg-brand-teal/90 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-pill bg-brand-teal px-5 py-2 text-[13px] font-medium text-slate-950 hover:bg-brand-teal/90 disabled:opacity-50"
               >
                 {loading ? "Traduzione…" : `Traduci (${selected.length})`}
+                {selected.length > 0 && !loading && (
+                  <span
+                    title={`${selected.length} crediti — 1 per lingua`}
+                    className="inline-flex items-center gap-1 rounded-pill bg-slate-950/15 px-1.5 py-0.5 text-[10px] font-medium"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-2.5 w-2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 6v6l4 2" />
+                    </svg>
+                    {selected.length}
+                  </span>
+                )}
               </button>
             </div>
           </>
