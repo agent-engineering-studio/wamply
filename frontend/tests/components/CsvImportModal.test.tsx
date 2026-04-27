@@ -4,7 +4,7 @@ import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/re
 const { apiFetchMock } = vi.hoisted(() => ({
   apiFetchMock: vi.fn().mockResolvedValue({
     ok: true,
-    json: async () => ({ imported: 3, skipped: 1, errors: [] }),
+    json: async () => ({ created: 2, updated: 1, imported: 3, skipped: 1, errors: [] }),
   }),
 }));
 
@@ -36,6 +36,10 @@ describe("CsvImportModal", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Importa$/i }));
 
-    await waitFor(() => expect(screen.getByText(/3 contatti importati/i)).toBeDefined());
+    await waitFor(() => expect(screen.getByText(/Importazione completata/i)).toBeDefined());
+    // Breakdown card: 2 created, 1 updated, 1 skipped.
+    expect(screen.getByText("Nuovi")).toBeDefined();
+    expect(screen.getByText("Aggiornati")).toBeDefined();
+    expect(screen.getByText("Saltati")).toBeDefined();
   });
 });
