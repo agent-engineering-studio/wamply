@@ -4,8 +4,10 @@ from contextlib import asynccontextmanager
 import asyncpg
 import redis.asyncio as aioredis
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.api.router import api_router
 from src.config import settings
@@ -92,6 +94,20 @@ app.add_middleware(
 
 
 app.include_router(api_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error_handler(request: Request, exc: RequestValidationError):
+    """Log the body-validation diagnostics so we can debug 422s end-to-end.
+    The body still mirrors FastAPI's default shape so clients keep working."""
+    logger.warning(
+        "request_validation_error",
+        path=str(request.url.path),
+        method=request.method,
+        content_type=request.headers.get("content-type"),
+        errors=exc.errors(),
+    )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
 @app.get("/health")

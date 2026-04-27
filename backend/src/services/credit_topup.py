@@ -116,7 +116,8 @@ async def create_topup_checkout_session(
             f"Imposta {pack.stripe_price_env} in .env."
         )
 
-    if not stripe.api_key:
+    from src.services.billing import _ensure_stripe_api_key
+    if not await _ensure_stripe_api_key(db):
         raise RuntimeError("STRIPE_SECRET_KEY non configurato.")
 
     # Reuse the Stripe customer from the subscription (Stripe Billing setup).

@@ -699,3 +699,251 @@ async def admin_ai_revenue(
             for r in heavy_buyers
         ],
     }
+
+
+
+# ── Stripe configuration / payments admin ────────────────────
+
+@router.get("/stripe/status")
+async def admin_stripe_status(
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Snapshot of Stripe configuration + last 50 webhook events.
+
+    Powers the admin "Pagamenti" tab. Resolves keys via DB (system_config,
+    encrypted) with env fallback. Never returns the secret key in plaintext.
+    """
+    import os
+    import stripe as _stripe
+    from src.services.billing import (
+        resolve_stripe_secret_key,
+        resolve_stripe_webhook_secret,
+        resolve_stripe_publishable_key,
+        SYSCFG_STRIPE_SECRET,
+        SYSCFG_STRIPE_WEBHOOK,
+        SYSCFG_STRIPE_PUBLISHABLE,
+    )
+
+    db = get_db(request)
+    secret_key = await resolve_stripe_secret_key(db)
+    webhook_secret = await resolve_stripe_webhook_secret(db)
+    publishable = await resolve_stripe_publishable_key(db)
+    app_url = os.getenv("APP_URL", "")
+
+    # Tell the operator where each value comes from so they can decide
+    # whether to migrate it from .env to the DB-backed admin form.
+    db_keys = {
+        r["key"]: True
+        for r in await db.fetch(
+            "SELECT key FROM system_config WHERE key = ANY($1::text[])",
+            [SYSCFG_STRIPE_SECRET, SYSCFG_STRIPE_WEBHOOK, SYSCFG_STRIPE_PUBLISHABLE],
+        )
+    }
+    sources = {
+        "secret_key": "db" if db_keys.get(SYSCFG_STRIPE_SECRET) else ("env" if os.getenv("STRIPE_SECRET_KEY") else None),
+        "webhook_secret": "db" if db_keys.get(SYSCFG_STRIPE_WEBHOOK) else ("env" if os.getenv("STRIPE_WEBHOOK_SECRET") else None),
+        "publishable_key": "db" if db_keys.get(SYSCFG_STRIPE_PUBLISHABLE) else ("env" if os.getenv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY") else None),
+    }
+
+    mode = None
+    if secret_key.startswith("sk_test_"):
+        mode = "test"
+    elif secret_key.startswith("sk_live_"):
+        mode = "live"
+
+    # Live ping — verifies the secret is valid without exposing it.
+    balance_ok = False
+    balance_error: str | None = None
+    if secret_key:
+        try:
+            _stripe.api_key = secret_key
+            _stripe.Balance.retrieve()
+            balance_ok = True
+        except Exception as e:  # noqa: BLE001
+            balance_error = str(e)[:300]
+
+    # Plan price IDs from DB (stripe_price_id column on plans).
+    plans = await db.fetch(
+        "SELECT id, slug, name, price_cents, stripe_price_id "
+        "FROM plans WHERE active = true AND slug != 'free' "
+        "ORDER BY price_cents ASC"
+    )
+
+    # Top-up price IDs are env-only (read-only here).
+    topup_packs = [
+        {"slug": "small",  "credits": 100,   "amount_cents": 1500,   "env_var": "STRIPE_PRICE_TOPUP_SMALL",  "price_id": os.getenv("STRIPE_PRICE_TOPUP_SMALL", "")},
+        {"slug": "medium", "credits": 500,   "amount_cents": 5900,   "env_var": "STRIPE_PRICE_TOPUP_MEDIUM", "price_id": os.getenv("STRIPE_PRICE_TOPUP_MEDIUM", "")},
+        {"slug": "large",  "credits": 2000,  "amount_cents": 19900,  "env_var": "STRIPE_PRICE_TOPUP_LARGE",  "price_id": os.getenv("STRIPE_PRICE_TOPUP_LARGE", "")},
+        {"slug": "xl",     "credits": 10000, "amount_cents": 79900,  "env_var": "STRIPE_PRICE_TOPUP_XL",     "price_id": os.getenv("STRIPE_PRICE_TOPUP_XL", "")},
+    ]
+
+    # Recent webhook events for the activity log.
+    events = await db.fetch(
+        "SELECT stripe_event_id, event_type, status, error_message, payload_summary, received_at "
+        "FROM stripe_webhook_events ORDER BY received_at DESC LIMIT 50"
+    )
+
+    last_event = events[0]["received_at"] if events else None
+
+    webhook_path = "/api/v1/billing/webhook"
+    webhook_url = f"{app_url}{webhook_path}" if app_url else webhook_path
+
+    checklist = {
+        "secret_key": bool(secret_key),
+        "webhook_secret": bool(webhook_secret),
+        "publishable_key": bool(publishable),
+        "balance_ok": balance_ok,
+        "all_plans_priced": all(bool(p["stripe_price_id"]) for p in plans),
+        "all_topups_priced": all(bool(p["price_id"]) for p in topup_packs),
+        "webhook_received_recently": last_event is not None,
+    }
+
+    return {
+        "mode": mode,
+        "balance_ok": balance_ok,
+        "balance_error": balance_error,
+        "publishable_key_preview": publishable[:12] + "..." if publishable else None,
+        "webhook_url": webhook_url,
+        "checklist": checklist,
+        "sources": sources,
+        "plans": [
+            {
+                "id": str(p["id"]),
+                "slug": p["slug"],
+                "name": p["name"],
+                "price_cents": p["price_cents"],
+                "stripe_price_id": p["stripe_price_id"],
+            }
+            for p in plans
+        ],
+        "topup_packs": topup_packs,
+        "webhook_events": [
+            {
+                "stripe_event_id": e["stripe_event_id"],
+                "event_type": e["event_type"],
+                "status": e["status"],
+                "error_message": e["error_message"],
+                "payload_summary": e["payload_summary"],
+                "received_at": e["received_at"].isoformat() if e["received_at"] else None,
+            }
+            for e in events
+        ],
+    }
+
+
+@router.patch("/plans/{plan_id}/stripe-price-id")
+async def admin_update_plan_stripe_price_id(
+    plan_id: str,
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Update the Stripe Price ID for a plan from the admin UI."""
+    body = await request.json()
+    raw = body.get("stripe_price_id")
+    price_id = (raw or "").strip() or None
+
+    if price_id and not price_id.startswith("price_"):
+        raise HTTPException(
+            status_code=400,
+            detail="Lo Stripe Price ID deve iniziare con 'price_'.",
+        )
+
+    db = get_db(request)
+    row = await db.fetchrow(
+        "UPDATE plans SET stripe_price_id = $1, updated_at = now() "
+        "WHERE id = $2 RETURNING id, slug, stripe_price_id",
+        price_id, plan_id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Piano non trovato.")
+
+    logger.info(
+        "admin_stripe_price_updated",
+        admin_id=str(user.id),
+        plan_id=str(row["id"]),
+        slug=row["slug"],
+        price_id=price_id,
+    )
+    return {"id": str(row["id"]), "slug": row["slug"], "stripe_price_id": row["stripe_price_id"]}
+
+
+
+@router.post("/stripe/credentials")
+async def admin_save_stripe_credentials(
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Save Stripe API credentials into system_config (encrypted) so the
+    operator can rotate them without touching .env or redeploying.
+
+    Body: { secret_key?, webhook_secret?, publishable_key? }
+    Empty string clears the value (falls back to env).
+    Missing field leaves the existing value untouched.
+    """
+    from src.services.encryption import encrypt
+    from src.services.billing import (
+        SYSCFG_STRIPE_SECRET,
+        SYSCFG_STRIPE_WEBHOOK,
+        SYSCFG_STRIPE_PUBLISHABLE,
+    )
+
+    body = await request.json()
+    db = get_db(request)
+
+    updates: list[tuple[str, str, str]] = []  # (key, label, raw_value)
+
+    if "secret_key" in body:
+        raw = (body.get("secret_key") or "").strip()
+        if raw and not (raw.startswith("sk_test_") or raw.startswith("sk_live_")):
+            raise HTTPException(
+                status_code=400,
+                detail="La secret key deve iniziare con sk_test_ o sk_live_.",
+            )
+        updates.append((SYSCFG_STRIPE_SECRET, "secret_key", raw))
+
+    if "webhook_secret" in body:
+        raw = (body.get("webhook_secret") or "").strip()
+        if raw and not raw.startswith("whsec_"):
+            raise HTTPException(
+                status_code=400,
+                detail="Il webhook secret deve iniziare con whsec_.",
+            )
+        updates.append((SYSCFG_STRIPE_WEBHOOK, "webhook_secret", raw))
+
+    if "publishable_key" in body:
+        raw = (body.get("publishable_key") or "").strip()
+        if raw and not (raw.startswith("pk_test_") or raw.startswith("pk_live_")):
+            raise HTTPException(
+                status_code=400,
+                detail="La publishable key deve iniziare con pk_test_ o pk_live_.",
+            )
+        updates.append((SYSCFG_STRIPE_PUBLISHABLE, "publishable_key", raw))
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nessun campo da aggiornare.")
+
+    saved: list[str] = []
+    cleared: list[str] = []
+    for key, label, raw in updates:
+        if raw == "":
+            await db.execute("DELETE FROM system_config WHERE key = $1", key)
+            cleared.append(label)
+        else:
+            ciphertext = encrypt(raw)
+            await db.execute(
+                """INSERT INTO system_config (key, value, updated_at)
+                   VALUES ($1, $2, now())
+                   ON CONFLICT (key) DO UPDATE
+                     SET value = EXCLUDED.value, updated_at = now()""",
+                key, ciphertext,
+            )
+            saved.append(label)
+
+    logger.info(
+        "admin_stripe_credentials_updated",
+        admin_id=str(user.id),
+        saved=saved,
+        cleared=cleared,
+    )
+    return {"saved": saved, "cleared": cleared}

@@ -170,11 +170,11 @@ export function MessagesTab({ campaignId, campaignStatus, statusFilter, onFilter
               <span>Pagina {page} di {totalPages}</span>
               <div className="flex gap-1.5">
                 <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                  className="rounded-sm border border-slate-700 px-3 py-1 hover:border-slate-500 disabled:opacity-40">
+                  className="rounded-sm border border-slate-700 px-3 py-1 font-medium text-slate-200 hover:border-brand-teal/50 hover:bg-brand-navy-deep hover:text-brand-teal disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:bg-transparent disabled:hover:text-slate-200">
                   ← Prec
                 </button>
                 <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="rounded-sm border border-slate-700 px-3 py-1 hover:border-slate-500 disabled:opacity-40">
+                  className="rounded-sm border border-slate-700 px-3 py-1 font-medium text-slate-200 hover:border-brand-teal/50 hover:bg-brand-navy-deep hover:text-brand-teal disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:bg-transparent disabled:hover:text-slate-200">
                   Succ →
                 </button>
               </div>

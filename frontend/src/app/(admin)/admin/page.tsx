@@ -14,6 +14,7 @@ import { AISystemKeyTab } from "./_components/AISystemKeyTab";
 import { WhatsAppApplicationsTab } from "./_components/WhatsAppApplicationsTab";
 import { AdminPlanManagementTab } from "./_components/AdminPlanManagementTab";
 import { AdminTwilioTab } from "./_components/AdminTwilioTab";
+import { StripeConfigTab } from "./_components/StripeConfigTab";
 import { TAB_PERMISSIONS, type AdminTab } from "./_components/AdminSidebar";
 import { can, usePermissions } from "@/lib/permissions";
 
@@ -36,6 +37,7 @@ const VALID_TABS: ReadonlySet<AdminTab> = new Set<AdminTab>([
   "ai_revenue",
   "ai_key",
   "plans",
+  "payments",
 ]);
 
 const PLAN_COLORS: Record<string, string> = {
@@ -249,6 +251,7 @@ function AdminPageContent() {
       {tab === "ai_key" && <AISystemKeyTab />}
       {tab === "twilio" && <AdminTwilioTab />}
       {tab === "plans" && <AdminPlanManagementTab plans={plans as Parameters<typeof AdminPlanManagementTab>[0]["plans"]} />}
+      {tab === "payments" && <StripeConfigTab />}
 
       <UserEditModal
         user={editingUser}

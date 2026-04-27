@@ -243,7 +243,8 @@ async def import_contacts(
         text = raw.decode("latin-1")
 
     reader = csv.DictReader(io.StringIO(text))
-    imported = 0
+    created = 0
+    updated = 0
     skipped = 0
     errors: list[str] = []
 
@@ -260,7 +261,10 @@ async def import_contacts(
         tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if tags_raw else []
 
         try:
-            await db.execute(
+            # `xmax = 0` is the PostgreSQL idiom to detect a fresh INSERT vs.
+            # an ON CONFLICT update — lets us tell the user how many contacts
+            # are actually new vs. just refreshed.
+            was_inserted = await db.fetchval(
                 """INSERT INTO contacts (user_id, phone, name, email, language, tags, opt_in, opt_in_date)
                    VALUES ($1, $2, $3, $4, $5, $6, true, now())
                    ON CONFLICT (user_id, phone) DO UPDATE
@@ -268,16 +272,28 @@ async def import_contacts(
                        email = EXCLUDED.email,
                        language = EXCLUDED.language,
                        tags = EXCLUDED.tags,
-                       updated_at = now()""",
+                       updated_at = now()
+                   RETURNING (xmax = 0) AS inserted""",
                 user.id, phone, name, email, language, tags,
             )
-            imported += 1
+            if was_inserted:
+                created += 1
+            else:
+                updated += 1
         except Exception:
             logger.exception("CSV import failed at row %d (phone=%s)", i, phone)
             skipped += 1
             errors.append(f"Riga {i} ({phone}): formato o valore non valido")
 
-    return {"imported": imported, "skipped": skipped, "errors": errors[:10]}
+    return {
+        "created": created,
+        "updated": updated,
+        # `imported` kept for backwards compatibility with any caller still
+        # reading the old shape (=created+updated, the prior semantics).
+        "imported": created + updated,
+        "skipped": skipped,
+        "errors": errors[:10],
+    }
 
 
 @router.put("/{contact_id}")

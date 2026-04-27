@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 
 interface Props {
@@ -10,6 +10,8 @@ interface Props {
 }
 
 interface ImportResult {
+  created: number;
+  updated: number;
   imported: number;
   skipped: number;
   errors: string[];
@@ -20,6 +22,30 @@ export function CsvImportModal({ open, onClose, onImported }: Props) {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset transient state every time the modal is opened so the user always
+  // lands on a fresh upload form, never on the previous run's success card.
+  useEffect(() => {
+    if (open) {
+      setResult(null);
+      setError(null);
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }, [open]);
+
+  function handleClose() {
+    setResult(null);
+    setError(null);
+    if (fileRef.current) fileRef.current.value = "";
+    onClose();
+  }
+
+  function handleImportAnother() {
+    setResult(null);
+    setError(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
   if (!open) return null;
 
@@ -35,11 +61,28 @@ export function CsvImportModal({ open, onClose, onImported }: Props) {
       const r = await apiFetch("/contacts/import", { method: "POST", body: form });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${r.status}`);
+        let detail = err.detail;
+        if (Array.isArray(detail)) {
+          detail = detail
+            .map((e) => `${(e.loc ?? []).join(".")}: ${e.msg ?? "errore"}`)
+            .join(" | ");
+        } else if (detail && typeof detail === "object") {
+          detail = JSON.stringify(detail);
+        }
+        throw new Error(detail || `HTTP ${r.status}`);
       }
       const data: ImportResult = await r.json();
-      setResult(data);
-      if (data.imported > 0) onImported();
+      // Backend may return only legacy `imported`; normalize so the UI
+      // can always rely on `created`/`updated` being present.
+      const total = data.imported ?? ((data.created ?? 0) + (data.updated ?? 0));
+      setResult({
+        created: data.created ?? total,
+        updated: data.updated ?? 0,
+        imported: total,
+        skipped: data.skipped ?? 0,
+        errors: data.errors ?? [],
+      });
+      if (total > 0) onImported();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Errore durante l'importazione.");
     } finally {
@@ -88,7 +131,7 @@ export function CsvImportModal({ open, onClose, onImported }: Props) {
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-300 hover:border-slate-600"
               >
                 Annulla
@@ -107,21 +150,52 @@ export function CsvImportModal({ open, onClose, onImported }: Props) {
 
         {result && (
           <div className="space-y-3">
-            <div className="rounded-sm border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-[13px] text-emerald-300">
-              <strong>{result.imported} contatti importati</strong>
-              {result.skipped > 0 && <span className="ml-2 text-[12px] text-slate-400">({result.skipped} saltati)</span>}
+            <div className="rounded-card border border-emerald-500/30 bg-emerald-500/10 p-4">
+              <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-emerald-300">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Importazione completata
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-sm bg-emerald-500/10 px-2 py-2">
+                  <div className="text-[18px] font-semibold text-emerald-300">{result.created}</div>
+                  <div className="text-[10.5px] uppercase tracking-wider text-emerald-400/80">Nuovi</div>
+                </div>
+                <div className="rounded-sm bg-amber-500/10 px-2 py-2">
+                  <div className="text-[18px] font-semibold text-amber-300">{result.updated}</div>
+                  <div className="text-[10.5px] uppercase tracking-wider text-amber-400/80">Aggiornati</div>
+                </div>
+                <div className="rounded-sm bg-slate-700/30 px-2 py-2">
+                  <div className="text-[18px] font-semibold text-slate-300">{result.skipped}</div>
+                  <div className="text-[10.5px] uppercase tracking-wider text-slate-400">Saltati</div>
+                </div>
+              </div>
+              {result.updated > 0 && (
+                <div className="mt-2 text-[11px] text-slate-400">
+                  Gli aggiornamenti riguardano contatti già presenti (riconosciuti dal numero di telefono): nome, email, lingua e tag sono stati sovrascritti.
+                </div>
+              )}
             </div>
             {result.errors.length > 0 && (
-              <div className="max-h-32 overflow-y-auto rounded-sm border border-slate-700 bg-brand-navy-deep p-2">
+              <div className="max-h-32 overflow-y-auto rounded-sm border border-rose-500/30 bg-rose-500/10 p-2">
+                <div className="mb-1 text-[11px] font-semibold text-rose-300">Errori per riga</div>
                 {result.errors.map((e, i) => (
                   <p key={i} className="text-[11px] text-rose-300">{e}</p>
                 ))}
               </div>
             )}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleImportAnother}
+                className="rounded-pill border border-slate-700 px-4 py-2 text-[12.5px] font-medium text-slate-200 hover:border-brand-teal/50 hover:bg-brand-navy-deep hover:text-brand-teal"
+              >
+                Importa un altro CSV
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
                 className="rounded-pill bg-brand-teal px-5 py-2 text-[12.5px] font-medium text-white hover:bg-brand-teal-dark"
               >
                 Chiudi

@@ -29,7 +29,7 @@ async def checkout(
     """Create a Stripe Checkout Session for the given plan and return its URL."""
     body = await request.json()
     plan_slug = body.get("plan_slug")
-    if plan_slug not in ("starter", "professional", "enterprise"):
+    if plan_slug not in ("avvio", "starter", "professional", "enterprise"):
         raise HTTPException(status_code=400, detail="plan_slug non valido.")
 
     db = get_db(request)

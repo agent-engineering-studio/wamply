@@ -16,7 +16,8 @@ export type AdminTab =
   | "ai_costs"
   | "ai_revenue"
   | "ai_key"
-  | "plans";
+  | "plans"
+  | "payments";
 
 export const TAB_PERMISSIONS: Record<AdminTab, string> = {
   overview: "admin.overview.view",
@@ -29,6 +30,8 @@ export const TAB_PERMISSIONS: Record<AdminTab, string> = {
   ai_revenue: "admin.ai_revenue.view",
   ai_key: "admin.ai_key.configure",
   plans: "admin.overview.view",
+  // Stripe config is admin-only — guarded server-side by require_admin too.
+  payments: "admin.staff.manage",
 };
 
 interface NavItem {
@@ -125,6 +128,21 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
             <circle cx="15" cy="10" r="1.5" />
             <circle cx="9" cy="15" r="1.5" />
             <circle cx="15" cy="15" r="1.5" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    title: "Billing",
+    items: [
+      {
+        tab: "payments",
+        label: "Pagamenti",
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={ICON_CLASS}>
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
           </svg>
         ),
       },

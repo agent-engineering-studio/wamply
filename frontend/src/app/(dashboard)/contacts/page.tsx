@@ -318,12 +318,12 @@ export default function ContactsPage() {
       {total > 50 && (
         <div className="mt-4 flex items-center justify-center gap-2">
           <button type="button" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
-            className="rounded-sm border border-slate-800 px-3 py-1.5 text-[12px] disabled:opacity-40">
+            className="rounded-sm border border-slate-700 px-3 py-1.5 text-[12px] font-medium text-slate-200 hover:border-brand-teal/50 hover:bg-brand-navy-deep hover:text-brand-teal disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:bg-transparent disabled:hover:text-slate-200">
             ← Prec
           </button>
           <span className="text-[12px] text-slate-400">Pagina {page} di {Math.ceil(total / 50)}</span>
           <button type="button" onClick={() => setPage(page + 1)} disabled={page >= Math.ceil(total / 50)}
-            className="rounded-sm border border-slate-800 px-3 py-1.5 text-[12px] disabled:opacity-40">
+            className="rounded-sm border border-slate-700 px-3 py-1.5 text-[12px] font-medium text-slate-200 hover:border-brand-teal/50 hover:bg-brand-navy-deep hover:text-brand-teal disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:bg-transparent disabled:hover:text-slate-200">
             Succ →
           </button>
         </div>

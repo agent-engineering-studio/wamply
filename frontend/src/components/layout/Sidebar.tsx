@@ -184,14 +184,30 @@ export function Sidebar() {
         </span>
       </div>
 
-      {/* Tenant */}
-      <div className="mx-2.5 mt-2.5 mb-1 rounded-sm border border-brand-teal/30 bg-brand-teal/10 px-3 py-2">
-        <div className="text-[12.5px] font-medium text-slate-100">Azienda SRL</div>
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-teal">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="#0D9488"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          {planUsage ? `Piano ${planUsage.plan.name}` : " "}
-        </div>
-      </div>
+      {/* Chiedi a Wamply — CTA AI primario, in cima */}
+      {agentActive && !pathname.startsWith("/agent") && (
+        <Link
+          href="/agent"
+          className="group relative mx-2.5 mt-2.5 mb-1 block overflow-hidden rounded-card border border-brand-teal/40 bg-linear-to-br from-brand-teal/15 via-brand-navy-light to-brand-navy p-2.5 transition-all hover:border-brand-teal/70 hover:shadow-teal"
+        >
+          <div className="pointer-events-none absolute -right-2 -top-2 h-12 w-12 rounded-full bg-brand-teal/20 blur-xl transition-opacity group-hover:bg-brand-teal/40" />
+          <div className="relative flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-brand-teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
+                <circle cx="9" cy="14" r="1" fill="currentColor" />
+                <circle cx="15" cy="14" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[12px] font-semibold text-slate-100">Chiedi a Wamply</div>
+              <div className="truncate text-[10.5px] text-slate-400">
+                Pianifica una campagna in 30 secondi
+              </div>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 space-y-px overflow-y-auto px-2 py-1.5">
@@ -226,59 +242,6 @@ export function Sidebar() {
             Admin
           </Link>
         </div>
-      )}
-
-      {/* Agent AI — link con glow + sparkle */}
-      {agentActive && (
-        <div className="mx-2 mb-1">
-          <Link
-            href="/agent"
-            className={`group relative flex items-center gap-2 overflow-hidden rounded-sm px-2.5 py-2 text-[13px] font-medium transition-all ${
-              pathname.startsWith("/agent")
-                ? "bg-brand-teal text-white shadow-teal"
-                : "bg-linear-to-r from-brand-teal/15 via-brand-teal/10 to-brand-teal/15 text-brand-teal ring-1 ring-brand-teal/25 hover:from-brand-teal/25 hover:via-brand-teal/20 hover:to-brand-teal/25 hover:ring-brand-teal/50"
-            }`}
-          >
-            {!pathname.startsWith("/agent") && (
-              <span className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-brand-teal/40 opacity-0 group-hover:opacity-100 animate-pulse" />
-            )}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.75 w-3.75 shrink-0">
-              <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
-              <circle cx="9" cy="14" r="1" fill="currentColor" />
-              <circle cx="15" cy="14" r="1" fill="currentColor" />
-            </svg>
-            <span className="flex-1">Agent AI</span>
-            <svg viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 shrink-0 opacity-80">
-              <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
-              <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
-            </svg>
-          </Link>
-        </div>
-      )}
-
-      {/* Card "Chiedi a Wamply" — CTA AI evidente sopra le barre utilizzo */}
-      {agentActive && !pathname.startsWith("/agent") && (
-        <Link
-          href="/agent"
-          className="group relative mx-2.5 mb-2 mt-1 block overflow-hidden rounded-card border border-brand-teal/40 bg-linear-to-br from-brand-teal/15 via-brand-navy-light to-brand-navy p-2.5 transition-all hover:border-brand-teal/70 hover:shadow-teal"
-        >
-          <div className="pointer-events-none absolute -right-2 -top-2 h-12 w-12 rounded-full bg-brand-teal/20 blur-xl transition-opacity group-hover:bg-brand-teal/40" />
-          <div className="relative flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-brand-teal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27A7 7 0 015.27 19H4a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" />
-                <circle cx="9" cy="14" r="1" fill="currentColor" />
-                <circle cx="15" cy="14" r="1" fill="currentColor" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[12px] font-semibold text-slate-100">Chiedi a Wamply</div>
-              <div className="truncate text-[10.5px] text-slate-400">
-                Pianifica una campagna in 30 secondi
-              </div>
-            </div>
-          </div>
-        </Link>
       )}
 
       {/* Usage */}
@@ -316,19 +279,29 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* User + Logout */}
+      {/* User + Piano + Logout */}
       <div className="border-t border-slate-800 px-2.5 py-2">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-teal/20 text-[11px] font-semibold text-brand-teal">
-            {user?.initials ?? "··"}
+          <div className="relative shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-teal/20 text-[11px] font-semibold text-brand-teal">
+              {user?.initials ?? "··"}
+            </div>
+            {planUsage && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-brand-navy-light bg-emerald-400"
+                title={`Piano ${planUsage.plan.name} · attivo`}
+              />
+            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12px] font-medium text-slate-100">
-              {user?.fullName || (user ? "Utente" : "\u00A0")}
+          <div className="min-w-0 flex-1" title={user?.email ?? undefined}>
+            <div className="truncate text-[12px] font-medium leading-tight text-slate-100">
+              {user?.fullName || (user ? "Utente" : "—")}
             </div>
-            <div className="truncate text-[10px] text-slate-500">
-              {user?.email ?? "\u00A0"}
-            </div>
+            {planUsage && (
+              <div className="mt-0.5 truncate text-[10.5px] text-brand-teal/80">
+                Piano {planUsage.plan.name}
+              </div>
+            )}
           </div>
           <button
             onClick={handleLogout}

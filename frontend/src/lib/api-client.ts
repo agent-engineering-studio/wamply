@@ -11,10 +11,13 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const headers = await getAuthHeaders();
+  // FormData uploads need the browser to set Content-Type with the multipart
+  // boundary — overriding it with application/json corrupts the request.
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   return fetch(`${KONG_URL}/api/v1${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...headers,
       ...options.headers,
     },

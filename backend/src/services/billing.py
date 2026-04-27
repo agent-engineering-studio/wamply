@@ -1,6 +1,10 @@
 """Stripe Billing integration: Checkout sessions + webhook event dispatcher.
 
 Keeps the local DB (subscriptions table) in sync with Stripe as the source of truth.
+
+Credential resolution: secrets are read first from `system_config` (encrypted
+via AES helpers, set from the admin UI) and fall back to env vars at startup.
+This lets the operator rotate keys without redeploying.
 """
 
 import os
@@ -10,11 +14,58 @@ import asyncpg
 import stripe
 import structlog
 
+from src.services.encryption import decrypt
+
 logger = structlog.get_logger()
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+# Env-time defaults; superseded by system_config rows when present.
+_ENV_STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+_ENV_STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 APP_URL = os.getenv("APP_URL", "http://localhost:3000")
+
+
+# system_config keys
+SYSCFG_STRIPE_SECRET = "stripe_secret_key"
+SYSCFG_STRIPE_WEBHOOK = "stripe_webhook_secret"
+SYSCFG_STRIPE_PUBLISHABLE = "stripe_publishable_key"
+
+
+async def _read_system_config(db: asyncpg.Pool, key: str) -> str | None:
+    """Return the decrypted system_config value, or None if missing/blank."""
+    row = await db.fetchrow("SELECT value FROM system_config WHERE key = $1", key)
+    if not row or not row["value"]:
+        return None
+    try:
+        return decrypt(row["value"])
+    except Exception as exc:  # noqa: BLE001 — bad ciphertext shouldn't crash the route
+        logger.warning("system_config_decrypt_failed", key=key, error=str(exc))
+        return None
+
+
+async def resolve_stripe_secret_key(db: asyncpg.Pool) -> str:
+    """DB first, env fallback. Empty string if neither is set (callers raise)."""
+    val = await _read_system_config(db, SYSCFG_STRIPE_SECRET)
+    return val or _ENV_STRIPE_SECRET_KEY
+
+
+async def resolve_stripe_webhook_secret(db: asyncpg.Pool) -> str:
+    """DB first, env fallback."""
+    val = await _read_system_config(db, SYSCFG_STRIPE_WEBHOOK)
+    return val or _ENV_STRIPE_WEBHOOK_SECRET
+
+
+async def resolve_stripe_publishable_key(db: asyncpg.Pool) -> str:
+    """DB first, env fallback. Not sensitive, but stored alongside for parity."""
+    val = await _read_system_config(db, SYSCFG_STRIPE_PUBLISHABLE)
+    return val or os.getenv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "")
+
+
+async def _ensure_stripe_api_key(db: asyncpg.Pool) -> str:
+    """Resolve + apply the Stripe secret on the global module. Returns the key
+    (or empty) so callers can guard before issuing the actual API call."""
+    key = await resolve_stripe_secret_key(db)
+    stripe.api_key = key
+    return key
 
 
 def _ts_to_dt(ts: int | None) -> datetime | None:
@@ -59,7 +110,7 @@ async def set_subscription_cancel_at_period_end(
     immediately; the `customer.subscription.updated` webhook will arrive
     shortly after and re-sync as the source of truth.
     """
-    if not stripe.api_key:
+    if not await _ensure_stripe_api_key(db):
         raise RuntimeError("STRIPE_SECRET_KEY non configurato.")
 
     row = await db.fetchrow(
@@ -105,7 +156,7 @@ async def create_portal_session(
       Settings → Billing → Customer portal → activate.
     The Portal's feature set is configured there, NOT here.
     """
-    if not stripe.api_key:
+    if not await _ensure_stripe_api_key(db):
         raise RuntimeError("STRIPE_SECRET_KEY non configurato.")
 
     customer_id = await _get_or_create_customer(db, user_id, user_email)
@@ -124,7 +175,7 @@ async def create_checkout_session(
     plan_slug: str,
 ) -> str:
     """Create a Stripe Checkout Session for the given plan. Returns checkout URL."""
-    if not stripe.api_key:
+    if not await _ensure_stripe_api_key(db):
         raise RuntimeError("STRIPE_SECRET_KEY is not configured.")
 
     plan = await db.fetchrow(
@@ -241,65 +292,118 @@ def _extract_subscription_id(invoice_obj) -> str | None:
     return details.get("subscription")
 
 
+def _summarize_webhook_object(obj: dict) -> dict:
+    """Compact snapshot of a Stripe object for the admin webhook log.
+    Avoids storing the full payload (PII, large)."""
+    return {
+        "id": obj.get("id"),
+        "object": obj.get("object"),
+        "customer": obj.get("customer"),
+        "subscription": obj.get("subscription"),
+        "status": obj.get("status"),
+        "amount_total": obj.get("amount_total"),
+        "currency": obj.get("currency"),
+        "metadata_type": (obj.get("metadata") or {}).get("type"),
+    }
+
+
+async def _log_webhook_event(
+    db: asyncpg.Pool,
+    event_id: str,
+    event_type: str,
+    status: str,
+    error: str | None,
+    summary: dict,
+) -> None:
+    """Upsert into stripe_webhook_events (idempotent on stripe_event_id)."""
+    import json
+    try:
+        await db.execute(
+            """INSERT INTO stripe_webhook_events
+               (stripe_event_id, event_type, status, error_message, payload_summary)
+               VALUES ($1, $2, $3, $4, $5::jsonb)
+               ON CONFLICT (stripe_event_id) DO UPDATE
+                 SET status = EXCLUDED.status,
+                     error_message = EXCLUDED.error_message""",
+            event_id, event_type, status, error, json.dumps(summary),
+        )
+    except Exception:  # noqa: BLE001 — logging must not break webhook flow
+        logger.exception("stripe_webhook_log_failed", event_id=event_id)
+
+
 async def handle_stripe_webhook(
     db: asyncpg.Pool,
     payload: bytes,
     signature: str,
 ) -> dict:
     """Verify the webhook signature and dispatch to handlers. Returns a status dict."""
-    if not STRIPE_WEBHOOK_SECRET:
+    webhook_secret = await resolve_stripe_webhook_secret(db)
+    if not webhook_secret:
         raise RuntimeError("STRIPE_WEBHOOK_SECRET is not configured.")
+    # Ensure stripe.api_key is set in case the dispatcher needs to call the API.
+    await _ensure_stripe_api_key(db)
 
     event = stripe.Webhook.construct_event(
         payload=payload,
         sig_header=signature,
-        secret=STRIPE_WEBHOOK_SECRET,
+        secret=webhook_secret,
     )
 
+    event_id = event["id"]
     event_type = event["type"]
     obj = event["data"]["object"]
+    summary = _summarize_webhook_object(obj)
 
-    if event_type == "checkout.session.completed":
-        metadata = obj.get("metadata") or {}
+    # Record receipt before dispatching so we have a row even if processing throws.
+    await _log_webhook_event(db, event_id, event_type, "received", None, summary)
 
-        # Top-up one-shot payment: credit the user's top-up balance.
-        if metadata.get("type") == "topup":
-            from src.services.credit_topup import apply_topup_purchase
-            session_id = obj.get("id")
-            payment_intent_id = obj.get("payment_intent")
-            if session_id:
-                await apply_topup_purchase(db, session_id, payment_intent_id)
+    try:
+        if event_type == "checkout.session.completed":
+            metadata = obj.get("metadata") or {}
 
-        # Subscription mode: sync plan.
-        elif obj.get("mode") == "subscription" and obj.get("subscription"):
-            sub = stripe.Subscription.retrieve(obj["subscription"])
+            # Top-up one-shot payment: credit the user's top-up balance.
+            if metadata.get("type") == "topup":
+                from src.services.credit_topup import apply_topup_purchase
+                session_id = obj.get("id")
+                payment_intent_id = obj.get("payment_intent")
+                if session_id:
+                    await apply_topup_purchase(db, session_id, payment_intent_id)
+
+            # Subscription mode: sync plan.
+            elif obj.get("mode") == "subscription" and obj.get("subscription"):
+                sub = stripe.Subscription.retrieve(obj["subscription"])
+                await _sync_subscription_from_stripe(db, sub)
+
+        elif event_type in (
+            "customer.subscription.created",
+            "customer.subscription.updated",
+            "customer.subscription.deleted",
+        ):
+            sub = stripe.Subscription.retrieve(obj["id"])
             await _sync_subscription_from_stripe(db, sub)
 
-    elif event_type in (
-        "customer.subscription.created",
-        "customer.subscription.updated",
-        "customer.subscription.deleted",
-    ):
-        sub = stripe.Subscription.retrieve(obj["id"])
-        await _sync_subscription_from_stripe(db, sub)
+        elif event_type == "invoice.payment_succeeded":
+            sub_id = _extract_subscription_id(obj)
+            if sub_id:
+                sub = stripe.Subscription.retrieve(sub_id)
+                await _sync_subscription_from_stripe(db, sub)
 
-    elif event_type == "invoice.payment_succeeded":
-        sub_id = _extract_subscription_id(obj)
-        if sub_id:
-            sub = stripe.Subscription.retrieve(sub_id)
-            await _sync_subscription_from_stripe(db, sub)
+        elif event_type == "invoice.payment_failed":
+            sub_id = _extract_subscription_id(obj)
+            if sub_id:
+                # Mark local sub as past_due eagerly; Stripe will retry automatically.
+                await db.execute(
+                    "UPDATE subscriptions SET status = 'past_due', updated_at = now() "
+                    "WHERE stripe_subscription_id = $1",
+                    sub_id,
+                )
 
-    elif event_type == "invoice.payment_failed":
-        sub_id = _extract_subscription_id(obj)
-        if sub_id:
-            # Mark local sub as past_due eagerly; Stripe will retry automatically.
-            await db.execute(
-                "UPDATE subscriptions SET status = 'past_due', updated_at = now() "
-                "WHERE stripe_subscription_id = $1",
-                sub_id,
-            )
+        else:
+            logger.debug("stripe_event_ignored", type=event_type)
 
-    else:
-        logger.debug("stripe_event_ignored", type=event_type)
+        await _log_webhook_event(db, event_id, event_type, "processed", None, summary)
+    except Exception as exc:  # noqa: BLE001 — log + re-raise
+        await _log_webhook_event(db, event_id, event_type, "error", str(exc)[:500], summary)
+        raise
 
     return {"received": True, "type": event_type}
