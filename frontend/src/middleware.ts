@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 
@@ -56,7 +57,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  let user = null;
+  let user: User | null = null;
   try {
     const { data } = await supabase.auth.getUser();
     user = data.user;
