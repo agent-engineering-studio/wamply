@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { TopupPacksAdmin } from "./TopupPacksAdmin";
 
 interface StripePlan {
   id: string;
@@ -16,8 +17,9 @@ interface TopupPack {
   slug: string;
   credits: number;
   amount_cents: number;
-  env_var: string;
   price_id: string;
+  source: "db" | "env" | null;
+  active: boolean;
 }
 
 interface WebhookEvent {
@@ -366,29 +368,8 @@ export function StripeConfigTab() {
         </div>
       </div>
 
-      {/* Top-up packs (read-only) */}
-      <div className="rounded-card border border-slate-800 bg-brand-navy-light p-5">
-        <div className="mb-3">
-          <div className="text-[13px] font-semibold text-slate-100">Stripe Price ID dei top-up pack</div>
-          <div className="mt-0.5 text-[11.5px] text-slate-400">
-            Sola lettura — modificabili tramite variabili env e redeploy.
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          {status.topup_packs.map((p) => (
-            <div key={p.slug} className="flex items-center gap-3 rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2">
-              <div className="w-32 shrink-0">
-                <div className="text-[12.5px] font-medium text-slate-100 capitalize">{p.slug}</div>
-                <div className="text-[10.5px] text-slate-500">{p.credits} crediti · €{(p.amount_cents / 100).toFixed(0)}</div>
-              </div>
-              <code className="flex-1 truncate text-[11.5px] text-slate-300">
-                {p.price_id || <span className="text-rose-400">non configurato</span>}
-              </code>
-              <code className="shrink-0 text-[10.5px] text-slate-500">{p.env_var}</code>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Top-up packs (full CRUD + Stripe sync) */}
+      <TopupPacksAdmin />
 
       {/* Webhook events log */}
       <div className="rounded-card border border-slate-800 bg-brand-navy-light p-5">

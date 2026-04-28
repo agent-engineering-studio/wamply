@@ -5,6 +5,10 @@
 .DESCRIPTION
   Installa Docker Desktop se necessario, configura .env e avvia Wamply.
   USO LOCALE / DEMO ONLY — non per produzione.
+
+  Twilio, Stripe e Claude API si configurano dopo l'avvio dal pannello admin
+  (http://localhost:3000/admin). Le credenziali sono salvate cifrate in
+  `system_config` lato DB, niente più .env per la demo.
 .EXAMPLE
   .\demo\setup.ps1
 #>
@@ -29,101 +33,6 @@ function Invoke-Ask {
   $val = Read-Host "  $Prompt$hint"
   if ([string]::IsNullOrWhiteSpace($val)) { return $Default }
   return $val
-}
-
-function Invoke-AskSecret {
-  param($Prompt)
-  $sec  = Read-Host "  $Prompt" -AsSecureString
-  $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-  return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
-}
-
-function Set-EnvVar {
-  param($Key, $Val)
-  $raw = Get-Content $EnvFile -Raw
-  if ($raw -match "(?m)^${Key}=") {
-    $raw = $raw -replace "(?m)^${Key}=.*", "${Key}=${Val}"
-  } else {
-    $raw = $raw.TrimEnd() + "`n${Key}=${Val}"
-  }
-  [System.IO.File]::WriteAllText($EnvFile, $raw, [System.Text.Encoding]::UTF8)
-}
-
-# ── Config profiles ───────────────────────────────────────────────────────────
-$ConfigsDir = Join-Path $ScriptDir "configs"
-$ConfigVars = @("TWILIO_ACCOUNT_SID","TWILIO_AUTH_TOKEN","TWILIO_FROM","TWILIO_MESSAGING_SERVICE_SID")
-
-function Save-Config {
-  param($Name)
-  if (-not (Test-Path $ConfigsDir)) { New-Item -ItemType Directory $ConfigsDir | Out-Null }
-  $profilePath = Join-Path $ConfigsDir "${Name}.env"
-  $envContent = Get-Content $EnvFile -Raw
-  $lines = @()
-  foreach ($var in $ConfigVars) {
-    if ($envContent -match "(?m)^${var}=(.*)") {
-      $lines += "${var}=$($Matches[1])"
-    }
-  }
-  [System.IO.File]::WriteAllText($profilePath, ($lines -join "`n") + "`n", [System.Text.Encoding]::UTF8)
-  Write-Ok "Profilo '$Name' salvato in demo\configs\${Name}.env"
-}
-
-function Import-Config {
-  param($Name)
-  $profilePath = Join-Path $ConfigsDir "${Name}.env"
-  if (-not (Test-Path $profilePath)) { Write-Warn "Profilo '$Name' non trovato"; return }
-  foreach ($line in (Get-Content $profilePath)) {
-    if ($line -match "^([^#=]+)=(.*)") {
-      Set-EnvVar $Matches[1] $Matches[2]
-    }
-  }
-  Write-Ok "Profilo '$Name' caricato"
-
-  $running = (docker ps --format "{{.Names}}" 2>$null) -match "wcm-"
-  if ($running) {
-    Write-Host ""
-    Write-Host "  Vuoi riavviare i servizi applicativi per applicare le nuove credenziali?" -ForegroundColor White
-    Write-Host "  [1] Si — riavvia backend e agent" -ForegroundColor White
-    Write-Host "  [2] No — riavvia manualmente" -ForegroundColor White
-    $r = Invoke-Ask "Scelta" "1"
-    if ($r -eq "1") {
-      Set-Location $RootDir
-      docker compose restart backend agent
-      Write-Ok "Servizi riavviati con le nuove credenziali"
-    }
-  }
-}
-
-function Show-Configs {
-  if (-not (Test-Path $ConfigsDir)) { Write-Host "  Nessun profilo salvato in demo\configs\" -ForegroundColor Yellow; return }
-  $files = Get-ChildItem $ConfigsDir -Filter "*.env" -ErrorAction SilentlyContinue
-  if (-not $files) { Write-Host "  Nessun profilo salvato in demo\configs\" -ForegroundColor Yellow; return }
-  Write-Host "  Profili disponibili:" -ForegroundColor White
-  foreach ($f in $files) { Write-Host "  * $($f.BaseName)" -ForegroundColor White }
-}
-
-function Open-ConfigMenu {
-  Write-Host ""
-  Write-Host "  Gestione configurazioni" -ForegroundColor Cyan
-  Write-Host ""
-  Show-Configs
-  Write-Host ""
-  Write-Host "  [1] Carica un profilo" -ForegroundColor White
-  Write-Host "  [2] Salva configurazione attuale come profilo" -ForegroundColor White
-  Write-Host "  [3] Torna al menu principale" -ForegroundColor White
-  Write-Host ""
-  $choice = Invoke-Ask "Scelta" "3"
-  switch ($choice) {
-    "1" {
-      $name = Invoke-Ask "Nome profilo da caricare"
-      if ($name) { Import-Config $name }
-    }
-    "2" {
-      $name = Invoke-Ask "Nome del nuovo profilo (es. cliente-acme)"
-      if ($name) { Save-Config $name }
-    }
-    default { Write-Host "  Annullato." }
-  }
 }
 
 function Test-DockerRunning {
@@ -200,8 +109,7 @@ Write-Ok "Docker $dockerVer"
 # ── 2. File .env ──────────────────────────────────────────────────────────────
 Write-Step "Configurazione .env"
 
-$EnvExists = Test-Path $EnvFile
-if (-not $EnvExists) {
+if (-not (Test-Path $EnvFile)) {
   Copy-Item (Join-Path $RootDir ".env.example") $EnvFile
   Write-Ok ".env creato da .env.example"
 } else {
@@ -222,8 +130,7 @@ if ($containersRunning) {
   Write-Host "  Cosa vuoi fare?" -ForegroundColor White
   Write-Host "  [1] Mostra URL e credenziali (nessuna azione)" -ForegroundColor White
   Write-Host "  [2] Riavvia i container senza perdere i dati" -ForegroundColor White
-  Write-Host "  [3] Gestisci configurazioni / cambia Twilio" -ForegroundColor White
-  Write-Host "  [4] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
+  Write-Host "  [3] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
   Write-Host ""
   $choice = Invoke-Ask "Scelta" "1"
   switch ($choice) {
@@ -231,12 +138,9 @@ if ($containersRunning) {
       Set-Location $RootDir
       docker compose restart
       Write-Ok "Servizi riavviati"
-    }
-    "3" {
-      Open-ConfigMenu
       $skipSetup = $true
     }
-    "4" {
+    "3" {
       Write-Warn "Reset completo: tutti i dati verranno eliminati."
       $confirm = Invoke-Ask "Digita 'reset' per confermare"
       if ($confirm -ne "reset") { Write-Host "  Annullato."; exit 0 }
@@ -248,55 +152,18 @@ if ($containersRunning) {
   Write-Ok "Immagini Docker trovate — riavvio senza rebuild"
   Write-Host ""
   Write-Host "  [1] Avvia con i dati esistenti  (nessun rebuild)" -ForegroundColor White
-  Write-Host "  [2] Gestisci configurazioni / cambia Twilio" -ForegroundColor White
-  Write-Host "  [3] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
+  Write-Host "  [2] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
   Write-Host ""
   $choice = Invoke-Ask "Scelta" "1"
   switch ($choice) {
-    "2" { Open-ConfigMenu }
-    "3" { $imagesExist = $false }
+    "2" { $imagesExist = $false }
   }
 } else {
   Write-Ok "Prima installazione — verrà eseguito il build completo"
 }
 
-# ── 4. Twilio ─────────────────────────────────────────────────────────────────
+# ── 4. Build e avvio ──────────────────────────────────────────────────────────
 if (-not $skipSetup) {
-  Write-Step "Configurazione Twilio WhatsApp"
-
-  $envContent  = Get-Content $EnvFile -Raw
-  $twilioOk    = $envContent -match "(?m)^TWILIO_ACCOUNT_SID=AC[0-9a-f]{32}"
-
-  if ($twilioOk) {
-    Write-Ok "Credenziali Twilio già configurate in .env"
-  } else {
-    Write-Host ""
-    Write-Host "  [1] Sandbox / Test  — nessuna credenziale reale, nessun messaggio inviato" -ForegroundColor White
-    Write-Host "  [2] Produzione       — inserisci le tue credenziali Twilio" -ForegroundColor White
-    Write-Host ""
-    $twilioChoice = Invoke-Ask "Modalità Twilio" "1"
-
-    if ($twilioChoice -eq "2") {
-      Write-Host ""
-      $sid    = Invoke-Ask "Account SID (inizia con AC)"
-      $token  = Invoke-AskSecret "Auth Token"
-      $from   = Invoke-Ask "Numero FROM WhatsApp (es. whatsapp:+391234567890)" "whatsapp:+14155238886"
-      $msgSid = Invoke-Ask "Messaging Service SID (lascia vuoto se non ce l'hai)" ""
-
-      Set-EnvVar "TWILIO_ACCOUNT_SID" $sid
-      Set-EnvVar "TWILIO_AUTH_TOKEN"  $token
-      Set-EnvVar "TWILIO_FROM"        $from
-      if (-not [string]::IsNullOrWhiteSpace($msgSid)) {
-        Set-EnvVar "TWILIO_MESSAGING_SERVICE_SID" $msgSid
-      }
-      Write-Ok "Credenziali Twilio produzione salvate"
-    } else {
-      Write-Ok "Modalità sandbox — placeholder dal .env.example"
-      Write-Warn "Per messaggi reali: aggiorna le credenziali in .env e riavvia"
-    }
-  }
-
-  # ── 5. Build e avvio ─────────────────────────────────────────────────────────
   Write-Step "Build e avvio servizi"
   Set-Location $RootDir
 
@@ -316,7 +183,7 @@ if (-not $skipSetup) {
     Write-Host "  Attendo database..." -NoNewline
     for ($i = 0; $i -lt 20; $i++) {
       Start-Sleep 3; Write-Host "." -NoNewline
-      $test = docker compose exec -T supabase-db pg_isready -U postgres 2>$null
+      docker compose exec -T supabase-db pg_isready -U postgres 2>$null | Out-Null
       if ($LASTEXITCODE -eq 0) { break }
     }
     Write-Host ""
@@ -329,7 +196,7 @@ if (-not $skipSetup) {
   }
 }
 
-# ── 6. Health check ───────────────────────────────────────────────────────────
+# ── 5. Health check ───────────────────────────────────────────────────────────
 if (-not $skipSetup) {
   Write-Step "Attendo servizi pronti"
   Write-Host "  Kong API Gateway" -NoNewline
@@ -343,7 +210,7 @@ if (-not $skipSetup) {
   else { Write-Warn "Kong non risponde ancora — riprova tra qualche secondo" }
 }
 
-# ── 7. Riepilogo finale ───────────────────────────────────────────────────────
+# ── 6. Riepilogo finale ───────────────────────────────────────────────────────
 Write-Host ""
 Write-Sep
 Write-Host "  [OK]  Wamply e' in esecuzione!" -ForegroundColor Green
@@ -359,9 +226,11 @@ Write-Host "    Admin:  admin@wcm.local  /  Admin123!" -ForegroundColor White
 Write-Host "    User 1: user1@test.local /  User123!" -ForegroundColor White
 Write-Host "    User 2: user2@test.local /  User123!" -ForegroundColor White
 Write-Host ""
-Write-Host "  [!] Claude API Key" -ForegroundColor Yellow
-Write-Host "  La chiave Anthropic si imposta nell'admin panel:" -ForegroundColor Yellow
-Write-Host "  http://localhost:3000/admin  -->  tab 'Claude API'" -ForegroundColor Yellow
+Write-Host "  [!] Configurazione integrazioni esterne" -ForegroundColor Yellow
+Write-Host "  Tutte le credenziali si configurano dal pannello admin (cifrate in DB):" -ForegroundColor Yellow
+Write-Host "    Twilio WhatsApp:  /admin  -->  tab 'Twilio'" -ForegroundColor Yellow
+Write-Host "    Stripe Pagamenti: /admin  -->  tab 'Pagamenti'" -ForegroundColor Yellow
+Write-Host "    Claude API Key:   /admin  -->  tab 'Claude API'" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Comandi utili (PowerShell dalla root del progetto):" -ForegroundColor DarkGray
 Write-Host "    docker compose down      - ferma tutto" -ForegroundColor DarkGray
