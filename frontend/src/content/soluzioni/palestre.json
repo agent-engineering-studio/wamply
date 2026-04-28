@@ -1,28 +1,40 @@
 {
   "segmento": "palestre",
   "label": "Palestre & Personal Trainer",
-  "metaTitle": "WhatsApp per palestre e personal trainer | Wamply",
-  "metaDescription": "Ricorda gli allenamenti, fidelizza gli iscritti e recupera chi non viene più. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per palestre e personal trainer | Wamply",
+  "metaDescription": "Lancia nuovi corsi, promuovi rinnovi e riattiva gli iscritti dormienti con campagne WhatsApp mirate. Prova 14 giorni gratis.",
   "hero": {
     "pain": "Gli iscritti spariscono dopo un mese e non sai come recuperarli?",
-    "solution": "Allena la tua community con messaggi motivazionali, promemoria e inviti mirati.",
+    "solution": "Allena la tua community con campagne motivazionali, promo mirate e inviti agli eventi della palestra.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "clock", "text": "Promemoria lezione o corso il giorno prima" },
-    { "icon": "sparkles", "text": "Promo rinnovo abbonamento prima della scadenza" },
-    { "icon": "users", "text": "Recall chi non si allena da settimane" }
+    { "icon": "sparkles", "text": "Lanci di nuovi corsi, open day ed eventi speciali" },
+    { "icon": "gift", "text": "Promo rinnovo abbonamento prima della scadenza" },
+    { "icon": "users", "text": "Win-back: riattiva chi non si allena da settimane" }
   ],
   "useCases": [
-    { "title": "Promemoria corso", "description": "Il giorno prima del corso, l'iscritto riceve l'orario e la sala.", "roi": "+25% presenze ai corsi serali" },
-    { "title": "Rinnovo abbonamento", "description": "Due settimane prima della scadenza parte un messaggio con sconto rinnovo.", "roi": "+30% tasso di rinnovo" },
-    { "title": "Recall iscritti dormienti", "description": "Chi non viene da 20 giorni riceve una proposta per tornare in sala.", "roi": "Recupera 1 iscritto su 5" }
+    {
+      "title": "Lancio nuovo corso o open day",
+      "description": "Mandi a tutta la community l'invito al nuovo corso settimanale o all'open day, con CTA per prenotare il posto.",
+      "roi": "+30% partecipanti vs locandine in sala"
+    },
+    {
+      "title": "Promo rinnovo abbonamento",
+      "description": "Due settimane prima della scadenza parte una campagna agli iscritti in scadenza con sconto rinnovo dedicato.",
+      "roi": "+30% tasso di rinnovo"
+    },
+    {
+      "title": "Recall iscritti dormienti",
+      "description": "Chi non viene da 30+ giorni riceve una proposta personalizzata: una settimana di allenamento gratis o uno sconto sul nuovo abbonamento.",
+      "roi": "Riattiva 1 iscritto su 5"
+    }
   ],
   "templatesPreview": [
-    { "slug": "palestre_class_reminder", "title": "Promemoria corso", "preview": "Ciao {{nome}}, domani alle {{ora}} c'è {{corso}} con {{trainer}}. Ti aspettiamo." },
-    { "slug": "palestre_renewal", "title": "Rinnovo abbonamento", "preview": "Ciao {{nome}}, il tuo abbonamento scade il {{data}}. Rinnova ora con il 10% di sconto." },
-    { "slug": "palestre_winback", "title": "Recall inattivi", "preview": "Ciao {{nome}}, la sala ti aspetta. Torna entro venerdì e ti regaliamo una PT session." }
+    { "slug": "palestre_class_launch", "title": "Lancio nuovo corso", "preview": "Ciao Giulia, da lunedì 12 maggio parte Spinning Power con Marco! Posti limitati: prenota il tuo qui → wamply.it/p/spin" },
+    { "slug": "palestre_renewal", "title": "Rinnovo abbonamento", "preview": "Ciao Andrea, il tuo abbonamento scade il 30 aprile. Rinnova entro venerdì con il -10% riservato a te: wamply.it/p/rinnova" },
+    { "slug": "palestre_winback", "title": "Win-back inattivi", "preview": "Ciao Sofia, ci manchi in sala! Torna entro il weekend e ti regaliamo una PT session omaggio: wamply.it/p/back" }
   ],
   "recommendedPlan": "starter",
   "testimonial": null,

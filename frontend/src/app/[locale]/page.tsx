@@ -3,6 +3,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { useLocale, useTranslations } from "next-intl";
 
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
+import { SegmentsCarousel } from "@/components/segments/SegmentsCarousel";
 import { routing } from "@/i18n/routing";
 
 type Plan = {
@@ -289,39 +290,17 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* Settori */}
+      {/* Settori — carousel con immagine per settore */}
       <section className="border-t border-white/10 py-20">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <h2 className="mb-3 text-center text-[28px] font-semibold">
             Pensato per il tuo settore
           </h2>
-          <p className="mb-12 text-center text-[14px] text-brand-slate-light">
+          <p className="mb-10 text-center text-[14px] text-brand-slate-light">
             Scegli il tuo mestiere e ti mostriamo come funziona Wamply per te.
           </p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {[
-              { slug: "parrucchieri", label: "Parrucchieri & Estetisti" },
-              { slug: "ristoranti", label: "Ristoranti & Bar" },
-              { slug: "palestre", label: "Palestre & PT" },
-              { slug: "studi_medici", label: "Studi Medici" },
-              { slug: "avvocati", label: "Avvocati & Commercialisti" },
-              { slug: "immobiliari", label: "Agenti Immobiliari" },
-              { slug: "autofficine", label: "Autofficine" },
-              { slug: "retail", label: "Negozi locali" },
-              { slug: "scuole", label: "Scuole & Formazione" },
-              { slug: "hotel", label: "Hotel & B&B" },
-              { slug: "autosaloni", label: "Autosaloni" },
-            ].map((s) => (
-              <Link
-                key={s.slug}
-                href={`/soluzioni/${s.slug}`}
-                className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-[13px] font-medium text-white backdrop-blur-sm transition-colors hover:border-brand-teal/40 hover:text-brand-teal"
-              >
-                {s.label}
-              </Link>
-            ))}
-          </div>
-          <div className="mt-10 text-center">
+          <SegmentsCarousel />
+          <div className="mt-8 text-center">
             <Link
               href="/soluzioni"
               className="inline-block rounded-pill border border-brand-teal/50 px-6 py-2.5 text-[13px] font-medium text-brand-teal hover:bg-brand-teal/10 transition-colors"

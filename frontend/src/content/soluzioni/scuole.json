@@ -1,28 +1,40 @@
 {
   "segmento": "scuole",
   "label": "Scuole & Centri formazione",
-  "metaTitle": "WhatsApp per scuole, asili e centri formazione | Wamply",
-  "metaDescription": "Comunicazioni alle famiglie, avvisi di chiusura, iscrizioni aperte: tutto su WhatsApp, chiaro e diretto. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per scuole, asili e centri formazione | Wamply",
+  "metaDescription": "Promo iscrizioni, open day e lancio nuovi corsi via WhatsApp: il canale più aperto dalle famiglie. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Le circolari cartacee si perdono e i genitori non ricevono l'avviso?",
-    "solution": "Comunicazioni chiare alle famiglie su WhatsApp, con conferma di lettura.",
+    "pain": "Le brochure di iscrizione finiscono nel cestino e gli ex alunni non sanno dei nuovi corsi?",
+    "solution": "Riempi i corsi con campagne WhatsApp: open day, iscrizioni aperte e novità formative direttamente sul canale che leggono.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "chat", "text": "Avvisi alle famiglie con conferma di lettura" },
-    { "icon": "calendar", "text": "Promemoria iscrizioni, scadenze, riunioni" },
-    { "icon": "star", "text": "Novità dei corsi per ex alunni e interessati" }
+    { "icon": "sparkles", "text": "Open day e visite scuola alle famiglie interessate" },
+    { "icon": "calendar", "text": "Iscrizioni aperte e promo early-bird" },
+    { "icon": "star", "text": "Lancio nuovi corsi e laboratori a ex alunni e contatti" }
   ],
   "useCases": [
-    { "title": "Avviso chiusura", "description": "Scuola chiusa per maltempo: messaggio a tutte le famiglie in 2 minuti.", "roi": "Comunicazione certa, niente famiglie davanti al cancello" },
-    { "title": "Iscrizioni aperte", "description": "Periodo iscrizioni: messaggio a ex alunni e contatti interessati.", "roi": "+22% iscrizioni rispetto alle sole email" },
-    { "title": "Promemoria riunione", "description": "Il giorno prima della riunione, messaggio di promemoria ai genitori.", "roi": "+30% presenze ai colloqui" }
+    {
+      "title": "Open day",
+      "description": "Inviti i contatti del database (famiglie, ex alunni, lead landing page) all'open day con visita guidata e iscrizione facilitata.",
+      "roi": "+40% partecipanti rispetto a Facebook ads"
+    },
+    {
+      "title": "Iscrizioni aperte",
+      "description": "Periodo iscrizioni: campagna ai contatti compatibili (per età, zona, interesse) con scadenza early-bird.",
+      "roi": "+22% iscrizioni vs sole email"
+    },
+    {
+      "title": "Lancio nuovo corso",
+      "description": "Mandi a ex alunni e contatti interessati l'annuncio del nuovo corso (lingua, musica, sport) con posto prioritario.",
+      "roi": "Riempie il primo modulo nel 70% dei casi"
+    }
   ],
   "templatesPreview": [
-    { "slug": "scuole_notice", "title": "Avviso chiusura", "preview": "Famiglie {{classe}}: domani {{data}} la scuola sarà chiusa per {{motivo}}. Le lezioni riprenderanno il {{ripresa}}." },
-    { "slug": "scuole_enrollment", "title": "Iscrizioni aperte", "preview": "Sono aperte le iscrizioni a {{corso}} per l'anno {{anno}}. Info e moduli: {{link}}. Posti limitati." },
-    { "slug": "scuole_meeting", "title": "Promemoria riunione", "preview": "Gentili famiglie {{classe}}, le ricordiamo la riunione di domani alle {{ora}} in {{aula}}." }
+    { "slug": "scuole_openday", "title": "Open day", "preview": "Famiglia Rossi, sabato 25 maggio open day al Liceo Manzoni dalle 10 alle 13: visita guidata, lezioni demo e iscrizione facilitata. Iscriviti → wamply.it/p/od" },
+    { "slug": "scuole_enrollment", "title": "Iscrizioni aperte", "preview": "Famiglia Bianchi, sono aperte le iscrizioni al Liceo Manzoni per l'anno 2026/2027. Early-bird entro il 15 giugno: wamply.it/p/iscr" },
+    { "slug": "scuole_new_course", "title": "Lancio nuovo corso", "preview": "Ciao Andrea, da settembre al Liceo Manzoni parte il nuovo corso di robotica! Per ex alunni posto prioritario: wamply.it/p/robot" }
   ],
   "recommendedPlan": "professional",
   "testimonial": null,

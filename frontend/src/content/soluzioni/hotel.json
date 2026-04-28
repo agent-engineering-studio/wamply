@@ -1,28 +1,40 @@
 {
   "segmento": "hotel",
   "label": "Hotel, B&B & Agriturismo",
-  "metaTitle": "WhatsApp per hotel, B&B e agriturismo | Wamply",
-  "metaDescription": "Pre-check-in, conferme prenotazione e richieste di recensione direttamente su WhatsApp. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per hotel, B&B e agriturismo | Wamply",
+  "metaDescription": "Lancia pacchetti stagionali, riempi le camere last-minute e riattiva gli ospiti dormienti via WhatsApp. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Gli ospiti arrivano stanchi e il check-in rallenta tutto?",
-    "solution": "Dati del check-in raccolti prima dell'arrivo via WhatsApp, benvenuto in italiano o inglese.",
+    "pain": "Hai migliaia di ospiti passati in rubrica ma non li senti più?",
+    "solution": "Trasforma la lista ospiti in nuove prenotazioni con campagne WhatsApp: pacchetti stagionali, last-minute e ricorrenze.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "calendar", "text": "Pre check-in online tramite WhatsApp" },
-    { "icon": "star", "text": "Richiesta recensione dopo il soggiorno" },
-    { "icon": "chat", "text": "Risposte veloci a domande su orari, colazione, parcheggio" }
+    { "icon": "sparkles", "text": "Pacchetti stagionali e weekend a tema" },
+    { "icon": "clock", "text": "Last-minute disponibilità ai contatti più affezionati" },
+    { "icon": "users", "text": "Win-back ospiti che non tornano da 12+ mesi" }
   ],
   "useCases": [
-    { "title": "Pre check-in", "description": "Due giorni prima dell'arrivo, il cliente manda i documenti e sceglie l'orario.", "roi": "Riduce tempo check-in del 60%" },
-    { "title": "Richiesta recensione", "description": "Il giorno della partenza, messaggio gentile con link alla recensione.", "roi": "+40% recensioni raccolte" },
-    { "title": "Info rapide", "description": "Risposte automatiche su orari colazione, parcheggio, Wi-Fi.", "roi": "Meno telefonate alla reception" }
+    {
+      "title": "Pacchetto stagionale",
+      "description": "Lanci il pacchetto della stagione (weekend di primavera, settimana bianca, agosto) a tutta la lista ospiti con offerta dedicata.",
+      "roi": "+30% prenotazioni dirette, niente commissioni OTA"
+    },
+    {
+      "title": "Last-minute disponibilità",
+      "description": "Camere libere per il weekend? Mandi un last-minute ai contatti locali con sconto del 25%.",
+      "roi": "Riempie 8 camere su 10 entro 48 ore"
+    },
+    {
+      "title": "Win-back ospiti dormienti",
+      "description": "Ospiti che non tornano da 12+ mesi ricevono un invito personalizzato con upgrade gratuito o late check-out.",
+      "roi": "Riattiva 1 ospite su 6 senza commissioni"
+    }
   ],
   "templatesPreview": [
-    { "slug": "hotel_precheckin", "title": "Pre check-in", "preview": "Ciao {{nome}}, ti aspettiamo il {{data}} da {{struttura}}. Per velocizzare il check-in, ci mandi un documento rispondendo qui?" },
-    { "slug": "hotel_review", "title": "Richiesta recensione", "preview": "Ciao {{nome}}, grazie per aver scelto {{struttura}}! Se ti va, lasciaci un parere qui: {{link}}" },
-    { "slug": "hotel_info", "title": "Info utili", "preview": "Ciao {{nome}}, benvenuto! Colazione dalle {{ora}}, Wi-Fi {{wifi}}, parcheggio incluso. Qualsiasi cosa, siamo qui." }
+    { "slug": "hotel_seasonal", "title": "Pacchetto stagionale", "preview": "Ciao Lorenzo, all'Hotel Belvedere weekend di primavera con cena e SPA da 189€/persona. Disponibilità maggio: wamply.it/p/spring" },
+    { "slug": "hotel_lastminute", "title": "Last-minute", "preview": "Ciao Elena, all'Hotel Belvedere ho ancora 4 camere per il weekend del 17-19 maggio: -25% per i nostri ospiti. wamply.it/p/lm" },
+    { "slug": "hotel_winback", "title": "Win-back ospite", "preview": "Ciao Marco, è passato un po' da quando sei stato all'Hotel Belvedere. Torna entro giugno e ti regaliamo l'upgrade in junior suite: wamply.it/p/back" }
   ],
   "recommendedPlan": "professional",
   "testimonial": null,

@@ -1,28 +1,40 @@
 {
   "segmento": "studi_medici",
   "label": "Studi Medici & Dentisti",
-  "metaTitle": "WhatsApp per studi medici e dentistici | Wamply",
-  "metaDescription": "Conferma visite, riduci i no-show e comunica i risultati agli appuntamenti di controllo. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per studi medici e dentistici | Wamply",
+  "metaDescription": "Campagne richiamo controlli annuali, lancio nuovi servizi e prevenzione stagionale via WhatsApp, nel rispetto della privacy. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "I pazienti saltano le visite di controllo e non ti avvertono?",
-    "solution": "Conferma automatiche e promemoria visite su WhatsApp, nel rispetto della privacy.",
+    "pain": "I pazienti dimenticano i controlli annuali e la lista contatti resta inutilizzata?",
+    "solution": "Campagne WhatsApp per richiami, nuovi servizi e prevenzione, scritte con un tono professionale e nel rispetto della privacy.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "calendar", "text": "Promemoria visita 24h e 2h prima" },
-    { "icon": "shield", "text": "Comunicazioni conformi alla privacy del paziente" },
-    { "icon": "check", "text": "Richiamo controlli annuali e follow-up terapie" }
+    { "icon": "calendar", "text": "Campagne richiamo controlli annuali a chi non viene da 12+ mesi" },
+    { "icon": "sparkles", "text": "Lancio nuovi servizi e pacchetti prevenzione" },
+    { "icon": "shield", "text": "Comunicazioni conformi alla privacy del paziente" }
   ],
   "useCases": [
-    { "title": "Promemoria visita", "description": "Il paziente riceve l'orario della visita il giorno prima, con possibilità di spostare.", "roi": "Riduce no-show del 45%" },
-    { "title": "Richiamo controllo annuale", "description": "A un anno dalla visita, messaggio automatico per prenotare il controllo.", "roi": "Fino al 40% di pazienti che riprenotano" },
-    { "title": "Follow-up post visita", "description": "Dopo una terapia, il paziente riceve istruzioni e invito al controllo.", "roi": "Aumenta la fidelizzazione del paziente" }
+    {
+      "title": "Richiamo controllo annuale",
+      "description": "Campagna broadcast ai pazienti che non si presentano da oltre 12 mesi, con invito a prenotare il controllo.",
+      "roi": "Fino al 40% dei pazienti che riprenotano"
+    },
+    {
+      "title": "Promo nuovo servizio",
+      "description": "Lanci un nuovo servizio (es. sbiancamento, igiene profonda) ai pazienti già attivi con offerta dedicata.",
+      "roi": "+25% adesione al primo mese di lancio"
+    },
+    {
+      "title": "Newsletter prevenzione stagionale",
+      "description": "Campagne mensili con consigli di prevenzione (es. check-up estivo, allergie primaverili) per restare top-of-mind.",
+      "roi": "Aumenta la fidelizzazione e il tasso di referral"
+    }
   ],
   "templatesPreview": [
-    { "slug": "studi_medici_reminder", "title": "Promemoria visita", "preview": "Gentile {{nome}}, le ricordiamo la visita di domani alle {{ora}} presso {{studio}}. Risponda CONFERMO o SPOSTA." },
-    { "slug": "studi_medici_annual", "title": "Controllo annuale", "preview": "Gentile {{nome}}, è passato un anno dall'ultima visita. Prenoti il controllo annuale rispondendo a questo messaggio." },
-    { "slug": "studi_medici_followup", "title": "Follow-up", "preview": "Gentile {{nome}}, come sta andando dopo la terapia del {{data}}? Se serve possiamo fissare un controllo." }
+    { "slug": "studi_medici_annual", "title": "Richiamo controllo annuale", "preview": "Gentile Sig. Bianchi, è passato un anno dall'ultima visita. Le suggeriamo di prenotare il controllo annuale: wamply.it/p/visita" },
+    { "slug": "studi_medici_new_service", "title": "Promo nuovo servizio", "preview": "Gentile Sig.ra Rossi, lo studio offre ora il pacchetto Sbiancamento Pro a 199€ (-30% per i pazienti del primo mese). Info qui: wamply.it/p/sbiancamento" },
+    { "slug": "studi_medici_seasonal", "title": "Prevenzione stagionale", "preview": "Gentile Dott.ssa Conti, con l'estate in arrivo è il momento del check-up dermatologico. Disponibilità a maggio: wamply.it/p/checkup" }
   ],
   "recommendedPlan": "professional",
   "testimonial": null,

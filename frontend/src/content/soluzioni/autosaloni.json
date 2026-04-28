@@ -1,28 +1,40 @@
 {
   "segmento": "autosaloni",
   "label": "Autosaloni & Concessionarie",
-  "metaTitle": "WhatsApp per autosaloni e concessionarie | Wamply",
-  "metaDescription": "Test drive, nuovi ingressi e promemoria tagliando per i clienti della concessionaria, via WhatsApp. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per autosaloni e concessionarie | Wamply",
+  "metaDescription": "Lancio nuovi modelli, promo finanziamento e test drive day via WhatsApp. Trasforma la lista contatti in trattative aperte. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Il cliente chiede informazioni su un'auto e poi sparisce?",
-    "solution": "Tieni caldi tutti i contatti con foto, test drive e follow-up mirati su WhatsApp.",
+    "pain": "I contatti del salone si raffreddano in due settimane e tu non li ricontatti più?",
+    "solution": "Tieni calda la lista contatti con campagne WhatsApp: nuovi ingressi, promo finanziamento e test drive day.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "calendar", "text": "Conferma test drive con un messaggio" },
-    { "icon": "sparkles", "text": "Nuovi ingressi usato e km 0 ai contatti in target" },
-    { "icon": "clock", "text": "Promemoria tagliando e scadenza bollo" }
+    { "icon": "sparkles", "text": "Lancio nuovi ingressi usato e km 0 ai contatti in target" },
+    { "icon": "gift", "text": "Promo finanziamento e offerte del mese" },
+    { "icon": "star", "text": "Test drive day ed eventi anteprima" }
   ],
   "useCases": [
-    { "title": "Test drive", "description": "Quando il cliente prenota il test drive, riceve conferma e indicazioni.", "roi": "Meno test drive saltati, più chiusure" },
-    { "title": "Nuovo ingresso", "description": "Entra un usato interessante: foto e scheda ai contatti compatibili.", "roi": "1 trattativa aperta ogni 10 messaggi inviati" },
-    { "title": "Post vendita", "description": "Promemoria tagliando, scadenza bollo, anno di garanzia residua.", "roi": "Fidelizza il 45% dei clienti per il prossimo acquisto" }
+    {
+      "title": "Lancio nuovo ingresso",
+      "description": "Entra un'auto interessante: foto e scheda mandate solo ai contatti compatibili per budget e tipologia.",
+      "roi": "1 trattativa aperta ogni 10 messaggi inviati"
+    },
+    {
+      "title": "Promo finanziamento del mese",
+      "description": "Promozione del mese (es. anticipo zero, prima rata 2026) a tutta la lista contatti del salone.",
+      "roi": "+25% lead caldi nel mese di campagna"
+    },
+    {
+      "title": "Test drive day",
+      "description": "Sabato dedicato al test drive con flotta dedicata e consulenza finanziamento in sede, invito ai contatti caldi degli ultimi 6 mesi.",
+      "roi": "Concentra 30+ test drive in mezza giornata"
+    }
   ],
   "templatesPreview": [
-    { "slug": "autosaloni_testdrive", "title": "Test drive", "preview": "Ciao {{nome}}, confermiamo il test drive della {{modello}} il {{data}} alle {{ora}} da {{salone}}. Porta patente e documento." },
-    { "slug": "autosaloni_new", "title": "Nuovo ingresso", "preview": "Ciao {{nome}}, è appena entrata una {{modello}} {{anno}} {{km}} km a {{prezzo}}. Ti mando la scheda?" },
-    { "slug": "autosaloni_reminder", "title": "Promemoria tagliando", "preview": "Ciao {{nome}}, la tua {{modello}} ha bisogno del tagliando entro {{data}}. Ti fisso un appuntamento in officina?" }
+    { "slug": "autosaloni_new_arrival", "title": "Nuovo ingresso", "preview": "Ciao Matteo, è appena entrata una BMW Serie 3 del 2022, 38.000 km a 28.500€. Tipologia che cercavi: scheda completa → wamply.it/p/auto1" },
+    { "slug": "autosaloni_finance", "title": "Promo finanziamento", "preview": "Ciao Francesco, da Concessionaria Moretti maggio è anticipo zero su tutto il km 0! Prima rata a settembre: wamply.it/p/fin" },
+    { "slug": "autosaloni_testdrive_day", "title": "Test drive day", "preview": "Ciao Lorenzo, sabato 18 maggio Test Drive Day da Concessionaria Moretti: 8 modelli provabili, consulenza finanziamento in sede. Prenota lo slot: wamply.it/p/td" }
   ],
   "recommendedPlan": "professional",
   "testimonial": null,

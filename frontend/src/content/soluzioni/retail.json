@@ -1,28 +1,40 @@
 {
   "segmento": "retail",
   "label": "Negozi & Retail locale",
-  "metaTitle": "WhatsApp per negozi e retail | Wamply",
-  "metaDescription": "Promo, nuovi arrivi e recall clienti: porta il tuo negozio sul canale che i clienti aprono ogni giorno. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per negozi e retail | Wamply",
+  "metaDescription": "Promo, nuovi arrivi e win-back clienti: porta il tuo negozio sul canale che i clienti aprono ogni giorno. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Le vetrine si vedono solo da chi passa davanti. E gli altri?",
-    "solution": "Arriva nelle chat dei tuoi clienti con nuovi arrivi, promo e inviti personalizzati.",
+    "pain": "Le vetrine le vede solo chi passa davanti. E i clienti già acquisiti?",
+    "solution": "Arriva nelle chat dei tuoi clienti con campagne WhatsApp: nuovi arrivi, promo di stagione e inviti VIP.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "sparkles", "text": "Nuovi arrivi inviati ai clienti più attivi" },
-    { "icon": "gift", "text": "Promo di stagione con un click" },
-    { "icon": "users", "text": "Recall clienti che non tornano da mesi" }
+    { "icon": "sparkles", "text": "Nuovi arrivi e collezioni ai clienti più attivi" },
+    { "icon": "gift", "text": "Saldi e promo di stagione in anteprima" },
+    { "icon": "users", "text": "Win-back clienti che non tornano da mesi" }
   ],
   "useCases": [
-    { "title": "Nuovi arrivi", "description": "Quando arriva la collezione nuova, messaggio ai clienti abituali.", "roi": "+28% visite in negozio la settimana del lancio" },
-    { "title": "Promo stagionale", "description": "I saldi partono col messaggio giusto, mezza giornata prima degli altri.", "roi": "+15% incasso nei primi due giorni di saldi" },
-    { "title": "Recall cliente", "description": "A 60 giorni dall'ultimo acquisto, invito con piccola promo.", "roi": "Riattiva 1 cliente ogni 5" }
+    {
+      "title": "Lancio nuova collezione",
+      "description": "Quando arriva la collezione nuova, campagna ai clienti abituali con anteprima prima dell'apertura ufficiale.",
+      "roi": "+28% visite in negozio nella settimana del lancio"
+    },
+    {
+      "title": "Saldi di stagione in anteprima",
+      "description": "I saldi partono col messaggio giusto: anteprima ai clienti VIP la sera prima, sconti più aggressivi nei primi due giorni.",
+      "roi": "+15% incasso nei primi due giorni di saldi"
+    },
+    {
+      "title": "Win-back clienti dormienti",
+      "description": "A 60 giorni dall'ultimo acquisto, invito con piccolo coupon dedicato per riportarli in negozio.",
+      "roi": "Riattiva 1 cliente ogni 5"
+    }
   ],
   "templatesPreview": [
-    { "slug": "retail_new_arrivals", "title": "Nuovi arrivi", "preview": "Ciao {{nome}}, da {{negozio}} è arrivata la nuova collezione {{collezione}}. Passa a provarla entro {{data}}." },
-    { "slug": "retail_sale", "title": "Promo stagionale", "preview": "Ciao {{nome}}, da domani sconti fino al {{sconto}}% da {{negozio}}. Per te che sei cliente, oggi già visibile in anteprima." },
-    { "slug": "retail_winback", "title": "Recall cliente", "preview": "Ciao {{nome}}, ci manchi! Passa da {{negozio}} entro venerdì e ti facciamo il 15% sul tuo acquisto." }
+    { "slug": "retail_new_arrivals", "title": "Lancio collezione", "preview": "Ciao Martina, da Boutique Aurora è arrivata la collezione primavera-estate! Anteprima riservata: passa entro sabato → wamply.it/p/pe" },
+    { "slug": "retail_sale_preview", "title": "Saldi in anteprima", "preview": "Ciao Sofia, da domani saldi fino al 50% da Boutique Aurora. Per te che sei cliente, oggi già visibile in anteprima: wamply.it/p/saldi" },
+    { "slug": "retail_winback", "title": "Win-back cliente", "preview": "Ciao Giulia, ci manchi! Passa da Boutique Aurora entro venerdì e ti facciamo il 15% sul tuo prossimo acquisto: wamply.it/p/back" }
   ],
   "recommendedPlan": "starter",
   "testimonial": null,

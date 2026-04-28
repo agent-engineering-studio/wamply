@@ -1,40 +1,40 @@
 {
   "segmento": "parrucchieri",
   "label": "Parrucchieri & Estetisti",
-  "metaTitle": "WhatsApp per parrucchieri e centri estetici | Wamply",
-  "metaDescription": "Manda promemoria appuntamenti, promozioni e ricontatti automatici ai clienti del tuo salone su WhatsApp. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per parrucchieri e centri estetici | Wamply",
+  "metaDescription": "Lancia promo, nuovi trattamenti e riattiva i clienti dormienti del tuo salone con campagne WhatsApp. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Quanti appuntamenti perdi ogni mese per no-show?",
-    "solution": "Ricorda tutto ai tuoi clienti con un messaggio automatico, scritto dall'AI.",
+    "pain": "La tua agenda contatti è piena ma non li usi mai per fare cassa?",
+    "solution": "Trasforma la rubrica in incassi con campagne WhatsApp scritte dall'AI: nuovi servizi, promo compleanno, win-back.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "calendar", "text": "Promemoria appuntamento 24h prima, automatico" },
-    { "icon": "gift", "text": "Promo compleanno scritte dall'AI in italiano colloquiale" },
-    { "icon": "users", "text": "Ricontatti clienti inattivi in 1 click" }
+    { "icon": "sparkles", "text": "Lancio nuovi trattamenti e promo della settimana" },
+    { "icon": "gift", "text": "Auguri compleanno con coupon, scritti dall'AI in italiano colloquiale" },
+    { "icon": "users", "text": "Win-back: riattiva chi non viene da 90 giorni" }
   ],
   "useCases": [
     {
-      "title": "Promemoria appuntamento",
-      "description": "Il giorno prima del taglio, il cliente riceve un WhatsApp personalizzato. Risponde 'OK' o 'Sposta'.",
-      "roi": "Riduce no-show del 40% — dato medio clienti Wamply"
+      "title": "Lancio nuovo trattamento",
+      "description": "Lanci il nuovo servizio (botox capillare, manicure semipermanente, ecc.) ai clienti più attivi con offerta dedicata.",
+      "roi": "+25% prenotazioni nei primi 7 giorni di lancio"
     },
     {
       "title": "Promo compleanno",
-      "description": "L'AI scrive il messaggio di auguri + sconto taglio omaggio, tu clicchi invia.",
+      "description": "L'AI scrive il messaggio di auguri con sconto taglio omaggio, tu clicchi invia ai festeggiati del mese.",
       "roi": "+18% conversione a prenotazione vs email"
     },
     {
-      "title": "Recall clienti inattivi",
-      "description": "Chi non viene da 90+ giorni riceve 'Ci manchi, torna con -20%'.",
+      "title": "Win-back clienti dormienti",
+      "description": "Chi non viene da 90+ giorni riceve un invito personalizzato: \"Ci manchi, torna con -20%\".",
       "roi": "Riattiva il 12-15% dei clienti dormienti"
     }
   ],
   "templatesPreview": [
-    { "slug": "parrucchieri_reminder_24h", "title": "Promemoria 24h", "preview": "Ciao {{nome}}, ti ricordiamo l'appuntamento di domani alle {{ora}} da {{salone}}. Rispondi OK per confermare o SPOSTA per modificare." },
-    { "slug": "parrucchieri_birthday", "title": "Auguri + promo", "preview": "Buon compleanno {{nome}}! 🎁 Regalati un taglio col -30% entro fine mese — prenota qui: {{link}}" },
-    { "slug": "parrucchieri_winback", "title": "Recall inattivi", "preview": "Ciao {{nome}}, ci manchi! Torna da {{salone}} con il 20% di sconto sul tuo prossimo appuntamento." }
+    { "slug": "parrucchieri_new_service", "title": "Lancio nuovo trattamento", "preview": "Ciao Giulia, da Beauty Studio è arrivato il nuovo botox capillare! Per te che sei cliente, -20% nelle prime due settimane: prenota qui → wamply.it/p/botox" },
+    { "slug": "parrucchieri_birthday", "title": "Auguri + promo", "preview": "Buon compleanno Sofia! Regalati un taglio col -30% entro fine mese da Beauty Studio: prenota qui → wamply.it/p/comp" },
+    { "slug": "parrucchieri_winback", "title": "Win-back inattivi", "preview": "Ciao Chiara, ci manchi! Torna da Beauty Studio entro venerdì con il 20% di sconto sul tuo prossimo appuntamento: wamply.it/p/back" }
   ],
   "recommendedPlan": "starter",
   "testimonial": null

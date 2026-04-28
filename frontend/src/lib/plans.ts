@@ -208,18 +208,50 @@ export const PLATFORM_FEATURE_LABELS: Record<
   custom_sender_name: "Custom sender name",
 };
 
-export const SEGMENTS = [
-  { slug: "parrucchieri", label: "Parrucchieri & Estetica" },
-  { slug: "ristoranti", label: "Ristoranti" },
-  { slug: "palestre", label: "Palestre & Fitness" },
-  { slug: "studi_medici", label: "Studi medici" },
-  { slug: "avvocati", label: "Studi legali" },
-  { slug: "immobiliari", label: "Agenzie immobiliari" },
-  { slug: "autofficine", label: "Autofficine" },
-  { slug: "retail", label: "Retail & Negozi" },
-  { slug: "scuole", label: "Scuole & Formazione" },
-  { slug: "hotel", label: "Hotel & B&B" },
-  { slug: "autosaloni", label: "Autosaloni" },
+// Each segment has an image at /segments/<slug>.{webp|svg}.
+// `.webp` = AI-generated photo. `.svg` = brand-coherent placeholder.
+// To upgrade a placeholder, drop a 1536x1024 .webp with the same slug.
+export interface Segment {
+  slug: string;
+  label: string;
+  tagline: string;
+  image: string;
+}
+
+export const SEGMENTS: readonly Segment[] = [
+  { slug: "parrucchieri", label: "Parrucchieri & Estetica",
+    tagline: "Riempi l'agenda con i promemoria automatici.",
+    image: "/segments/parrucchieri.webp" },
+  { slug: "ristoranti", label: "Ristoranti",
+    tagline: "Conferme prenotazioni e promo della settimana.",
+    image: "/segments/ristoranti.webp" },
+  { slug: "palestre", label: "Palestre & Fitness",
+    tagline: "Reminder lezioni e onboarding nuovi iscritti.",
+    image: "/segments/palestre.webp" },
+  { slug: "studi_medici", label: "Studi Medici",
+    tagline: "Promemoria visite e referti pronti.",
+    image: "/segments/studi_medici.svg" },
+  { slug: "avvocati", label: "Studi Legali",
+    tagline: "Comunicazioni clienti tracciate e conformi.",
+    image: "/segments/avvocati.svg" },
+  { slug: "immobiliari", label: "Agenzie Immobiliari",
+    tagline: "Annunci ai contatti giusti, in tempo reale.",
+    image: "/segments/immobiliari.svg" },
+  { slug: "autofficine", label: "Autofficine",
+    tagline: "Avvisi tagliando e auto pronta al ritiro.",
+    image: "/segments/autofficine.svg" },
+  { slug: "retail", label: "Retail & Negozi",
+    tagline: "Saldi, novità e nuove collezioni ai clienti fedeli.",
+    image: "/segments/retail.svg" },
+  { slug: "scuole", label: "Scuole & Formazione",
+    tagline: "Comunicazioni famiglie e iscrizioni semplificate.",
+    image: "/segments/scuole.svg" },
+  { slug: "hotel", label: "Hotel & B&B",
+    tagline: "Pre-check-in e info ospiti senza staff dedicato.",
+    image: "/segments/hotel.svg" },
+  { slug: "autosaloni", label: "Autosaloni",
+    tagline: "Lead nurturing e follow-up post test drive.",
+    image: "/segments/autosaloni.svg" },
 ] as const;
 
 export function formatLimit(value: number, unit: string): string {

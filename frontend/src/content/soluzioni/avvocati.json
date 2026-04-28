@@ -1,28 +1,40 @@
 {
   "segmento": "avvocati",
   "label": "Avvocati & Commercialisti",
-  "metaTitle": "WhatsApp per avvocati, commercialisti e notai | Wamply",
-  "metaDescription": "Comunica scadenze, ricorda udienze e gestisci la relazione col cliente in modo professionale su WhatsApp. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per avvocati, commercialisti e notai | Wamply",
+  "metaDescription": "Newsletter normativa, lancio nuovi servizi e inviti a webinar/eventi via WhatsApp, con tono professionale. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Le scadenze fiscali e le udienze si accumulano e il cliente si dimentica?",
-    "solution": "Un assistente che tiene aggiornati i tuoi clienti su scadenze e documenti, nel tono giusto.",
+    "pain": "I tuoi clienti ti contattano solo quando hanno un problema urgente?",
+    "solution": "Resta top-of-mind con newsletter normative periodiche, lancio nuovi servizi e inviti a webinar dello studio.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "clock", "text": "Promemoria scadenze fiscali e udienze" },
-    { "icon": "shield", "text": "Comunicazioni formali, nel tono dello studio" },
-    { "icon": "check", "text": "Richieste documenti con un messaggio, senza rincorse" }
+    { "icon": "shield", "text": "Newsletter aggiornamenti normativi e fiscali periodica" },
+    { "icon": "sparkles", "text": "Lancio nuovi servizi e pacchetti consulenza" },
+    { "icon": "star", "text": "Inviti a webinar ed eventi dello studio" }
   ],
   "useCases": [
-    { "title": "Promemoria scadenza", "description": "Il cliente riceve un messaggio con largo anticipo sulla scadenza fiscale.", "roi": "Meno pratiche in urgenza, più tempo per lo studio" },
-    { "title": "Promemoria udienza", "description": "Il giorno prima dell'udienza, messaggio formale con ora e aula.", "roi": "Zero udienze perse per dimenticanza del cliente" },
-    { "title": "Richiesta documenti", "description": "Invio di checklist con la lista documenti da portare al prossimo incontro.", "roi": "Tempo dello studio ridotto del 30%" }
+    {
+      "title": "Newsletter normativa periodica",
+      "description": "Ogni mese una sintesi delle novità fiscali o normative rilevanti per i clienti, con call-to-action a richiedere consulenza.",
+      "roi": "+15% richieste di consulenza dai clienti già attivi"
+    },
+    {
+      "title": "Lancio nuovo pacchetto consulenza",
+      "description": "Lanci un nuovo servizio (es. pacchetto privacy GDPR, contratti smart-working) ai clienti compatibili con offerta riservata.",
+      "roi": "+22% adesione nelle prime 4 settimane"
+    },
+    {
+      "title": "Invito a webinar o evento studio",
+      "description": "Webinar gratuito sul tema caldo del momento (es. \"Le novità della Legge di Bilancio\"), invito ai clienti e contatti rilevanti.",
+      "roi": "Lead qualificati che diventano clienti nel 25% dei casi"
+    }
   ],
   "templatesPreview": [
-    { "slug": "avvocati_deadline", "title": "Promemoria scadenza", "preview": "Gentile {{nome}}, le ricordiamo la scadenza {{pratica}} il {{data}}. Lo studio è a disposizione per chiarimenti." },
-    { "slug": "avvocati_hearing", "title": "Promemoria udienza", "preview": "Gentile {{nome}}, domani udienza ore {{ora}} presso {{tribunale}} aula {{aula}}. Ci vediamo 30 minuti prima." },
-    { "slug": "avvocati_docs", "title": "Richiesta documenti", "preview": "Gentile {{nome}}, per l'incontro del {{data}} serve: {{checklist}}. Può rispondere quando ha tutto pronto." }
+    { "slug": "avvocati_newsletter", "title": "Newsletter normativa", "preview": "Gentile Sig. Bianchi, lo Studio Ferrari ha pubblicato la sintesi mensile delle novità fiscali. Disponibile qui → wamply.it/p/news" },
+    { "slug": "avvocati_new_service", "title": "Lancio nuovo servizio", "preview": "Gentile Dott.ssa Conti, lo Studio Ferrari offre ora il pacchetto Privacy GDPR per PMI a 490€/anno (-20% per i clienti). Info: wamply.it/p/gdpr" },
+    { "slug": "avvocati_webinar", "title": "Invito webinar", "preview": "Gentile Sig.ra Russo, giovedì 15 maggio alle 18:00 webinar gratuito \"Legge di Bilancio: cosa cambia per le PMI\". Iscriviti → wamply.it/p/web" }
   ],
   "recommendedPlan": "starter",
   "testimonial": null,

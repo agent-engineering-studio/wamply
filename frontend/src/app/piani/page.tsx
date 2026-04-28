@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PLANS, SEGMENTS } from "@/lib/plans";
+import { PLANS } from "@/lib/plans";
+import { SegmentsCarousel } from "@/components/segments/SegmentsCarousel";
 import { PlanCard } from "./PlanCard";
 import { OverageCalculator } from "./OverageCalculator";
 import { ComparisonTable } from "./ComparisonTable";
@@ -92,7 +93,7 @@ export default function PianiPage() {
         </div>
       </section>
 
-      {/* ── Segments ──────────────────────────────────────── */}
+      {/* ── Segments — carousel con immagine per settore ───── */}
       <section className="border-t border-slate-800/60 py-14">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-8 text-center">
@@ -104,20 +105,7 @@ export default function PianiPage() {
               tuo settore. Tutti i piani li includono.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {SEGMENTS.map((seg) => (
-              <Link
-                key={seg.slug}
-                href={`/soluzioni/${seg.slug}`}
-                className="group flex items-center justify-between rounded-card border border-slate-800 bg-brand-navy-light px-4 py-3 text-[12.5px] text-slate-300 transition-colors hover:border-brand-teal/40 hover:bg-brand-navy-light/80"
-              >
-                <span>{seg.label}</span>
-                <span className="text-slate-600 transition-colors group-hover:text-brand-teal">
-                  →
-                </span>
-              </Link>
-            ))}
-          </div>
+          <SegmentsCarousel />
         </div>
       </section>
 
@@ -170,7 +158,7 @@ export default function PianiPage() {
       {/* ── CTA finale ────────────────────────────────────── */}
       <section className="border-t border-slate-800/60 py-14">
         <div className="mx-auto max-w-4xl px-6">
-          <div className="rounded-card border border-brand-teal/40 bg-gradient-to-br from-brand-navy-light to-brand-navy-deep p-8 text-center">
+          <div className="rounded-card border border-brand-teal/40 bg-linear-to-br from-brand-navy-light to-brand-navy-deep p-8 text-center">
             <h2 className="text-[22px] font-bold text-slate-100">
               Volumi superiori o esigenze custom?
             </h2>

@@ -1,28 +1,40 @@
 {
   "segmento": "immobiliari",
   "label": "Agenti Immobiliari",
-  "metaTitle": "WhatsApp per agenti immobiliari | Wamply",
-  "metaDescription": "Proponi immobili, gestisci visite e mantieni calda la relazione con acquirenti e venditori su WhatsApp. Prova 14 giorni gratis.",
+  "metaTitle": "WhatsApp marketing per agenti immobiliari | Wamply",
+  "metaDescription": "Lancia nuovi immobili ai contatti giusti, organizza open house e tieni calda la pipeline con campagne WhatsApp. Prova 14 giorni gratis.",
   "hero": {
-    "pain": "Gli acquirenti si raffreddano mentre rincorri 30 contatti al giorno?",
-    "solution": "Tieni caldi tutti i contatti con messaggi mirati, visite confermate, nuovi immobili su misura.",
+    "pain": "I contatti si raffreddano e tu rincorri 30 acquirenti al giorno?",
+    "solution": "Tieni calda la pipeline con campagne WhatsApp segmentate: nuovi immobili in target, newsletter di mercato e open house.",
     "ctaPrimary": "Prova 14 giorni gratis",
     "ctaSecondary": "Vedi esempi template"
   },
   "bullets": [
-    { "icon": "calendar", "text": "Conferma visite e cambia appuntamenti in un tap" },
-    { "icon": "star", "text": "Nuovi immobili inviati solo a chi cerca quella tipologia" },
-    { "icon": "chat", "text": "Follow-up automatico dopo ogni visita" }
+    { "icon": "star", "text": "Lancio nuovi immobili ai contatti compatibili" },
+    { "icon": "sparkles", "text": "Open house ed eventi di apertura" },
+    { "icon": "chat", "text": "Newsletter mercato immobiliare locale" }
   ],
   "useCases": [
-    { "title": "Conferma visita", "description": "L'acquirente conferma o sposta la visita rispondendo al messaggio.", "roi": "Riduce visite saltate del 50%" },
-    { "title": "Nuovo immobile su misura", "description": "Quando entra un immobile, parte un messaggio solo ai contatti compatibili.", "roi": "3× più richieste di visita per immobile nuovo" },
-    { "title": "Follow-up post visita", "description": "Il giorno dopo la visita chiedi un parere e proponi alternative.", "roi": "Aumenta il tasso di conversione del 20%" }
+    {
+      "title": "Lancio nuovo immobile",
+      "description": "Quando entra un immobile, parte una campagna mirata solo ai contatti compatibili per zona, tipologia e budget.",
+      "roi": "3× più richieste di visita per immobile nuovo"
+    },
+    {
+      "title": "Open house ed eventi",
+      "description": "Inviti a giornate di apertura con visita libera, catering e consulenza mutui in loco.",
+      "roi": "Concentra 15-20 visite in mezza giornata"
+    },
+    {
+      "title": "Newsletter mercato locale",
+      "description": "Sintesi mensile dei prezzi e delle nuove transazioni nelle zone seguite dai tuoi contatti, ti tiene top-of-mind.",
+      "roi": "Aumenta la fidelizzazione e i referral"
+    }
   ],
   "templatesPreview": [
-    { "slug": "immobiliari_confirm", "title": "Conferma visita", "preview": "Ciao {{nome}}, confermiamo la visita a {{indirizzo}} il {{data}} alle {{ora}}. Rispondi OK o SPOSTA." },
-    { "slug": "immobiliari_new", "title": "Nuovo immobile", "preview": "Ciao {{nome}}, è entrato un {{tipologia}} in {{zona}} a {{prezzo}}. Ti mando la scheda se ti interessa?" },
-    { "slug": "immobiliari_followup", "title": "Follow-up visita", "preview": "Ciao {{nome}}, che ne pensi di {{immobile}}? Se non è quello giusto ne ho altri due da proporti." }
+    { "slug": "immobiliari_new_property", "title": "Nuovo immobile", "preview": "Ciao Lorenzo, è entrato un trilocale 95mq in Porta Romana a 380.000€. Tipologia che cercavi: scheda completa qui → wamply.it/p/v123" },
+    { "slug": "immobiliari_open_house", "title": "Open house", "preview": "Ciao Valentina, sabato 18 maggio open house in Via Manzoni 12: 4 immobili visitabili dalle 10 alle 13, consulenza mutui in sede. wamply.it/p/oh" },
+    { "slug": "immobiliari_newsletter", "title": "Newsletter mercato", "preview": "Ciao Andrea, sintesi del mercato Milano Centro di aprile: prezzi +2,3%, tempi medi vendita 78 giorni. Report completo: wamply.it/p/aprile" }
   ],
   "recommendedPlan": "professional",
   "testimonial": null,
