@@ -1,4 +1,4 @@
-"""Top-up credit packs: catalog, purchase checkout, balance application.
+"""Top-up credit packs: catalog (DB-backed), purchase checkout, balance application.
 
 Flow:
   1. User clicks "Acquista 500 crediti €59" on /settings/credits.
@@ -10,13 +10,16 @@ Flow:
      pack.credits, expires_at = now() + 12 months) and marks the
      purchase row completed. Idempotent on stripe_checkout_session_id.
 
+Catalog source of truth: `topup_packs` table (migration 030). Editable from
+/admin?tab=payments. Stripe price IDs live in `topup_packs.stripe_price_id`,
+with optional ENV fallback (STRIPE_PRICE_TOPUP_<SLUG>) for dev/CI.
+
 The runtime credit consumer lives in `ai_credits.consume_from_plan_or_topup()`:
 always drains plan credits first (user's money, protected), falls back
 to topup only when plan budget is exhausted.
 """
 
 import os
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import asyncpg
@@ -28,40 +31,73 @@ logger = structlog.get_logger()
 TOPUP_VALIDITY_DAYS = 365  # 12 months from most recent purchase
 
 
-@dataclass(frozen=True)
-class Pack:
-    slug: str
-    credits: int
-    amount_cents: int      # in EUR cents
-    name: str              # display name
-    stripe_price_env: str  # env var holding the Stripe Price ID
-    badge: str | None = None  # "Più venduto" | "Miglior prezzo" | None
+def _env_price_id_for(slug: str) -> str | None:
+    """Legacy ENV fallback. Used only when topup_packs.stripe_price_id is empty."""
+    return os.getenv(f"STRIPE_PRICE_TOPUP_{slug.upper()}") or None
 
 
-PACKS: dict[str, Pack] = {
-    "small":  Pack("small",   100,  1500,  "100 crediti",    "STRIPE_PRICE_TOPUP_SMALL"),
-    "medium": Pack("medium",  500,  5900,  "500 crediti",    "STRIPE_PRICE_TOPUP_MEDIUM", "Più venduto"),
-    "large":  Pack("large",  2000, 19900, "2.000 crediti",   "STRIPE_PRICE_TOPUP_LARGE",  "Miglior prezzo"),
-    "xl":     Pack("xl",    10000, 79900, "10.000 crediti",  "STRIPE_PRICE_TOPUP_XL"),
-}
+def _row_to_dict(row: asyncpg.Record, *, include_admin: bool = False) -> dict:
+    """Public-safe representation. Omits `stripe_*` IDs unless include_admin."""
+    out = {
+        "slug": row["slug"],
+        "name": row["name"],
+        "credits": int(row["credits"]),
+        "amount_cents": int(row["amount_cents"]),
+        "currency": row["currency"],
+        "badge": row["badge"],
+    }
+    if include_admin:
+        out.update({
+            "id": str(row["id"]),
+            "stripe_product_id": row["stripe_product_id"],
+            "stripe_price_id": row["stripe_price_id"]
+                or _env_price_id_for(row["slug"]),  # show resolved value
+            "stripe_price_id_source": (
+                "db" if row["stripe_price_id"]
+                else ("env" if _env_price_id_for(row["slug"]) else None)
+            ),
+            "active": bool(row["active"]),
+            "sort_order": int(row["sort_order"]),
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+        })
+    return out
 
 
-def list_packs() -> list[dict]:
-    """Public catalog for the billing UI. Does not include Stripe IDs."""
-    return [
-        {
-            "slug": p.slug,
-            "name": p.name,
-            "credits": p.credits,
-            "amount_cents": p.amount_cents,
-            "badge": p.badge,
-        }
-        for p in PACKS.values()
-    ]
+async def list_packs(db: asyncpg.Pool) -> list[dict]:
+    """Public catalog for /settings/credits. Returns active packs only."""
+    rows = await db.fetch(
+        "SELECT slug, name, credits, amount_cents, currency, badge "
+        "FROM topup_packs WHERE active = true "
+        "ORDER BY sort_order ASC, amount_cents ASC"
+    )
+    return [_row_to_dict(r) for r in rows]
 
 
-def _stripe_price_id(pack: Pack) -> str | None:
-    return os.getenv(pack.stripe_price_env) or None
+async def list_packs_admin(db: asyncpg.Pool) -> list[dict]:
+    """Full catalog for admin UI: includes inactive packs and Stripe IDs."""
+    rows = await db.fetch(
+        "SELECT id, slug, name, credits, amount_cents, currency, badge, "
+        "       stripe_product_id, stripe_price_id, active, sort_order, "
+        "       created_at, updated_at "
+        "FROM topup_packs "
+        "ORDER BY sort_order ASC, amount_cents ASC"
+    )
+    return [_row_to_dict(r, include_admin=True) for r in rows]
+
+
+async def _resolve_price_id(db: asyncpg.Pool, slug: str) -> tuple[str | None, dict | None]:
+    """Return (price_id, pack_row) for the given slug, applying ENV fallback.
+    Returns (None, None) if pack does not exist."""
+    row = await db.fetchrow(
+        "SELECT slug, name, credits, amount_cents, stripe_price_id "
+        "FROM topup_packs WHERE slug = $1 AND active = true",
+        slug,
+    )
+    if not row:
+        return None, None
+    price_id = row["stripe_price_id"] or _env_price_id_for(slug)
+    return price_id, dict(row)
 
 
 # ── Eligibility ──────────────────────────────────────────────
@@ -105,15 +141,13 @@ async def create_topup_checkout_session(
     Also inserts a 'pending' row in ai_credit_purchases. The webhook
     upgrades it to 'completed' on payment success.
     """
-    pack = PACKS.get(pack_slug)
+    price_id, pack = await _resolve_price_id(db, pack_slug)
     if not pack:
-        raise ValueError(f"Pacchetto '{pack_slug}' non esiste.")
-
-    price_id = _stripe_price_id(pack)
+        raise ValueError(f"Pacchetto '{pack_slug}' non esiste o non è attivo.")
     if not price_id:
         raise ValueError(
             f"Stripe Price ID non configurato per '{pack_slug}'. "
-            f"Imposta {pack.stripe_price_env} in .env."
+            f"Imposta lo Stripe Price ID dal pannello Admin → Pagamenti."
         )
 
     from src.services.billing import _ensure_stripe_api_key
@@ -161,9 +195,9 @@ async def create_topup_checkout_session(
            VALUES ($1, $2, $3, $4, $5, 'pending')
            ON CONFLICT (stripe_checkout_session_id) DO NOTHING""",
         user_id,
-        pack.slug,
-        pack.credits,
-        pack.amount_cents,
+        pack["slug"],
+        int(pack["credits"]),
+        int(pack["amount_cents"]),
         session.id,
     )
 
@@ -299,3 +333,100 @@ async def consume_topup(db: asyncpg.Pool, user_id: str, credits: float) -> None:
         credits,
         user_id,
     )
+
+
+# ── Stripe sync (admin-only) ─────────────────────────────────
+
+async def sync_topup_packs_from_stripe(db: asyncpg.Pool) -> dict:
+    """Pull Stripe products with metadata.wamply_type=topup and update
+    `topup_packs.stripe_price_id` for slug matches.
+
+    Strategy:
+      - Each Stripe Product MUST be tagged metadata.wamply_type="topup"
+        and metadata.wamply_slug=<slug> (e.g. "small", "medium", ...)
+      - For each matched product, take the FIRST active one_time price
+        and store its id in topup_packs.stripe_price_id where slug matches.
+      - Returns counts of products examined, packs linked, and skipped reasons.
+
+    DOES NOT create/modify Stripe objects. Read-only on Stripe side.
+    DOES NOT modify topup_packs.amount_cents — Stripe price is immutable on
+    amount, so we only record the price_id (linking) not the value.
+    """
+    from src.services.billing import _ensure_stripe_api_key
+    if not await _ensure_stripe_api_key(db):
+        raise RuntimeError("STRIPE_SECRET_KEY non configurato.")
+
+    examined = 0
+    linked: list[dict] = []
+    skipped: list[dict] = []
+
+    # Search products tagged for top-up. Search API returns ≤100 per page;
+    # for our use case (4 packs) this is more than enough.
+    try:
+        result = stripe.Product.search(
+            query='metadata["wamply_type"]:"topup" AND active:"true"',
+            limit=100,
+        )
+    except stripe.error.StripeError as exc:
+        raise RuntimeError(f"Stripe search failed: {exc}") from exc
+
+    for product in result.auto_paging_iter():
+        examined += 1
+        slug = (product.metadata or {}).get("wamply_slug")
+        if not slug:
+            skipped.append({
+                "product_id": product.id,
+                "product_name": product.name,
+                "reason": "missing metadata.wamply_slug",
+            })
+            continue
+
+        # Fetch active one-time prices for this product.
+        prices = stripe.Price.list(
+            product=product.id, active=True, type="one_time", limit=10,
+        )
+        if not prices.data:
+            skipped.append({
+                "product_id": product.id,
+                "product_name": product.name,
+                "slug": slug,
+                "reason": "no active one_time prices",
+            })
+            continue
+
+        # Take the most recent one if multiple (Stripe returns desc by created).
+        price = prices.data[0]
+
+        result_row = await db.fetchrow(
+            """UPDATE topup_packs
+               SET stripe_product_id = $1, stripe_price_id = $2
+               WHERE slug = $3
+               RETURNING slug, stripe_price_id""",
+            product.id, price.id, slug,
+        )
+        if not result_row:
+            skipped.append({
+                "product_id": product.id,
+                "slug": slug,
+                "reason": f"no topup_pack with slug={slug} in DB",
+            })
+            continue
+
+        linked.append({
+            "slug": slug,
+            "stripe_product_id": product.id,
+            "stripe_price_id": price.id,
+            "product_name": product.name,
+        })
+
+    logger.info(
+        "topup_sync_from_stripe",
+        examined=examined,
+        linked=len(linked),
+        skipped=len(skipped),
+    )
+    return {
+        "examined": examined,
+        "linked": linked,
+        "skipped": skipped,
+    }

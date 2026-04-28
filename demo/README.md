@@ -44,10 +44,11 @@ oppure da PowerShell:
 1. **Verifica Docker** — installa Docker Desktop se mancante, lo avvia se fermo
 2. **Configura `.env`** — crea il file da `.env.example` se non esiste
 3. **Rileva lo stato** — sceglie automaticamente tra primo avvio, riavvio o reset
-4. **Configura Twilio** — chiede se usare la sandbox di test o credenziali di produzione
-5. **Build e avvio** — esegue `make setup` al primo avvio, `make up` nei successivi
-6. **Health check** — attende che tutti i servizi siano pronti
-7. **Mostra riepilogo** — URL, credenziali demo e comandi utili
+4. **Build e avvio** — esegue `make setup` al primo avvio, `make up` nei successivi
+5. **Health check** — attende che tutti i servizi siano pronti
+6. **Mostra riepilogo** — URL, credenziali demo e link al pannello admin
+
+> Twilio, Stripe e Claude API **non vengono più chiesti dallo script**: si configurano dopo l'avvio dal pannello admin (cifrate in DB, niente .env). Vedi sezione _Configurazione integrazioni_ sotto.
 
 ### Menu al secondo avvio
 
@@ -57,8 +58,7 @@ Se Wamply è già in esecuzione, lo script propone:
 | ------ | ------ |
 | **1** | Mostra solo URL e credenziali |
 | **2** | Riavvia i container (nessuna perdita di dati) |
-| **3** | Gestisci configurazioni / cambia Twilio |
-| **4** | Reset completo — cancella il database |
+| **3** | Reset completo — cancella il database |
 
 ---
 
@@ -77,33 +77,19 @@ Se Wamply è già in esecuzione, lo script propone:
 | Utente 1 | `user1@test.local` | User123! |
 | Utente 2 | `user2@test.local` | User123! |
 
-> La **Claude API Key** si imposta nell'admin panel → tab "Claude API".
-
 ---
 
-## Profili di configurazione
+## Configurazione integrazioni
 
-Lo script supporta profili nominati per salvare e ripristinare rapidamente credenziali Twilio diverse (es. un cliente per ogni demo).
+Tutte le credenziali si configurano dal pannello admin dopo l'avvio. Sono salvate **cifrate** in `system_config` lato DB, e si possono cambiare a runtime senza redeploy.
 
-I profili vengono salvati in `demo/configs/` (esclusi da git — contengono credenziali reali).
+| Integrazione | Dove configurarla | Note |
+| ------------ | ----------------- | ---- |
+| **Claude API Key** | <http://localhost:3000/admin> → tab "Claude API" | Master key di sistema. Gli utenti possono usare BYOK dal proprio settings. |
+| **Twilio WhatsApp** | <http://localhost:3000/admin> → tab "Twilio" | Master account. I subaccount per-tenant sono creati automaticamente quando un business viene provisionato. |
+| **Stripe Pagamenti** | <http://localhost:3000/admin> → tab "Pagamenti" | Secret key, webhook secret, Price ID dei piani e dei top-up pack. |
 
-### Flusso tipico
-
-```bash
-# Prima della demo con il cliente Acme
-./demo/setup.sh  →  [3] Gestisci configurazioni  →  [2] Salva  →  "cliente-acme"
-
-# Durante la demo, per passare da un cliente all'altro
-./demo/setup.sh  →  [3] Gestisci configurazioni  →  [1] Carica  →  "cliente-acme"
-# Lo script chiederà se riavviare backend e agent (senza rebuild)
-```
-
-I profili salvano queste variabili:
-
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_FROM`
-- `TWILIO_MESSAGING_SERVICE_SID`
+> Niente più variabili Twilio/Stripe/Claude in `.env`: erano solo placeholder e non venivano usate. Il `.env.example` mantiene `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` come **fallback opzionale** per CI / dev senza UI.
 
 ---
 

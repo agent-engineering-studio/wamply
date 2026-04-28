@@ -126,9 +126,10 @@ async def stripe_webhook(request: Request):
 # ── Top-up credits ────────────────────────────────────────────
 
 @router.get("/topup/packs")
-async def topup_packs():
+async def topup_packs(request: Request):
     """Public catalog of top-up credit packs for the billing UI."""
-    return {"packs": list_packs()}
+    db = get_db(request)
+    return {"packs": await list_packs(db)}
 
 
 @router.post("/topup/checkout")

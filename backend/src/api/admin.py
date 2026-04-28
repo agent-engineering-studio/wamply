@@ -2,6 +2,7 @@ import json
 import uuid
 from datetime import date
 
+import asyncpg
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -773,12 +774,21 @@ async def admin_stripe_status(
         "ORDER BY price_cents ASC"
     )
 
-    # Top-up price IDs are env-only (read-only here).
+    # Top-up packs: now DB-backed (migration 030). The stripe_price_id can come
+    # from DB or fall back to ENV (legacy). The admin tab uses /admin/topup-packs
+    # for full CRUD; here we surface a compact summary for the checklist.
+    from src.services.credit_topup import list_packs_admin
+    topup_pack_rows = await list_packs_admin(db)
     topup_packs = [
-        {"slug": "small",  "credits": 100,   "amount_cents": 1500,   "env_var": "STRIPE_PRICE_TOPUP_SMALL",  "price_id": os.getenv("STRIPE_PRICE_TOPUP_SMALL", "")},
-        {"slug": "medium", "credits": 500,   "amount_cents": 5900,   "env_var": "STRIPE_PRICE_TOPUP_MEDIUM", "price_id": os.getenv("STRIPE_PRICE_TOPUP_MEDIUM", "")},
-        {"slug": "large",  "credits": 2000,  "amount_cents": 19900,  "env_var": "STRIPE_PRICE_TOPUP_LARGE",  "price_id": os.getenv("STRIPE_PRICE_TOPUP_LARGE", "")},
-        {"slug": "xl",     "credits": 10000, "amount_cents": 79900,  "env_var": "STRIPE_PRICE_TOPUP_XL",     "price_id": os.getenv("STRIPE_PRICE_TOPUP_XL", "")},
+        {
+            "slug": p["slug"],
+            "credits": p["credits"],
+            "amount_cents": p["amount_cents"],
+            "price_id": p["stripe_price_id"] or "",
+            "source": p["stripe_price_id_source"],
+            "active": p["active"],
+        }
+        for p in topup_pack_rows
     ]
 
     # Recent webhook events for the activity log.
@@ -876,6 +886,204 @@ async def admin_update_plan_stripe_price_id(
     )
     return {"id": str(row["id"]), "slug": row["slug"], "stripe_price_id": row["stripe_price_id"]}
 
+
+# ── Top-up packs CRUD + Stripe sync (admin-only) ─────────────
+
+@router.get("/topup-packs")
+async def admin_list_topup_packs(
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Full top-up pack catalog with Stripe linkage and inactive entries."""
+    from src.services.credit_topup import list_packs_admin
+    db = get_db(request)
+    return {"packs": await list_packs_admin(db)}
+
+
+def _validate_topup_payload(body: dict, *, partial: bool) -> dict:
+    """Coerce + validate a topup pack request body. Raises HTTPException(400) on bad input."""
+    out: dict = {}
+
+    def take_str(key: str, *, allow_empty: bool = False, max_len: int = 200):
+        if key in body:
+            v = body[key]
+            if v is None and allow_empty:
+                out[key] = None
+                return
+            if not isinstance(v, str):
+                raise HTTPException(status_code=400, detail=f"{key} deve essere stringa.")
+            v = v.strip()
+            if not v and not allow_empty:
+                raise HTTPException(status_code=400, detail=f"{key} non può essere vuoto.")
+            if len(v) > max_len:
+                raise HTTPException(status_code=400, detail=f"{key} troppo lungo (max {max_len}).")
+            out[key] = v or None
+
+    def take_int(key: str, *, minimum: int | None = None):
+        if key in body:
+            v = body[key]
+            if isinstance(v, bool) or not isinstance(v, int):
+                raise HTTPException(status_code=400, detail=f"{key} deve essere intero.")
+            if minimum is not None and v < minimum:
+                raise HTTPException(status_code=400, detail=f"{key} deve essere ≥ {minimum}.")
+            out[key] = v
+
+    take_str("slug")
+    take_str("name")
+    take_int("credits", minimum=1)
+    take_int("amount_cents", minimum=1)
+    take_str("currency")
+    take_str("badge", allow_empty=True, max_len=50)
+    take_str("stripe_product_id", allow_empty=True)
+    take_str("stripe_price_id", allow_empty=True)
+    take_int("sort_order", minimum=0)
+
+    if "active" in body:
+        if not isinstance(body["active"], bool):
+            raise HTTPException(status_code=400, detail="active deve essere booleano.")
+        out["active"] = body["active"]
+
+    if "stripe_price_id" in out and out["stripe_price_id"] and not out["stripe_price_id"].startswith("price_"):
+        raise HTTPException(status_code=400, detail="stripe_price_id deve iniziare con 'price_'.")
+    if "stripe_product_id" in out and out["stripe_product_id"] and not out["stripe_product_id"].startswith("prod_"):
+        raise HTTPException(status_code=400, detail="stripe_product_id deve iniziare con 'prod_'.")
+
+    if not partial:
+        # On create, require core fields.
+        for required in ("slug", "name", "credits", "amount_cents"):
+            if required not in out:
+                raise HTTPException(status_code=400, detail=f"{required} obbligatorio.")
+
+    return out
+
+
+@router.post("/topup-packs")
+async def admin_create_topup_pack(
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Create a new top-up pack. Slug must be unique."""
+    from src.services.credit_topup import _row_to_dict
+    body = await request.json()
+    data = _validate_topup_payload(body, partial=False)
+    db = get_db(request)
+
+    try:
+        row = await db.fetchrow(
+            """INSERT INTO topup_packs
+               (slug, name, credits, amount_cents, currency, badge,
+                stripe_product_id, stripe_price_id, active, sort_order)
+               VALUES ($1, $2, $3, $4, COALESCE($5, 'eur'), $6, $7, $8, COALESCE($9, true), COALESCE($10, 0))
+               RETURNING id, slug, name, credits, amount_cents, currency, badge,
+                         stripe_product_id, stripe_price_id, active, sort_order,
+                         created_at, updated_at""",
+            data["slug"], data["name"], data["credits"], data["amount_cents"],
+            data.get("currency"), data.get("badge"),
+            data.get("stripe_product_id"), data.get("stripe_price_id"),
+            data.get("active"), data.get("sort_order"),
+        )
+    except asyncpg.UniqueViolationError:
+        raise HTTPException(status_code=409, detail=f"Slug '{data['slug']}' già esistente.")
+
+    logger.info("admin_topup_pack_created", admin_id=str(user.id), slug=row["slug"])
+    return _row_to_dict(row, include_admin=True)
+
+
+@router.patch("/topup-packs/{pack_id}")
+async def admin_update_topup_pack(
+    pack_id: str,
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Update a top-up pack. Any subset of fields can be sent."""
+    from src.services.credit_topup import _row_to_dict
+    body = await request.json()
+    data = _validate_topup_payload(body, partial=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="Nessun campo da aggiornare.")
+
+    try:
+        pack_uuid = uuid.UUID(pack_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="ID pack non valido.")
+
+    # Build dynamic SET clause
+    set_parts = []
+    args: list = []
+    for i, (key, value) in enumerate(data.items(), start=1):
+        set_parts.append(f"{key} = ${i}")
+        args.append(value)
+    args.append(pack_uuid)
+
+    db = get_db(request)
+    try:
+        row = await db.fetchrow(
+            f"""UPDATE topup_packs SET {', '.join(set_parts)}
+                WHERE id = ${len(args)}
+                RETURNING id, slug, name, credits, amount_cents, currency, badge,
+                          stripe_product_id, stripe_price_id, active, sort_order,
+                          created_at, updated_at""",
+            *args,
+        )
+    except asyncpg.UniqueViolationError:
+        raise HTTPException(status_code=409, detail="Slug già usato da un altro pack.")
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Pack non trovato.")
+
+    logger.info("admin_topup_pack_updated", admin_id=str(user.id), slug=row["slug"], fields=list(data.keys()))
+    return _row_to_dict(row, include_admin=True)
+
+
+@router.delete("/topup-packs/{pack_id}")
+async def admin_delete_topup_pack(
+    pack_id: str,
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Soft-delete (deactivate) a top-up pack. We never hard-delete because
+    historical purchases reference pack_slug for reporting."""
+    try:
+        pack_uuid = uuid.UUID(pack_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="ID pack non valido.")
+    db = get_db(request)
+    row = await db.fetchrow(
+        "UPDATE topup_packs SET active = false WHERE id = $1 RETURNING slug",
+        pack_uuid,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Pack non trovato.")
+    logger.info("admin_topup_pack_deactivated", admin_id=str(user.id), slug=row["slug"])
+    return {"slug": row["slug"], "active": False}
+
+
+@router.post("/topup-packs/sync-from-stripe")
+async def admin_sync_topup_packs_from_stripe(
+    request: Request,
+    user: CurrentUser = Depends(require_admin),
+):
+    """Pull-sync from Stripe: match Products tagged metadata.wamply_type=topup
+    and metadata.wamply_slug=<slug>, link their first active one_time price
+    into topup_packs.stripe_price_id.
+
+    Stripe is read-only here. To create products/prices, do it manually on
+    Stripe Dashboard with the required metadata, then run this sync.
+    """
+    from src.services.credit_topup import sync_topup_packs_from_stripe
+    db = get_db(request)
+    try:
+        result = await sync_topup_packs_from_stripe(db)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    logger.info(
+        "admin_topup_sync_from_stripe",
+        admin_id=str(user.id),
+        examined=result["examined"],
+        linked=len(result["linked"]),
+        skipped=len(result["skipped"]),
+    )
+    return result
 
 
 @router.post("/stripe/credentials")

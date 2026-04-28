@@ -2,6 +2,10 @@
 # =============================================================================
 #  Wamply — Demo setup (macOS / Linux)
 #  USO LOCALE / DEMO ONLY — non per produzione
+#
+#  Twilio, Stripe e Claude API si configurano dopo l'avvio dal pannello admin
+#  (http://localhost:3000/admin). Le credenziali sono salvate cifrate in
+#  `system_config` lato DB, niente più .env per la demo.
 # =============================================================================
 set -euo pipefail
 
@@ -26,114 +30,10 @@ ask() {
   echo "${val:-$default}"
 }
 
-ask_secret() {
-  local prompt="$1"
-  read -r -s -p "  $(echo -e "${CYAN}${prompt}: ${NC}")" val
-  echo "" >&2
-  echo "$val"
-}
-
 ask_choice() {
   local prompt="$1" default="${2:-1}"
   read -r -p "  $(echo -e "${CYAN}${prompt} [${default}]: ${NC}")" val
   echo "${val:-$default}"
-}
-
-set_env_var() {
-  local key="$1" val="$2"
-  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
-    sed -i.bak "s|^${key}=.*|${key}=${val}|" "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
-  else
-    printf '\n%s=%s' "$key" "$val" >> "$ENV_FILE"
-  fi
-}
-
-# ── Config profiles ───────────────────────────────────────────────────────────
-CONFIGS_DIR="${SCRIPT_DIR}/configs"
-CONFIG_VARS=("TWILIO_ACCOUNT_SID" "TWILIO_AUTH_TOKEN" "TWILIO_FROM" "TWILIO_MESSAGING_SERVICE_SID")
-
-save_config() {
-  local name="$1"
-  mkdir -p "$CONFIGS_DIR"
-  local profile="${CONFIGS_DIR}/${name}.env"
-  : > "$profile"
-  for var in "${CONFIG_VARS[@]}"; do
-    local val
-    val=$(grep -E "^${var}=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
-    [ -n "$val" ] && printf '%s=%s\n' "$var" "$val" >> "$profile"
-  done
-  log_ok "Profilo '$name' salvato in demo/configs/${name}.env"
-}
-
-load_config() {
-  local name="$1"
-  local profile="${CONFIGS_DIR}/${name}.env"
-  if [ ! -f "$profile" ]; then
-    log_warn "Profilo '$name' non trovato"
-    return 1
-  fi
-  while IFS='=' read -r key val; do
-    [[ "$key" =~ ^# ]] && continue
-    [ -z "$key" ] && continue
-    set_env_var "$key" "$val"
-  done < "$profile"
-  log_ok "Profilo '$name' caricato"
-
-  if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "wcm-"; then
-    echo ""
-    echo -e "  Vuoi riavviare i servizi applicativi per applicare le nuove credenziali?"
-    echo -e "  ${BOLD}[1]${NC} Sì — riavvia backend e agent (docker compose restart backend agent)"
-    echo -e "  ${BOLD}[2]${NC} No — riavvia manualmente quando vuoi"
-    local restart_choice
-    restart_choice=$(ask_choice "Scelta" "1")
-    if [ "$restart_choice" = "1" ]; then
-      cd "$ROOT_DIR"
-      docker compose restart backend agent
-      log_ok "Servizi riavviati con le nuove credenziali"
-    fi
-  fi
-}
-
-list_configs() {
-  if [ ! -d "$CONFIGS_DIR" ] || [ -z "$(ls -A "$CONFIGS_DIR"/*.env 2>/dev/null)" ]; then
-    echo -e "  ${YELLOW}Nessun profilo salvato in demo/configs/${NC}"
-    return
-  fi
-  echo -e "  Profili disponibili:"
-  for f in "$CONFIGS_DIR"/*.env; do
-    local name
-    name=$(basename "$f" .env)
-    echo -e "  • ${BOLD}${name}${NC}"
-  done
-}
-
-manage_configs() {
-  echo ""
-  echo -e "  ${BOLD}Gestione configurazioni${NC}"
-  echo ""
-  list_configs
-  echo ""
-  echo -e "  ${BOLD}[1]${NC} Carica un profilo"
-  echo -e "  ${BOLD}[2]${NC} Salva configurazione attuale come profilo"
-  echo -e "  ${BOLD}[3]${NC} Torna al menu principale"
-  echo ""
-  local choice
-  choice=$(ask_choice "Scelta" "3")
-  case "$choice" in
-    1)
-      local name
-      name=$(ask "Nome profilo da caricare")
-      [ -n "$name" ] && load_config "$name"
-      ;;
-    2)
-      local name
-      name=$(ask "Nome del nuovo profilo (es. cliente-acme)")
-      [ -n "$name" ] && save_config "$name"
-      ;;
-    *)
-      echo "  Annullato."
-      ;;
-  esac
 }
 
 # ── Banner ────────────────────────────────────────────────────────────────────
@@ -219,13 +119,11 @@ log_ok "make $(make --version | head -1 | grep -oE '[0-9]+\.[0-9]+')"
 # ── 3. File .env ──────────────────────────────────────────────────────────────
 log_step "Configurazione .env"
 
-ENV_EXISTS=false
-if [ -f "$ENV_FILE" ]; then
-  ENV_EXISTS=true
-  log_ok ".env già presente"
-else
+if [ ! -f "$ENV_FILE" ]; then
   cp "${ROOT_DIR}/.env.example" "$ENV_FILE"
   log_ok ".env creato da .env.example"
+else
+  log_ok ".env già presente"
 fi
 
 # ── 4. Rilevamento stato installazione ────────────────────────────────────────
@@ -241,14 +139,15 @@ if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "wcm-"; then
   CONTAINERS_RUNNING=true
 fi
 
+SKIP_SETUP=false
+
 if $CONTAINERS_RUNNING; then
   log_ok "Wamply è già in esecuzione"
   echo ""
   echo -e "  Cosa vuoi fare?"
   echo -e "  ${BOLD}[1]${NC} Mostra URL e credenziali (avvio rapido)"
   echo -e "  ${BOLD}[2]${NC} Riavvia senza perdere i dati  (docker compose restart)"
-  echo -e "  ${BOLD}[3]${NC} Gestisci configurazioni / cambia Twilio"
-  echo -e "  ${BOLD}[4]${NC} Reset completo — CANCELLA il database e ricomincia"
+  echo -e "  ${BOLD}[3]${NC} Reset completo — CANCELLA il database e ricomincia"
   echo ""
   RUNNING_CHOICE=$(ask_choice "Scelta" "1")
   case "$RUNNING_CHOICE" in
@@ -256,12 +155,9 @@ if $CONTAINERS_RUNNING; then
       cd "$ROOT_DIR"
       docker compose restart
       log_ok "Servizi riavviati"
-      ;;
-    3)
-      manage_configs
       SKIP_SETUP=true
       ;;
-    4)
+    3)
       log_warn "Reset completo: tutti i dati del database verranno eliminati."
       CONFIRM=$(ask "Digita 'reset' per confermare" "")
       [ "$CONFIRM" != "reset" ] && { echo "  Annullato."; exit 0; }
@@ -277,73 +173,33 @@ elif $IMAGES_EXIST; then
   echo ""
   echo -e "  Cosa vuoi fare?"
   echo -e "  ${BOLD}[1]${NC} Avvia con i dati esistenti  (make up)"
-  echo -e "  ${BOLD}[2]${NC} Gestisci configurazioni / cambia Twilio"
-  echo -e "  ${BOLD}[3]${NC} Reset completo — CANCELLA il database e ricomincia"
+  echo -e "  ${BOLD}[2]${NC} Reset completo — CANCELLA il database e ricomincia"
   echo ""
   IMG_CHOICE=$(ask_choice "Scelta" "1")
   case "$IMG_CHOICE" in
-    2) manage_configs ;;
-    3) IMAGES_EXIST=false ;;
+    2) IMAGES_EXIST=false ;;
   esac
 else
   log_ok "Prima installazione — verrà eseguito il build completo"
 fi
 
-SKIP_SETUP="${SKIP_SETUP:-false}"
-
-# ── 5. Twilio (solo se nuovo setup o reset) ───────────────────────────────────
+# ── 5. Build e avvio ──────────────────────────────────────────────────────────
 if ! $SKIP_SETUP; then
-  log_step "Configurazione Twilio WhatsApp"
-
-  TWILIO_CONFIGURED=false
-  if grep -qE "^TWILIO_ACCOUNT_SID=AC[0-9a-f]{32}$" "$ENV_FILE" 2>/dev/null; then
-    TWILIO_CONFIGURED=true
-    log_ok "Credenziali Twilio già configurate in .env"
-  fi
-
-  if ! $TWILIO_CONFIGURED; then
-    echo ""
-    echo -e "  ${BOLD}[1]${NC} Sandbox / Test  — nessuna credenziale reale, nessun messaggio inviato"
-    echo -e "  ${BOLD}[2]${NC} Produzione       — inserisci le tue credenziali Twilio"
-    echo ""
-    TWILIO_CHOICE=$(ask_choice "Modalità Twilio" "1")
-
-    if [ "$TWILIO_CHOICE" = "2" ]; then
-      echo ""
-      TWILIO_SID=$(ask "Account SID (inizia con AC)")
-      TWILIO_TOKEN=$(ask_secret "Auth Token")
-      TWILIO_FROM=$(ask "Numero FROM WhatsApp (es. whatsapp:+391234567890)" "whatsapp:+14155238886")
-      TWILIO_MSG_SID=$(ask "Messaging Service SID (lascia vuoto se non ce l'hai)" "")
-
-      set_env_var "TWILIO_ACCOUNT_SID"  "$TWILIO_SID"
-      set_env_var "TWILIO_AUTH_TOKEN"   "$TWILIO_TOKEN"
-      set_env_var "TWILIO_FROM"         "$TWILIO_FROM"
-      [ -n "$TWILIO_MSG_SID" ] && set_env_var "TWILIO_MESSAGING_SERVICE_SID" "$TWILIO_MSG_SID"
-      log_ok "Credenziali Twilio produzione salvate"
-    else
-      log_ok "Modalità sandbox — i placeholder nel .env verranno usati"
-      log_warn "Per inviare messaggi reali: aggiorna le credenziali in .env e riavvia"
-    fi
-  fi
-
-  # ── 6. Build e avvio ─────────────────────────────────────────────────────────
   log_step "Build e avvio servizi"
 
   cd "$ROOT_DIR"
 
   if $IMAGES_EXIST; then
-    # Immagini già presenti: avvio senza rebuild né pull
     log_ok "Avvio con immagini esistenti (nessun pull/build)"
     make up
   else
-    # Prima installazione o reset completo
     echo -e "  ${YELLOW}Il build iniziale può richiedere 5-10 minuti (dipende dalla connessione).${NC}"
     echo -e "  ${YELLOW}I build successivi saranno molto più rapidi grazie alla cache Docker.${NC}\n"
     make setup
   fi
 fi
 
-# ── 7. Health check ───────────────────────────────────────────────────────────
+# ── 6. Health check ───────────────────────────────────────────────────────────
 if ! $SKIP_SETUP; then
   log_step "Attendo che i servizi siano pronti"
   printf "  Kong API Gateway"
@@ -362,7 +218,7 @@ if ! $SKIP_SETUP; then
   fi
 fi
 
-# ── 8. Riepilogo finale ───────────────────────────────────────────────────────
+# ── 7. Riepilogo finale ───────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}${BOLD}  ✅  Wamply è in esecuzione!${NC}"
@@ -379,9 +235,11 @@ echo -e "  │  User 1: ${BOLD}user1@test.local${NC}  /  ${BOLD}User123!${NC}   
 echo -e "  │  User 2: ${BOLD}user2@test.local${NC}  /  ${BOLD}User123!${NC}             │"
 echo -e "  └────────────────────────────────────────────────────────┘"
 echo ""
-echo -e "  ${YELLOW}${BOLD}Claude API Key${NC}"
-echo -e "  ${YELLOW}La chiave Anthropic si configura nell'admin panel:${NC}"
-echo -e "  ${YELLOW}→ http://localhost:3000/admin  →  tab \"Claude API\"${NC}"
+echo -e "  ${YELLOW}${BOLD}Configurazione integrazioni esterne${NC}"
+echo -e "  ${YELLOW}Tutte le credenziali si configurano dal pannello admin (cifrate in DB):${NC}"
+echo -e "  ${YELLOW}→ Twilio WhatsApp:  /admin  →  tab \"Twilio\"${NC}"
+echo -e "  ${YELLOW}→ Stripe Pagamenti: /admin  →  tab \"Pagamenti\"${NC}"
+echo -e "  ${YELLOW}→ Claude API Key:   /admin  →  tab \"Claude API\"${NC}"
 echo ""
 echo -e "  Comandi utili (dalla root del progetto):"
 echo -e "  ${CYAN}make down${NC}   — ferma tutti i container"
