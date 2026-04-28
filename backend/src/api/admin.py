@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import date
 
 import structlog
@@ -764,8 +765,10 @@ async def admin_stripe_status(
             balance_error = str(e)[:300]
 
     # Plan price IDs from DB (stripe_price_id column on plans).
+    # display_name is the β+ v2 user-facing name (Avvio/Essenziale/Plus/Premium);
+    # falls back to `name` for plans seeded before migration 026.
     plans = await db.fetch(
-        "SELECT id, slug, name, price_cents, stripe_price_id "
+        "SELECT id, slug, name, display_name, price_cents, stripe_price_id "
         "FROM plans WHERE active = true AND slug != 'free' "
         "ORDER BY price_cents ASC"
     )
@@ -812,6 +815,7 @@ async def admin_stripe_status(
                 "id": str(p["id"]),
                 "slug": p["slug"],
                 "name": p["name"],
+                "display_name": p["display_name"],
                 "price_cents": p["price_cents"],
                 "stripe_price_id": p["stripe_price_id"],
             }
@@ -850,10 +854,15 @@ async def admin_update_plan_stripe_price_id(
         )
 
     db = get_db(request)
+    # NB: `plans` table has no updated_at column (see migrations/004); don't add it here.
+    try:
+        plan_uuid = uuid.UUID(plan_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="ID piano non valido.")
     row = await db.fetchrow(
-        "UPDATE plans SET stripe_price_id = $1, updated_at = now() "
+        "UPDATE plans SET stripe_price_id = $1 "
         "WHERE id = $2 RETURNING id, slug, stripe_price_id",
-        price_id, plan_id,
+        price_id, plan_uuid,
     )
     if not row:
         raise HTTPException(status_code=404, detail="Piano non trovato.")

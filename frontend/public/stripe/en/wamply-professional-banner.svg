@@ -57,7 +57,7 @@
     </g>
   <text x="80" y="290" font-family="Inter, system-ui, sans-serif"
         font-size="72" font-weight="700" fill="#FFFFFF" letter-spacing="-1.5">
-    Professional
+    Plus
   </text>
   <text x="80" y="325" font-family="Inter, system-ui, sans-serif"
         font-size="18" font-weight="500" fill="#94A3B8"
@@ -73,10 +73,10 @@
     <text x="0" y="0" font-family="Inter, system-ui, sans-serif"
           font-size="180" font-weight="700" fill="#0D9488"
           letter-spacing="-6">
-      249
+      149
     </text>
     
-    <text x="383" y="0"
+    <text x="358" y="0"
           font-family="Inter, system-ui, sans-serif"
           font-size="96" font-weight="600" fill="#0D9488">
       &#8364;
@@ -105,7 +105,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="778" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      2,500 WhatsApp messages
+      1,500 WhatsApp messages included
     </text>
     
     <circle cx="102" cy="828" r="22" fill="#0D9488" opacity="0.15"/>
@@ -114,7 +114,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="836" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      200 AI credits/month included
+      200 AI credits + translation + A/B
     </text>
     
     <circle cx="102" cy="886" r="22" fill="#0D9488" opacity="0.15"/>
@@ -123,7 +123,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="894" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      A/B Testing + Advanced analytics
+      API access . 3 seats
     </text>
   <text x="512" y="970" font-family="Inter, system-ui, sans-serif"
         font-size="20" font-weight="400" fill="#94A3B8"

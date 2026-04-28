@@ -7,10 +7,11 @@ afterEach(cleanup);
 describe("/piani", () => {
   it("renders all 4 plan cards with prices", () => {
     render(<PianiPage />);
-    expect(screen.getByText("Avvio")).toBeTruthy();
-    expect(screen.getByText("Essenziale")).toBeTruthy();
-    expect(screen.getByText("Plus")).toBeTruthy();
-    expect(screen.getByText("Premium")).toBeTruthy();
+    // Plan names appear twice: once in PlanCard, once in ComparisonTable header.
+    expect(screen.getAllByText("Avvio").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Essenziale").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Plus").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Premium").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/€19/)[0]).toBeTruthy();
     expect(screen.getAllByText(/€399/)[0]).toBeTruthy();
   });

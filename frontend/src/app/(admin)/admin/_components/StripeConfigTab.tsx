@@ -7,6 +7,7 @@ interface StripePlan {
   id: string;
   slug: string;
   name: string;
+  display_name: string | null;
   price_cents: number;
   stripe_price_id: string | null;
 }
@@ -332,8 +333,17 @@ export function StripeConfigTab() {
         <div className="space-y-2">
           {status.plans.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-sm border border-slate-800 bg-brand-navy-deep px-3 py-2">
-              <div className="w-32 shrink-0">
-                <div className="text-[12.5px] font-medium text-slate-100 capitalize">{p.name}</div>
+              <div className="w-36 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12.5px] font-medium text-slate-100">
+                    {p.display_name ?? p.name}
+                  </span>
+                  {p.display_name && p.display_name !== p.name && (
+                    <span className="rounded-pill bg-slate-700/60 px-1.5 py-0.5 text-[9.5px] font-mono text-slate-400">
+                      {p.name}
+                    </span>
+                  )}
+                </div>
                 <div className="text-[10.5px] text-slate-500">€{(p.price_cents / 100).toFixed(0)}/mese · {p.slug}</div>
               </div>
               <input

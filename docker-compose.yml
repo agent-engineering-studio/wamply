@@ -21,8 +21,8 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - AGENT_URL=${AGENT_URL:-http://agent:8000}
       - AGENT_SECRET=${AGENT_SECRET}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:8100}
@@ -53,8 +53,8 @@ services:
       - SUPABASE_URL=${SUPABASE_URL:-http://supabase-rest:3001}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-sonnet-4-5}
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
       - TWILIO_FROM=${TWILIO_FROM:-whatsapp:+14155238886}
       - TWILIO_MESSAGING_SERVICE_SID=${TWILIO_MESSAGING_SERVICE_SID:-}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -91,8 +91,8 @@ services:
       - AGENT_SECRET=${AGENT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - STRIPE_PRICE_TOPUP_SMALL=${STRIPE_PRICE_TOPUP_SMALL:-}
       - STRIPE_PRICE_TOPUP_MEDIUM=${STRIPE_PRICE_TOPUP_MEDIUM:-}
       - STRIPE_PRICE_TOPUP_LARGE=${STRIPE_PRICE_TOPUP_LARGE:-}
@@ -345,7 +345,7 @@ services:
   stripe-cli:
     container_name: wcm-stripe-cli
     image: stripe/stripe-cli:latest
-    command: listen --forward-to http://frontend:3000/api/billing/webhook --api-key ${STRIPE_SECRET_KEY}
+    command: listen --forward-to http://frontend:3000/api/billing/webhook --api-key ${STRIPE_SECRET_KEY:-}
     depends_on:
       - frontend
     profiles:

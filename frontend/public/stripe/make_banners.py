@@ -1,20 +1,24 @@
-"""Generate four square product banners per language (IT + EN).
+"""Generate square product banners per language (IT + EN) for Stripe.
 
-Output: 1024x1024 PNG + SVG per plan, per locale.
+Output: 1024x1024 SVG (+ PNG if cairosvg can run) per plan, per locale.
+
 Layout:
-  wamply-free-banner.png          (IT - default, root)
-  wamply-starter-banner.png
-  wamply-professional-banner.png
-  wamply-enterprise-banner.png
-  en/wamply-free-banner.png       (EN version)
-  en/...
+  wamply-free-banner.{svg,png}             (IT - default, root)
+  wamply-avvio-banner.{svg,png}
+  wamply-starter-banner.{svg,png}          (display name: "Essenziale")
+  wamply-professional-banner.{svg,png}     (display name: "Plus")
+  wamply-enterprise-banner.{svg,png}       (display name: "Premium")
+  en/wamply-*-banner.{svg,png}             (EN versions)
 
-Brand: navy gradient + teal accents + W-wave logo.
-Data from ai-credits-plan.md v2 (silent model routing, no model names on banners).
+Source of truth: supabase/migrations/026_plan_restructure.sql + frontend/src/lib/plans.ts.
+Slugs are stable (Stripe price ids); display names are user-facing.
+
+PNG generation requires libcairo native runtime. On Windows, install GTK
+runtime (https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer).
+If unavailable, only SVGs are produced and the PNGs can be rebuilt later.
 """
 
 from pathlib import Path
-import cairosvg
 
 OUT = Path(__file__).parent
 SIZE = 1024
@@ -29,7 +33,15 @@ GREEN_SOFT = "#E8F5E9"
 SLATE_LIGHT = "#94A3B8"
 WHITE = "#FFFFFF"
 
-NUM_WIDTH = {"14": 220, "79": 245, "249": 365, "799": 365}
+# Visual width of the big number rendered at font-size=180, weight=700, letter-spacing=-6.
+# Used to position the €/days suffix glyph.
+NUM_WIDTH = {
+    "14": 220,
+    "19": 220,
+    "49": 245,
+    "149": 340,
+    "399": 365,
+}
 
 
 def wave_logo(x, y, size, ring_color=TEAL):
@@ -56,6 +68,11 @@ def check_icon(cx, cy, color=TEAL):
               stroke-linecap="round" stroke-linejoin="round"/>"""
 
 
+def _xe(s: str) -> str:
+    """Escape `&`, `<`, `>` for safe inclusion in SVG/XML text nodes."""
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def banner_svg(plan, strings):
     accent = plan.get("accent", TEAL)
     accent_soft = plan.get("accent_soft", TEAL_SOFT)
@@ -63,8 +80,8 @@ def banner_svg(plan, strings):
     is_trial = plan.get("trial", False)
 
     big_number = plan["number"]
-    unit_line = plan["unit"]
-    sub_label = plan.get("sub_label", strings["sub_label_monthly"])
+    unit_line = _xe(plan["unit"])
+    sub_label = _xe(plan.get("sub_label", strings["sub_label_monthly"]))
 
     num_width = NUM_WIDTH.get(big_number, 95 * len(big_number))
     rings_opacity = 0.14 if badge_text else 0.08
@@ -89,7 +106,7 @@ def banner_svg(plan, strings):
       <text x="{w//2}" y="29" font-family="Inter, system-ui, sans-serif"
             font-size="15" font-weight="600" fill="{accent_soft}"
             text-anchor="middle" letter-spacing="1.5">
-        {badge_text}
+        {_xe(badge_text)}
       </text>
     </g>"""
 
@@ -101,7 +118,7 @@ def banner_svg(plan, strings):
     {check_icon(102, y - 8, color=accent)}
     <text x="142" y="{y}" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      {feat}
+      {_xe(feat)}
     </text>"""
 
     num_color = accent if badge_text else WHITE
@@ -159,7 +176,7 @@ def banner_svg(plan, strings):
   {badge}
   <text x="80" y="290" font-family="Inter, system-ui, sans-serif"
         font-size="72" font-weight="700" fill="#FFFFFF" letter-spacing="-1.5">
-    {plan["name"]}
+    {_xe(plan["name"])}
   </text>
   <text x="80" y="325" font-family="Inter, system-ui, sans-serif"
         font-size="18" font-weight="500" fill="{SLATE_LIGHT}"
@@ -185,13 +202,13 @@ def banner_svg(plan, strings):
   <text x="{SIZE//2}" y="970" font-family="Inter, system-ui, sans-serif"
         font-size="20" font-weight="400" fill="{SLATE_LIGHT}"
         text-anchor="middle" letter-spacing="2">
-    {strings["tagline"]}
+    {_xe(strings["tagline"])}
   </text>
 </svg>
 """
 
 
-# Language-specific strings
+# β+ v2 listino. Slug = stable Stripe linkage; name = user-facing display_name.
 LOCALES = {
     "it": {
         "sub_label_monthly": "PIANO MENSILE",
@@ -201,43 +218,54 @@ LOCALES = {
             {
                 "name": "Free Trial", "slug": "free", "number": "14",
                 "unit": "giorni gratis",
-                "sub_label": "14 GIORNI DI PROFESSIONAL",
+                "sub_label": "14 GIORNI DI PLUS",
                 "badge_text": "PROVA GRATUITA", "trial": True,
                 "accent": GREEN, "accent_soft": GREEN_SOFT,
                 "features": [
-                    "Tutte le funzionalita' Professional",
-                    "50 crediti AI inclusi",
-                    "100 messaggi WhatsApp sandbox",
+                    "Tutte le funzionalita' Plus",
+                    "AI genera, migliora e traduce",
+                    "200 messaggi WhatsApp inclusi",
                     "Nessuna carta richiesta",
                 ],
             },
             {
-                "name": "Starter", "slug": "starter", "number": "79", "unit": "al mese",
+                "name": "Avvio", "slug": "avvio", "number": "19",
+                "unit": "al mese",
                 "features": [
-                    "5 campagne / mese . 500 contatti",
-                    "500 messaggi WhatsApp",
-                    "5 template . 1 utente",
-                    "BYOK: porta la tua API Claude",
+                    "1 campagna / mese . 500 contatti",
+                    "Solo a consumo (paghi cio' che invii)",
+                    "Compliance AI inclusa",
+                    "3 template . 1 utente",
                 ],
             },
             {
-                "name": "Professional", "slug": "professional", "number": "249",
+                "name": "Essenziale", "slug": "starter", "number": "49",
+                "unit": "al mese",
+                "features": [
+                    "5 campagne / mese . 500 contatti",
+                    "300 messaggi WhatsApp inclusi",
+                    "AI: genera & migliora messaggi",
+                    "5 template . 1 utente",
+                ],
+            },
+            {
+                "name": "Plus", "slug": "professional", "number": "149",
                 "unit": "al mese", "badge_text": "CONSIGLIATO",
                 "features": [
                     "20 campagne / mese . 5.000 contatti",
-                    "2.500 messaggi WhatsApp",
-                    "200 crediti AI/mese inclusi",
-                    "A/B Testing + Analytics avanzate",
+                    "1.500 messaggi WhatsApp inclusi",
+                    "200 crediti AI + traduzione + A/B",
+                    "API . 3 utenti",
                 ],
             },
             {
-                "name": "Enterprise", "slug": "enterprise", "number": "799",
+                "name": "Premium", "slug": "enterprise", "number": "399",
                 "unit": "al mese",
                 "features": [
                     "Campagne illimitate . 50.000 contatti",
-                    "10.000 messaggi WhatsApp",
+                    "5.000 messaggi WhatsApp inclusi",
                     "1.500 crediti AI + BYOK illimitato",
-                    "Account manager dedicato",
+                    "White-label + Account manager",
                 ],
             },
         ],
@@ -250,69 +278,136 @@ LOCALES = {
             {
                 "name": "Free Trial", "slug": "free", "number": "14",
                 "unit": "days free",
-                "sub_label": "14 DAYS OF PROFESSIONAL",
+                "sub_label": "14 DAYS OF PLUS",
                 "badge_text": "FREE TRIAL", "trial": True,
                 "accent": GREEN, "accent_soft": GREEN_SOFT,
                 "features": [
-                    "All Professional features",
-                    "50 AI credits included",
-                    "100 sandbox WhatsApp messages",
+                    "All Plus features unlocked",
+                    "AI generates, improves & translates",
+                    "200 WhatsApp messages included",
                     "No credit card required",
                 ],
             },
             {
-                "name": "Starter", "slug": "starter", "number": "79", "unit": "per month",
+                "name": "Avvio", "slug": "avvio", "number": "19",
+                "unit": "per month",
                 "features": [
-                    "5 campaigns / month . 500 contacts",
-                    "500 WhatsApp messages",
-                    "5 templates . 1 user",
-                    "BYOK: bring your Claude API key",
+                    "1 campaign / month . 500 contacts",
+                    "Pay-as-you-go (no monthly bundle)",
+                    "AI compliance check included",
+                    "3 templates . 1 user",
                 ],
             },
             {
-                "name": "Professional", "slug": "professional", "number": "249",
+                "name": "Essenziale", "slug": "starter", "number": "49",
+                "unit": "per month",
+                "features": [
+                    "5 campaigns / month . 500 contacts",
+                    "300 WhatsApp messages included",
+                    "AI: generate & rewrite messages",
+                    "5 templates . 1 user",
+                ],
+            },
+            {
+                "name": "Plus", "slug": "professional", "number": "149",
                 "unit": "per month", "badge_text": "RECOMMENDED",
                 "features": [
                     "20 campaigns / month . 5,000 contacts",
-                    "2,500 WhatsApp messages",
-                    "200 AI credits/month included",
-                    "A/B Testing + Advanced analytics",
+                    "1,500 WhatsApp messages included",
+                    "200 AI credits + translation + A/B",
+                    "API access . 3 seats",
                 ],
             },
             {
-                "name": "Enterprise", "slug": "enterprise", "number": "799",
+                "name": "Premium", "slug": "enterprise", "number": "399",
                 "unit": "per month",
                 "features": [
                     "Unlimited campaigns . 50,000 contacts",
-                    "10,000 WhatsApp messages",
-                    "1,500 AI credits + Unlimited BYOK",
-                    "Dedicated account manager",
+                    "5,000 WhatsApp messages included",
+                    "1,500 AI credits + unlimited BYOK",
+                    "White-label + Account manager",
                 ],
             },
         ],
     },
 }
 
-# Fix trial unit_gg string replace (SVG render needs proper width)
-# Rebuilding NUM_WIDTH for en days rendering (not needed since we use number width only)
+
+def _pick_png_renderer():
+    """Try cairosvg first (sharper text). Fall back to resvg-py (pure Rust,
+    no native cairo dep). Return (callable(svg_bytes, png_path), name) or
+    (None, None) if neither works."""
+    try:
+        import cairosvg  # type: ignore
+
+        def render(svg_bytes: bytes, png_path: str) -> None:
+            cairosvg.svg2png(
+                bytestring=svg_bytes,
+                write_to=png_path,
+                output_width=SIZE,
+                output_height=SIZE,
+            )
+
+        # Validate cairo is actually loadable by triggering surface init.
+        cairosvg.svg2png(
+            bytestring=b'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+            write_to=str(OUT / "_probe.png"),
+        )
+        (OUT / "_probe.png").unlink(missing_ok=True)
+        return render, "cairosvg"
+    except Exception as exc:  # noqa: BLE001
+        print(f"[info] cairosvg unavailable ({exc.__class__.__name__}), trying resvg-py")
+
+    try:
+        import resvg_py  # type: ignore
+
+        def render(svg_bytes: bytes, png_path: str) -> None:
+            png = resvg_py.svg_to_bytes(
+                svg_string=svg_bytes.decode("utf-8"),
+                width=SIZE,
+                height=SIZE,
+            )
+            with open(png_path, "wb") as fh:
+                fh.write(bytes(png))
+
+        return render, "resvg-py"
+    except Exception as exc:  # noqa: BLE001
+        print(f"[warn] resvg-py unavailable: {exc}")
+        return None, None
 
 
 def main():
+    png_render, renderer_name = _pick_png_renderer()
+    if png_render:
+        print(f"[info] PNG renderer: {renderer_name}")
+
+    svg_count = 0
+    png_count = 0
     for lang, data in LOCALES.items():
         out_dir = OUT if lang == "it" else OUT / "en"
         out_dir.mkdir(exist_ok=True)
         for plan in data["plans"]:
             svg = banner_svg(plan, data)
             svg_path = out_dir / f"wamply-{plan['slug']}-banner.svg"
-            png_path = out_dir / f"wamply-{plan['slug']}-banner.png"
             svg_path.write_text(svg, encoding="utf-8")
-            cairosvg.svg2png(
-                bytestring=svg.encode("utf-8"),
-                write_to=str(png_path),
-                output_width=SIZE,
-                output_height=SIZE,
-            )
-            print(f"[{lang}] wrote {png_path.relative_to(OUT)}")
+            svg_count += 1
+            print(f"[{lang}] wrote {svg_path.relative_to(OUT)}")
+            if png_render:
+                png_path = out_dir / f"wamply-{plan['slug']}-banner.png"
+                try:
+                    png_render(svg.encode("utf-8"), str(png_path))
+                    png_count += 1
+                    print(f"[{lang}] wrote {png_path.relative_to(OUT)}")
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[warn] PNG render failed for {plan['slug']}: {exc}")
+
+    print(f"\nDone: {svg_count} SVGs, {png_count} PNGs.")
+    if not png_render:
+        print(
+            "No PNG renderer available. Install one:\n"
+            "  pip install resvg-py        # pure-Rust, no native deps\n"
+            "  pip install cairosvg        # plus libcairo runtime"
+        )
 
 
 if __name__ == "__main__":

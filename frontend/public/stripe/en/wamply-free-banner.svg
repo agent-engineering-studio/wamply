@@ -62,7 +62,7 @@
   <text x="80" y="325" font-family="Inter, system-ui, sans-serif"
         font-size="18" font-weight="500" fill="#94A3B8"
         letter-spacing="3">
-    14 DAYS OF PROFESSIONAL
+    14 DAYS OF PLUS
   </text>
   
     <rect x="60" y="360" width="720" height="240" rx="24"
@@ -97,7 +97,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="720" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      All Professional features
+      All Plus features unlocked
     </text>
     
     <circle cx="102" cy="770" r="22" fill="#25D366" opacity="0.15"/>
@@ -106,7 +106,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="778" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      50 AI credits included
+      AI generates, improves &amp; translates
     </text>
     
     <circle cx="102" cy="828" r="22" fill="#25D366" opacity="0.15"/>
@@ -115,7 +115,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
     <text x="142" y="836" font-family="Inter, system-ui, sans-serif"
           font-size="24" font-weight="400" fill="#E2E8F0">
-      100 sandbox WhatsApp messages
+      200 WhatsApp messages included
     </text>
     
     <circle cx="102" cy="886" r="22" fill="#25D366" opacity="0.15"/>
