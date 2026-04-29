@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BillingClient } from "./_components/BillingClient";
 
 export default function BillingPage() {
@@ -8,7 +9,10 @@ export default function BillingPage() {
         Gestisci il tuo piano e il metodo di pagamento.
       </p>
       <div className="mt-6">
-        <BillingClient />
+        {/* Suspense required because BillingClient calls useSearchParams. */}
+        <Suspense fallback={<div className="animate-pulse text-slate-400">Caricamento...</div>}>
+          <BillingClient />
+        </Suspense>
       </div>
     </>
   );

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { CreditsClient } from "./_components/CreditsClient";
 
 export default function CreditsPage() {
@@ -8,7 +9,10 @@ export default function CreditsPage() {
         Gestisci il tuo saldo crediti AI e ricarica quando servono operazioni in più.
       </p>
       <div className="mt-6">
-        <CreditsClient />
+        {/* Suspense required because CreditsClient calls useSearchParams. */}
+        <Suspense fallback={<div className="animate-pulse text-slate-400">Caricamento...</div>}>
+          <CreditsClient />
+        </Suspense>
       </div>
     </>
   );
