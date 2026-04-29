@@ -40,9 +40,11 @@ describe("/soluzioni/[segmento]", () => {
       params: Promise.resolve({ segmento: "parrucchieri" }),
     });
     render(el);
-    expect(screen.getByText(/Quanti appuntamenti perdi/)).toBeTruthy();
-    expect(screen.getAllByText(/Promemoria appuntamento/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Recall clienti inattivi/)).toBeTruthy();
+    // Content rewritten to marketing-only positioning (campagne broadcast,
+    // no transactional messages). See content/soluzioni/parrucchieri.json.
+    expect(screen.getByText(/agenda contatti/i)).toBeTruthy();
+    expect(screen.getAllByText(/Lancio nuovo trattamento/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Win-back/i).length).toBeGreaterThan(0);
   });
 
   it("throws NEXT_NOT_FOUND for unknown segment", async () => {
