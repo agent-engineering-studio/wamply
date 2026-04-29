@@ -1,24 +1,23 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Wamply — Demo setup (Windows)
+  Wamply — Demo standalone (Windows)
 .DESCRIPTION
-  Installa Docker Desktop se necessario, configura .env e avvia Wamply.
-  USO LOCALE / DEMO ONLY — non per produzione.
-
-  Twilio, Stripe e Claude API si configurano dopo l'avvio dal pannello admin
-  (http://localhost:3000/admin). Le credenziali sono salvate cifrate in
-  `system_config` lato DB, niente più .env per la demo.
+  Pre-requisito UNICO: Docker Desktop installato.
+  NON serve git, NON serve clonare il repo Wamply: tutto vive in questa
+  cartella. Le 4 immagini Wamply (frontend/backend/agent/db-seed) vengono
+  scaricate da GitHub Container Registry come tutte le altre dipendenze.
 .EXAMPLE
-  .\demo\setup.ps1
+  .\setup.ps1
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RootDir   = Split-Path -Parent $ScriptDir
-$EnvFile   = Join-Path $RootDir ".env"
+$ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
+$EnvFile     = Join-Path $ScriptDir ".env"
+$EnvExample  = Join-Path $ScriptDir ".env.example"
+$ComposeFile = Join-Path $ScriptDir "docker-compose.demo.yml"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 function Write-Step { param($msg) Write-Host "`n  $msg" -ForegroundColor Cyan }
@@ -58,6 +57,9 @@ function Test-ServiceHealth {
   } catch { return $false }
 }
 
+# All compose subcommands target THIS folder's compose file.
+function Invoke-Compose { docker compose --file $ComposeFile @args }
+
 # ── Banner ────────────────────────────────────────────────────────────────────
 Clear-Host
 Write-Host ""
@@ -68,7 +70,8 @@ Write-Host "  ██║███╗██║██╔══██║██║╚
 Write-Host "  ╚███╔███╔╝██║  ██║██║ ╚═╝ ██║██║     ███████╗██║   " -ForegroundColor Cyan
 Write-Host "   ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝   " -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  [ATTENZIONE] Script per demo locale — NON usare in produzione" -ForegroundColor Yellow
+Write-Host "  [ATTENZIONE] Demo locale — non per produzione" -ForegroundColor Yellow
+Write-Host "  Lancia Wamply usando solo le immagini pubblicate, niente codice da clonare." -ForegroundColor Yellow
 Write-Host ""
 
 # ── 1. Docker ─────────────────────────────────────────────────────────────────
@@ -76,22 +79,13 @@ Write-Step "Verifica Docker"
 
 $dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
 if (-not $dockerCmd) {
-  Write-Warn "Docker non trovato — installazione con winget..."
-  try {
-    winget install -e --id Docker.DockerDesktop `
-      --accept-source-agreements --accept-package-agreements --silent
-    Write-Host ""
-    Write-Host "  Docker Desktop installato." -ForegroundColor Green
-    Write-Host "  Aprilo dal menu Start, completa il setup iniziale," -ForegroundColor Yellow
-    Write-Host "  poi riesegui questo script." -ForegroundColor Yellow
-  } catch {
-    Write-Fail "winget non disponibile. Scarica Docker Desktop da https://www.docker.com/products/docker-desktop/"
-  }
-  exit 0
+  Write-Warn "Docker non trovato. Installa Docker Desktop e riesegui questo script."
+  Write-Host "  Download: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
+  exit 1
 }
 
 if (-not (Test-DockerRunning)) {
-  Write-Warn "Docker non è in esecuzione — avvio Docker Desktop..."
+  Write-Warn "Docker è installato ma non è in esecuzione — avvio Docker Desktop..."
   $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
   if (Test-Path $dockerExe) {
     Start-Process $dockerExe
@@ -110,8 +104,13 @@ Write-Ok "Docker $dockerVer"
 Write-Step "Configurazione .env"
 
 if (-not (Test-Path $EnvFile)) {
-  Copy-Item (Join-Path $RootDir ".env.example") $EnvFile
-  Write-Ok ".env creato da .env.example"
+  if (Test-Path $EnvExample) {
+    Copy-Item $EnvExample $EnvFile
+    Write-Ok ".env creato da .env.example"
+  } else {
+    New-Item $EnvFile -ItemType File -Force | Out-Null
+    Write-Ok ".env vuoto creato (i default in compose vanno bene per la demo)"
+  }
 } else {
   Write-Ok ".env già presente"
 }
@@ -119,98 +118,56 @@ if (-not (Test-Path $EnvFile)) {
 # ── 3. Stato installazione ────────────────────────────────────────────────────
 Write-Step "Stato installazione"
 
-$imagesExist = (docker images --format "{{.Repository}}" 2>$null) -match "wcm-|wamply"
-$containersRunning = (docker ps --format "{{.Names}}" 2>$null) -match "wcm-"
+$containersRunning = (docker ps --format "{{.Names}}" 2>$null) -match "wamply-"
 
 $skipSetup = $false
 
 if ($containersRunning) {
-  Write-Ok "Wamply è già in esecuzione"
+  Write-Ok "Wamply demo è già in esecuzione"
   Write-Host ""
   Write-Host "  Cosa vuoi fare?" -ForegroundColor White
   Write-Host "  [1] Mostra URL e credenziali (nessuna azione)" -ForegroundColor White
-  Write-Host "  [2] Riavvia i container senza perdere i dati" -ForegroundColor White
-  Write-Host "  [3] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
+  Write-Host "  [2] Riavvia senza perdere i dati" -ForegroundColor White
+  Write-Host "  [3] Aggiorna le immagini (pull latest) e ricrea i container" -ForegroundColor White
+  Write-Host "  [4] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
   Write-Host ""
   $choice = Invoke-Ask "Scelta" "1"
   switch ($choice) {
     "2" {
-      Set-Location $RootDir
-      docker compose restart
+      Invoke-Compose restart
       Write-Ok "Servizi riavviati"
       $skipSetup = $true
     }
     "3" {
+      Write-Step "Pull immagini più recenti"
+      Invoke-Compose pull
+      Write-Step "Ricreo i container"
+      Invoke-Compose up -d --force-recreate
+    }
+    "4" {
       Write-Warn "Reset completo: tutti i dati verranno eliminati."
       $confirm = Invoke-Ask "Digita 'reset' per confermare"
       if ($confirm -ne "reset") { Write-Host "  Annullato."; exit 0 }
-      $imagesExist = $false
+      Invoke-Compose down -v
     }
     default { $skipSetup = $true }
   }
-} elseif ($imagesExist) {
-  Write-Ok "Immagini Docker trovate — riavvio senza rebuild"
-  Write-Host ""
-  Write-Host "  [1] Avvia con i dati esistenti  (nessun rebuild)" -ForegroundColor White
-  Write-Host "  [2] Reset completo — CANCELLA il database e ricomincia" -ForegroundColor Yellow
-  Write-Host ""
-  $choice = Invoke-Ask "Scelta" "1"
-  switch ($choice) {
-    "2" { $imagesExist = $false }
-  }
 } else {
-  Write-Ok "Prima installazione — verrà eseguito il build completo"
+  Write-Ok "Demo non in esecuzione — verrà avviata"
 }
 
-# ── 4. Build e avvio ──────────────────────────────────────────────────────────
+# ── 4. Pull + avvio ───────────────────────────────────────────────────────────
 if (-not $skipSetup) {
-  Set-Location $RootDir
+  Write-Step "Scarico le immagini Wamply (potrebbe richiedere qualche minuto la prima volta)"
+  Invoke-Compose pull
 
-  Write-Step "Aggiornamento immagini upstream"
-  # Always pull latest base images so the demo stays current with security
-  # patches and Postgres/Redis/Kong/etc. updates. --ignore-buildable skips
-  # local services (backend/agent/frontend) that aren't in any registry.
-  docker compose pull --ignore-buildable 2>$null
-  if ($LASTEXITCODE -eq 0) {
-    Write-Ok "Immagini upstream aggiornate"
-  } else {
-    Write-Warn "Impossibile aggiornare alcune immagini (offline?) — proseguo con quelle locali"
-  }
-
-  Write-Step "Build e avvio servizi"
-
-  if ($imagesExist) {
-    Write-Ok "Avvio con immagini locali esistenti"
-    docker compose up -d
-  } else {
-    Write-Host "  Il build iniziale puo' richiedere 5-10 minuti." -ForegroundColor Yellow
-    Write-Host "  I build successivi saranno molto piu' rapidi grazie alla cache Docker.`n" -ForegroundColor Yellow
-
-    # Equivale a: make setup (down -v + build + up + seed)
-    docker compose down --remove-orphans --volumes 2>$null
-    docker compose build
-    docker compose up -d
-
-    # Seed database
-    Write-Host "  Attendo database..." -NoNewline
-    for ($i = 0; $i -lt 20; $i++) {
-      Start-Sleep 3; Write-Host "." -NoNewline
-      docker compose exec -T supabase-db pg_isready -U postgres 2>$null | Out-Null
-      if ($LASTEXITCODE -eq 0) { break }
-    }
-    Write-Host ""
-
-    $seedFile = Join-Path $RootDir "supabase\seed.sql"
-    if (Test-Path $seedFile) {
-      Get-Content $seedFile -Raw | docker compose exec -T supabase-db psql -U postgres -d postgres | Out-Null
-      Write-Ok "Database inizializzato e seed caricato"
-    }
-  }
+  Write-Step "Avvio dei servizi"
+  Invoke-Compose up -d
 }
 
 # ── 5. Health check ───────────────────────────────────────────────────────────
 if (-not $skipSetup) {
-  Write-Step "Attendo servizi pronti"
+  Write-Step "Attendo che i servizi siano pronti"
   Write-Host "  Kong API Gateway" -NoNewline
   $ready = $false
   for ($i = 0; $i -lt 60; $i++) {
@@ -225,7 +182,7 @@ if (-not $skipSetup) {
 # ── 6. Riepilogo finale ───────────────────────────────────────────────────────
 Write-Host ""
 Write-Sep
-Write-Host "  [OK]  Wamply e' in esecuzione!" -ForegroundColor Green
+Write-Host "  [OK]  Wamply demo è in esecuzione!" -ForegroundColor Green
 Write-Sep
 Write-Host ""
 Write-Host "  Frontend:      http://localhost:3000" -ForegroundColor White
@@ -244,8 +201,8 @@ Write-Host "    Twilio WhatsApp:  /admin  -->  tab 'Twilio'" -ForegroundColor Ye
 Write-Host "    Stripe Pagamenti: /admin  -->  tab 'Pagamenti'" -ForegroundColor Yellow
 Write-Host "    Claude API Key:   /admin  -->  tab 'Claude API'" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Comandi utili (PowerShell dalla root del progetto):" -ForegroundColor DarkGray
-Write-Host "    docker compose down      - ferma tutto" -ForegroundColor DarkGray
-Write-Host "    docker compose up -d     - riavvia (senza rebuild)" -ForegroundColor DarkGray
-Write-Host "    docker compose logs -f   - log in tempo reale" -ForegroundColor DarkGray
+Write-Host "  Comandi utili (dalla cartella demo, PowerShell):" -ForegroundColor DarkGray
+Write-Host "    docker compose -f docker-compose.demo.yml down       - ferma tutto" -ForegroundColor DarkGray
+Write-Host "    docker compose -f docker-compose.demo.yml logs -f    - log in tempo reale" -ForegroundColor DarkGray
+Write-Host "    .\setup.ps1                                          - riapri questo menù" -ForegroundColor DarkGray
 Write-Host ""

@@ -7,6 +7,10 @@ on:
     paths:
       - 'agent/**'
       - 'backend/**'
+      - 'frontend/**'
+      - 'supabase/migrations/**'
+      - 'supabase/seed.sql'
+      - 'demo/db/Dockerfile'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
     inputs:
@@ -85,8 +89,11 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - { name: wcm-agent,   context: agent,   dockerfile: agent/Dockerfile   }
-          - { name: wcm-backend, context: backend,  dockerfile: backend/Dockerfile  }
+          - { name: wcm-agent,    context: agent,    dockerfile: agent/Dockerfile    }
+          - { name: wcm-backend,  context: backend,  dockerfile: backend/Dockerfile  }
+          - { name: wcm-frontend, context: frontend, dockerfile: frontend/Dockerfile }
+          # db-seed needs the repo root as context (it copies from supabase/).
+          - { name: wcm-db-seed,  context: .,        dockerfile: demo/db/Dockerfile  }
     steps:
       - name: Checkout
         uses: actions/checkout@v4

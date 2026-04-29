@@ -1,21 +1,20 @@
-# Wamply — Demo Setup
+# Wamply — Demo standalone
 
-Script di installazione e avvio per demo locali e testing interno.
+Avvia un'istanza completa di Wamply sul tuo computer in **una cartella, un comando, zero compilazione**.
 
-> **Solo uso locale / demo** — non adatto alla produzione.
+> **Solo uso demo / locale** — non per produzione.
 
 ---
 
-## Requisiti minimi
+## Pre-requisito unico
 
-| Requisito | Note |
-| --------- | ---- |
-| Windows 10+ / macOS 10.15+ / Linux (Ubuntu 20+) | — |
-| Connessione internet | Per il primo build (~5-10 min) |
-| 8 GB RAM liberi | Docker + tutti i servizi |
-| 10 GB spazio disco | Immagini Docker + dati |
+| Sistema | Cosa serve |
+| --- | --- |
+| macOS | [Docker Desktop](https://www.docker.com/products/docker-desktop/) installato |
+| Windows | [Docker Desktop](https://www.docker.com/products/docker-desktop/) installato |
+| Linux | Docker engine (`curl -fsSL https://get.docker.com \| sh`) |
 
-Docker Desktop viene installato automaticamente dallo script se non è presente.
+**Non serve** `git`, **non serve** clonare il repo, **non serve** Node, Python o `make`. Tutte le 4 immagini Wamply (frontend, backend, agent, db con migrations) vengono scaricate automaticamente da GitHub Container Registry.
 
 ---
 
@@ -24,104 +23,132 @@ Docker Desktop viene installato automaticamente dallo script se non è presente.
 ### macOS / Linux
 
 ```bash
-chmod +x demo/setup.sh
-./demo/setup.sh
+chmod +x setup.sh
+./setup.sh
 ```
 
 ### Windows
 
-Doppio click su `demo/setup.bat`
-oppure da PowerShell:
+Doppio click su `setup.bat`, oppure da PowerShell:
 
 ```powershell
-.\demo\setup.ps1
+.\setup.ps1
 ```
 
----
+Lo script:
 
-## Cosa fa lo script
+1. Verifica che Docker sia installato e in esecuzione (lo avvia se serve)
+2. Crea il file `.env` con i default sensati
+3. Scarica le immagini necessarie (~600 MB la prima volta)
+4. Avvia tutti i container e attende che siano pronti
+5. Stampa URL e credenziali
 
-1. **Verifica Docker** — installa Docker Desktop se mancante, lo avvia se fermo
-2. **Configura `.env`** — crea il file da `.env.example` se non esiste
-3. **Rileva lo stato** — sceglie automaticamente tra primo avvio, riavvio o reset
-4. **Build e avvio** — esegue `make setup` al primo avvio, `make up` nei successivi
-5. **Health check** — attende che tutti i servizi siano pronti
-6. **Mostra riepilogo** — URL, credenziali demo e link al pannello admin
-
-> Twilio, Stripe e Claude API **non vengono più chiesti dallo script**: si configurano dopo l'avvio dal pannello admin (cifrate in DB, niente .env). Vedi sezione _Configurazione integrazioni_ sotto.
-
-### Menu al secondo avvio
-
-Se Wamply è già in esecuzione, lo script propone:
-
-| Scelta | Azione |
-| ------ | ------ |
-| **1** | Mostra solo URL e credenziali |
-| **2** | Riavvia i container (nessuna perdita di dati) |
-| **3** | Reset completo — cancella il database |
+Tempo totale alla **prima esecuzione**: ~3-5 minuti (dipende dalla connessione).
+Avvii successivi: ~30 secondi.
 
 ---
 
 ## URL e credenziali demo
 
 | Servizio | URL |
-| -------- | --- |
+| --- | --- |
 | Frontend | <http://localhost:3000> |
 | Admin panel | <http://localhost:3000/admin> |
 | Email (Mailhog) | <http://localhost:8025> |
 | Redis UI | <http://localhost:8001> |
 
 | Account | Email | Password |
-| ------- | ----- | -------- |
-| Admin | `admin@wcm.local` | Admin123! |
-| Utente 1 | `user1@test.local` | User123! |
-| Utente 2 | `user2@test.local` | User123! |
+| --- | --- | --- |
+| Admin | `admin@wcm.local` | `Admin123!` |
+| Utente 1 | `user1@test.local` | `User123!` |
+| Utente 2 | `user2@test.local` | `User123!` |
 
 ---
 
-## Configurazione integrazioni
+## Configurazione integrazioni esterne
 
-Tutte le credenziali si configurano dal pannello admin dopo l'avvio. Sono salvate **cifrate** in `system_config` lato DB, e si possono cambiare a runtime senza redeploy.
+Twilio, Stripe e Claude API si configurano **dopo l'avvio** dal pannello admin (cifrate in DB):
 
-| Integrazione | Dove configurarla | Note |
-| ------------ | ----------------- | ---- |
-| **Claude API Key** | <http://localhost:3000/admin> → tab "Claude API" | Master key di sistema. Gli utenti possono usare BYOK dal proprio settings. |
-| **Twilio WhatsApp** | <http://localhost:3000/admin> → tab "Twilio" | Master account. I subaccount per-tenant sono creati automaticamente quando un business viene provisionato. |
-| **Stripe Pagamenti** | <http://localhost:3000/admin> → tab "Pagamenti" | Secret key, webhook secret, Price ID dei piani e dei top-up pack. |
+| Integrazione | Dove |
+| --- | --- |
+| **Claude API Key** | <http://localhost:3000/admin> → tab "Claude API" |
+| **Twilio WhatsApp** | <http://localhost:3000/admin> → tab "Twilio" |
+| **Stripe Pagamenti** | <http://localhost:3000/admin> → tab "Pagamenti" |
 
-> Niente più variabili Twilio/Stripe/Claude in `.env`: erano solo placeholder e non venivano usate. Il `.env.example` mantiene `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` come **fallback opzionale** per CI / dev senza UI.
+Senza queste credenziali la demo è comunque **navigabile**: vedi UI, dashboard, contatti, template. L'invio reale di messaggi WhatsApp / l'incasso reale Stripe richiedono le rispettive credenziali.
+
+---
+
+## Menu del setup script
+
+Quando rilanci lo script con la demo già attiva, ti propone:
+
+| Scelta | Azione |
+| --- | --- |
+| **1** | Mostra solo URL e credenziali |
+| **2** | Riavvia i container (nessuna perdita di dati) |
+| **3** | Aggiorna alle immagini più recenti (pull + ricrea) |
+| **4** | Reset completo — cancella database e ricomincia |
+
+---
+
+## Aggiornare la demo
+
+Le immagini Wamply seguono il branch `master` con tag `latest`. Per aggiornare:
+
+```bash
+./setup.sh
+# Scegli l'opzione [3] "Aggiorna le immagini"
+```
+
+Per pinnare una versione specifica, edita `.env`:
+
+```env
+WAMPLY_TAG=v1.2.3
+```
 
 ---
 
 ## Comandi manuali utili
 
-Dalla root del progetto:
+Dalla cartella `demo/`:
 
 ```bash
-make down          # Ferma tutti i container
-make up            # Riavvia (senza rebuild né cancellazione dati)
-make logs          # Log in tempo reale
-make setup         # Reset completo (cancella volumi e ricostruisce)
-
-docker compose restart backend agent   # Applica nuove credenziali .env senza rebuild
+docker compose -f docker-compose.demo.yml ps           # stato dei container
+docker compose -f docker-compose.demo.yml logs -f      # log in tempo reale
+docker compose -f docker-compose.demo.yml down         # ferma (mantiene i dati)
+docker compose -f docker-compose.demo.yml down -v      # ferma e cancella tutto
+docker compose -f docker-compose.demo.yml pull         # scarica ultime immagini
 ```
 
 ---
 
 ## Risoluzione problemi
 
-**Docker non si avvia su Windows**
-Aprire Docker Desktop dal menu Start, completare il setup iniziale (accettare i termini), poi rieseguire lo script.
+**Porta già in uso (3000, 5432, 6379, 8001, 8100, 8025)**
+Un altro processo occupa una di queste porte. Trova e ferma il processo, oppure modifica le porte in `docker-compose.demo.yml`.
 
-**Porta già in uso**
-Un altro processo occupa la porta 3000, 8025 o 8001. Fermare il processo o modificare le porte in `docker-compose.yml`.
+**`dependency failed to start`**
+Capita se Postgres impiega più di 90s al primo cold boot (macchine lente). Rilancia lo script: la seconda volta i dati esistono già e il boot è quasi istantaneo.
 
-### Build fallisce dopo un reset
+**Docker dice "image not found" o pull lento**
+Verifica connessione a `ghcr.io`. Le immagini sono pubbliche, non serve login Docker.
 
-```bash
-docker system prune -f
-./demo/setup.sh   # o setup.bat su Windows
-```
+**Reset completo**
+Lancia lo script e scegli `[4] Reset completo` (richiede di digitare `reset` per conferma).
 
-**Lo script non trova `make` su Windows**
-Usare `setup.bat` / `setup.ps1` — su Windows lo script invoca `docker compose` direttamente senza richiedere `make`.
+---
+
+## File in questa cartella
+
+| File | A cosa serve |
+| --- | --- |
+| `setup.sh` | Avvio per macOS / Linux |
+| `setup.ps1` | Avvio per Windows (PowerShell) |
+| `setup.bat` | Wrapper Windows che lancia `setup.ps1` |
+| `docker-compose.demo.yml` | Definizione dei 10 servizi (immagini pubbliche) |
+| `kong.yml` | Config dell'API gateway Kong |
+| `.env.example` | Variabili opzionali da copiare in `.env` |
+| `db/Dockerfile` | Sorgente dell'immagine `wcm-db-seed` (solo per CI) |
+| `contatti_wamply_*.csv` | Liste di contatti fake per provare l'import |
+| `template_contacts_fake.xlsx` | Template Excel per import contatti |

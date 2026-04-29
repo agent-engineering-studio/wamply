@@ -1,0 +1,72 @@
+name: release-demo
+
+# Packs the standalone demo folder into a single zip and attaches it to the
+# corresponding GitHub Release. The marketing colleague downloads the zip,
+# extracts it, runs setup.sh / setup.ps1 — done.
+#
+# Triggers:
+#   - Tag push v*.*.* (canonical release)
+#   - Manual `workflow_dispatch` for ad-hoc demo bundles
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag for the demo zip (uses 'manual-<run>' if empty)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # required to upload assets to a Release
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute version label
+        id: ver
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.inputs.tag != '' && github.event.inputs.tag || format('manual-{0}', github.run_number) }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stamp tag into demo/.env.example
+        run: |
+          # Pin the Wamply image tag so the zip always boots a known-good build.
+          # Without this, the demo would always pull `latest` and could surprise
+          # the recipient with a master rebuild.
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            sed -i "s|^# WAMPLY_TAG=latest|WAMPLY_TAG=${GITHUB_REF_NAME}|" demo/.env.example
+          fi
+
+      - name: Build the zip
+        id: pack
+        run: |
+          mkdir -p dist
+          # demo/db/Dockerfile is only useful at image-build time (not at
+          # runtime), so we exclude it to keep the bundle lean.
+          ZIP="dist/wamply-demo-${{ steps.ver.outputs.tag }}.zip"
+          (cd demo && zip -r "../$ZIP" . -x "db/*" "configs/*" "_*" "*.bak")
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          ls -lh "$ZIP"
+
+      - name: Upload as workflow artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wamply-demo-${{ steps.ver.outputs.tag }}
+          path: ${{ steps.pack.outputs.zip }}
+          retention-days: 30
+
+      - name: Attach to GitHub Release (tag only)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pack.outputs.zip }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true

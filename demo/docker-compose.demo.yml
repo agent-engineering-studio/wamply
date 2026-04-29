@@ -1,0 +1,216 @@
+# =============================================================================
+#  Wamply — Demo standalone
+#  Usable on Mac / Linux / Windows with ONLY Docker installed.
+#  Pulls everything from public registries — no `git clone` needed.
+# =============================================================================
+name: wamply-demo
+
+# Default tag for our 4 published images. Override with WAMPLY_TAG=v0.x.y
+# to pin a release instead of tracking master's `latest`.
+x-image-defaults: &image-defaults
+  pull_policy: always
+
+services:
+  # ── Postgres + migrations + seed (custom image) ─────────
+  supabase-db:
+    container_name: wamply-supabase-db
+    image: ghcr.io/agent-engineering-studio/wcm-db-seed:${WAMPLY_TAG:-latest}
+    <<: *image-defaults
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    volumes:
+      - supabase-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U supabase_admin -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks: [wamply]
+
+  # ── Redis (Stack: includes RedisInsight on 8001) ─────────
+  redis:
+    container_name: wamply-redis
+    image: redis/redis-stack:latest
+    pull_policy: always
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    networks: [wamply]
+
+  # ── Supabase Auth (GoTrue) ──────────────────────────────
+  supabase-auth:
+    container_name: wamply-supabase-auth
+    image: supabase/gotrue:v2.170.0
+    pull_policy: always
+    ports: ["9999:9999"]
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:9999}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres?search_path=auth
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_PASSWORD_MIN_LENGTH: 10
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-mailhog}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-1025}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-admin@wamply.local}
+      GOTRUE_SMTP_SENDER_NAME: Wamply Demo
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks: [wamply]
+
+  # ── Supabase REST (PostgREST) ────────────────────────────
+  supabase-rest:
+    container_name: wamply-supabase-rest
+    image: postgrest/postgrest:v12.2.3
+    pull_policy: always
+    ports: ["3001:3000"]
+    environment:
+      PGRST_DB_URI: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks: [wamply]
+
+  # ── Kong API Gateway (proxies /api/v1/* and /agent/v1/*) ─
+  supabase-kong:
+    container_name: wamply-supabase-kong
+    image: kong:3.9
+    pull_policy: always
+    ports: ["8100:8000"]
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+    volumes:
+      - ./kong.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      supabase-auth:
+        condition: service_started
+      supabase-rest:
+        condition: service_started
+    networks: [wamply]
+
+  # ── Mailhog (catches outgoing demo emails) ──────────────
+  mailhog:
+    container_name: wamply-mailhog
+    image: mailhog/mailhog:latest
+    pull_policy: always
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks: [wamply]
+
+  # ── Wamply Backend (FastAPI) ────────────────────────────
+  backend:
+    container_name: wamply-backend
+    image: ghcr.io/agent-engineering-studio/wcm-backend:${WAMPLY_TAG:-latest}
+    <<: *image-defaults
+    ports: ["8200:8200"]
+    environment:
+      DATABASE_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      STORAGE_ROOT: /var/wamply-storage
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      AGENT_SECRET: ${AGENT_SECRET:-dev-agent-secret-change-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-5}
+      MOCK_LLM: ${MOCK_LLM:-false}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: admin@wamply.local
+      APP_URL: ${SITE_URL:-http://localhost:3000}
+    volumes:
+      - backend-storage:/var/wamply-storage
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [wamply]
+
+  # ── Wamply Agent (campaign orchestrator) ────────────────
+  agent:
+    container_name: wamply-agent
+    image: ghcr.io/agent-engineering-studio/wcm-agent:${WAMPLY_TAG:-latest}
+    <<: *image-defaults
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      SUPABASE_URL: http://supabase-rest:3000
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-5}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
+      AGENT_SECRET: ${AGENT_SECRET:-dev-agent-secret-change-in-production}
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [wamply]
+
+  # ── Wamply Frontend (Next.js production) ────────────────
+  frontend:
+    container_name: wamply-frontend
+    image: ghcr.io/agent-engineering-studio/wcm-frontend:${WAMPLY_TAG:-latest}
+    <<: *image-defaults
+    ports: ["3000:3000"]
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: 1
+      SUPABASE_URL: http://supabase-kong:8000
+      SUPABASE_INTERNAL_URL: http://supabase-kong:8000
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+      AGENT_URL: http://agent:8000
+      AGENT_SECRET: ${AGENT_SECRET:-dev-agent-secret-change-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
+      REDIS_URL: redis://redis:6379
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:8100
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      NEXT_PUBLIC_ENABLE_GOOGLE_AUTH: "false"
+    depends_on:
+      backend:
+        condition: service_started
+      agent:
+        condition: service_started
+      supabase-kong:
+        condition: service_started
+    networks: [wamply]
+
+volumes:
+  supabase-data:
+  redis-data:
+  backend-storage:
+
+networks:
+  wamply:
+    name: wamply-demo

@@ -68,8 +68,11 @@ jobs:
     strategy:
       matrix:
         service:
-          - { name: wcm-agent,   context: agent   }
-          - { name: wcm-backend, context: backend  }
+          - { name: wcm-agent,    context: agent,    dockerfile: agent/Dockerfile    }
+          - { name: wcm-backend,  context: backend,  dockerfile: backend/Dockerfile  }
+          - { name: wcm-frontend, context: frontend, dockerfile: frontend/Dockerfile }
+          # db-seed needs the repo root as context (it pulls supabase/migrations).
+          - { name: wcm-db-seed,  context: .,        dockerfile: demo/db/Dockerfile  }
     steps:
       - uses: actions/checkout@v4
 
@@ -79,8 +82,29 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
           push: false
           load: true
           tags: ${{ matrix.service.name }}:ci
           cache-from: type=gha,scope=${{ matrix.service.name }}
           cache-to:   type=gha,scope=${{ matrix.service.name }},mode=max
+
+  demo-validate:
+    # Catches drift between the dev-mode compose (root) and the demo standalone
+    # bundle. kong.yml is duplicated by design (the demo folder must be self-
+    # contained), so we enforce byte-for-byte equality. Also validates that
+    # docker-compose.demo.yml parses with the bundled defaults.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: kong.yml in sync between supabase/ and demo/
+        run: |
+          if ! diff -u supabase/kong.yml demo/kong.yml; then
+            echo "::error::demo/kong.yml has drifted from supabase/kong.yml."
+            echo "Run: cp supabase/kong.yml demo/kong.yml"
+            exit 1
+          fi
+
+      - name: docker compose -f demo/docker-compose.demo.yml config
+        run: docker compose -f demo/docker-compose.demo.yml config --quiet
