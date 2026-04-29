@@ -1,13 +1,24 @@
 -- 007_rls_policies.sql
 -- Row Level Security on all tables
 
--- Create auth schema and uid() stub if not exists (Supabase GoTrue creates these normally)
+-- Create auth schema and helper stubs if not exists (Supabase GoTrue creates these normally)
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
   SELECT COALESCE(
     nullif(current_setting('request.jwt.claim.sub', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
   )::uuid
+$$ LANGUAGE sql STABLE;
+
+-- auth.role() — used by some RLS policies (e.g. 019_role_permissions). Without
+-- this stub, cold-boot init aborts with "function auth.role() does not exist"
+-- and the supabase-db container exits with code 3, breaking dependents.
+CREATE OR REPLACE FUNCTION auth.role() RETURNS text AS $$
+  SELECT COALESCE(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'),
+    'anon'
+  )::text
 $$ LANGUAGE sql STABLE;
 
 -- Enable RLS on all tables

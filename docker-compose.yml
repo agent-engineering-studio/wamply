@@ -334,6 +334,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      # redis/redis-stack:latest bundles RedisInsight + Redis modules and is
+      # noticeably slower to boot than vanilla redis (~10-15s extra on a cold
+      # `down -v` + `up`). Without start_period the first probes consumed all
+      # 5 retries and dependents (frontend, agent, backend) failed with
+      # "dependency redis condition not met".
+      start_period: 30s
     networks:
       - wcm-network
 
