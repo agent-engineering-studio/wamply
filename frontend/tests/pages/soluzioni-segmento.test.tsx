@@ -21,10 +21,12 @@ import SegmentoPage, {
 } from "@/app/soluzioni/[segmento]/page";
 
 describe("/soluzioni/[segmento]", () => {
-  it("generateStaticParams returns all 11 segment slugs", async () => {
+  it("generateStaticParams returns all 13 segment slugs", async () => {
     const params = await generateStaticParams();
-    expect(params).toHaveLength(11);
+    expect(params).toHaveLength(13);
     expect(params.map((p) => p.segmento)).toContain("parrucchieri");
+    expect(params.map((p) => p.segmento)).toContain("alimentari");
+    expect(params.map((p) => p.segmento)).toContain("caseifici");
   });
 
   it("generateMetadata returns metaTitle for known segment", async () => {

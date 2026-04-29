@@ -1,0 +1,42 @@
+{
+  "segmento": "caseifici",
+  "label": "Caseifici & Latticini",
+  "metaTitle": "WhatsApp marketing per caseifici e produzione casearia | Wamply",
+  "metaDescription": "Avvisa i clienti quando esce la mozzarella di giornata, lancia promo sui formaggi stagionati e organizza visite al caseificio. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Hai una mozzarella che esce ogni mattina ma i clienti arrivano sempre quando è finita?",
+    "solution": "Un messaggio WhatsApp ai clienti quando esce il fresco di giornata, parte una promo sui formaggi stagionati o c'è una visita guidata al caseificio.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "sparkles", "text": "Avviso fresco di giornata (mozzarella, ricotta, stracciatella)" },
+    { "icon": "gift", "text": "Promo formaggi stagionati e DOP del territorio" },
+    { "icon": "star", "text": "Visite al caseificio e degustazioni guidate" }
+  ],
+  "useCases": [
+    {
+      "title": "Mozzarella di giornata",
+      "description": "Ogni mattina, quando esce la mozzarella di bufala fresca, mandi un avviso ai clienti che hanno chiesto di essere informati. Disponibilità solo del giorno.",
+      "roi": "Vendi tutto il fresco prima di sera, zero invenduto"
+    },
+    {
+      "title": "Promo formaggio stagionato",
+      "description": "Lanci la promo del weekend sul parmigiano 24 mesi o il pecorino DOP a chi ti ha autorizzato a comunicare offerte.",
+      "roi": "+35% kg venduti nei due giorni di promo"
+    },
+    {
+      "title": "Visita guidata al caseificio",
+      "description": "Inviti i clienti più affezionati a una mattinata di visita: vedere la lavorazione del latte, la stagionatura, degustare i prodotti. Prenotazione diretta su WhatsApp.",
+      "roi": "Sold-out in 24h, fidelizza i clienti come nient'altro"
+    }
+  ],
+  "templatesPreview": [
+    { "slug": "caseifici_daily_fresh", "title": "Mozzarella di giornata", "preview": "Ciao Anna, oggi al Caseificio Bianchi è uscita la mozzarella di bufala fresca delle 7 di mattina. Disponibile fino alle 19 o esaurimento: wamply.it/p/oggi" },
+    { "slug": "caseifici_aged_promo", "title": "Promo stagionato", "preview": "Ciao Luigi, sabato e domenica al Caseificio Bianchi parmigiano 24 mesi 24,90€/kg invece di 32€ e pecorino DOP -15%. Solo per i clienti: wamply.it/p/promo" },
+    { "slug": "caseifici_visit", "title": "Visita guidata", "preview": "Ciao Maria, sabato 24 maggio mattinata al Caseificio Bianchi: visita guidata alla lavorazione + degustazione 5 formaggi, 18€ a persona. Posti limitati: wamply.it/p/visita" }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null,
+  "isPlaceholder": true
+}

@@ -12,6 +12,8 @@ import retail from "./retail.json";
 import scuole from "./scuole.json";
 import hotel from "./hotel.json";
 import autosaloni from "./autosaloni.json";
+import alimentari from "./alimentari.json";
+import caseifici from "./caseifici.json";
 
 const FILES: Record<SegmentSlug, SegmentContent> = {
   parrucchieri: parrucchieri as SegmentContent,
@@ -25,6 +27,8 @@ const FILES: Record<SegmentSlug, SegmentContent> = {
   scuole: scuole as SegmentContent,
   hotel: hotel as SegmentContent,
   autosaloni: autosaloni as SegmentContent,
+  alimentari: alimentari as SegmentContent,
+  caseifici: caseifici as SegmentContent,
 };
 
 export function loadSegmentContent(slug: string): SegmentContent | null {

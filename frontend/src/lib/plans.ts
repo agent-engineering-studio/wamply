@@ -252,6 +252,12 @@ export const SEGMENTS: readonly Segment[] = [
   { slug: "autosaloni", label: "Autosaloni",
     tagline: "Nuovi ingressi, promo finanziamento e test drive day.",
     image: "/segments/autosaloni.webp" },
+  { slug: "alimentari", label: "Alimentari & Botteghe",
+    tagline: "Lancio nuove etichette, promo settimana e cesti per le feste.",
+    image: "/segments/alimentari.webp" },
+  { slug: "caseifici", label: "Caseifici & Latticini",
+    tagline: "Avviso mozzarella di giornata, promo stagionati, visite al caseificio.",
+    image: "/segments/caseifici.webp" },
 ] as const;
 
 export function formatLimit(value: number, unit: string): string {

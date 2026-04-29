@@ -115,6 +115,32 @@ ICONS: dict[str, str] = {
         <circle cx="-65" cy="35" r="6" fill="{TEAL_SOFT}"/>
         <circle cx=" 65" cy="35" r="6" fill="{TEAL_SOFT}"/>
     """,
+    # shopping basket with bottle / loaf: alimentari & botteghe
+    "alimentari": f"""
+        <g fill="none" stroke="{TEAL_SOFT}" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M -110 -10 L -85 75 Q -80 95 -55 95 L 55 95 Q 80 95 85 75 L 110 -10 Z"/>
+          <line x1="-110" y1="-10" x2="110" y2="-10"/>
+          <line x1="-72" y1="20" x2="-72" y2="80"/>
+          <line x1="-30" y1="20" x2="-30" y2="80"/>
+          <line x1=" 15" y1="20" x2=" 15" y2="80"/>
+          <line x1=" 60" y1="20" x2=" 60" y2="80"/>
+        </g>
+        <rect x="-25" y="-72" width="22" height="62" rx="3" fill="none" stroke="{TEAL_SOFT}" stroke-width="6"/>
+        <rect x="-19" y="-78" width="10" height="8" fill="{TEAL_SOFT}" opacity="0.6"/>
+        <ellipse cx="35" cy="-45" rx="42" ry="22" fill="none" stroke="{TEAL_SOFT}" stroke-width="6"/>
+    """,
+    # cheese wheel + wedge cut: caseifici & latticini
+    "caseifici": f"""
+        <g fill="none" stroke="{TEAL_SOFT}" stroke-width="9" stroke-linejoin="round">
+          <circle r="100"/>
+          <path d="M -50 -86 L 50 -86 Q 60 -55 60 -25 L -60 -25 Q -60 -55 -50 -86 Z"
+                fill="{TEAL_SOFT}" fill-opacity="0.18"/>
+        </g>
+        <circle cx="-30" cy="20" r="8" fill="{TEAL_SOFT}" opacity="0.7"/>
+        <circle cx=" 25" cy="40" r="6" fill="{TEAL_SOFT}" opacity="0.7"/>
+        <circle cx=" 50" cy=" 0" r="5" fill="{TEAL_SOFT}" opacity="0.7"/>
+        <circle cx="-55" cy="-10" r="4" fill="{TEAL_SOFT}" opacity="0.7"/>
+    """,
 }
 
 LABELS = {
@@ -126,6 +152,8 @@ LABELS = {
     "scuole": "Scuole",
     "hotel": "Hotel & B&B",
     "autosaloni": "Autosaloni",
+    "alimentari": "Alimentari & Botteghe",
+    "caseifici": "Caseifici & Latticini",
 }
 
 

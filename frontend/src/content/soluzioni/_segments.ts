@@ -10,6 +10,8 @@ export const SEGMENTS = [
   { slug: "scuole", label: "Scuole & Centri formazione" },
   { slug: "hotel", label: "Hotel, B&B & Agriturismo" },
   { slug: "autosaloni", label: "Autosaloni & Concessionarie" },
+  { slug: "alimentari", label: "Alimentari & Botteghe" },
+  { slug: "caseifici", label: "Caseifici & Latticini" },
 ] as const;
 
 export type SegmentSlug = (typeof SEGMENTS)[number]["slug"];

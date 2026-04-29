@@ -1,0 +1,42 @@
+{
+  "segmento": "alimentari",
+  "label": "Alimentari & Botteghe",
+  "metaTitle": "WhatsApp marketing per alimentari, salumerie e botteghe di paese | Wamply",
+  "metaDescription": "Avvisa i clienti del paese quando arriva la pasta artigianale, parte una promo o c'è un nuovo vino del territorio. Prova 14 giorni gratis.",
+  "hero": {
+    "pain": "Hai prodotti buoni e una clientela del paese ma non riesci a far girare la voce su novità e offerte?",
+    "solution": "Un messaggio WhatsApp ai clienti del paese: nuovi prodotti, promo settimana e iniziative al banco.",
+    "ctaPrimary": "Prova 14 giorni gratis",
+    "ctaSecondary": "Vedi esempi template"
+  },
+  "bullets": [
+    { "icon": "sparkles", "text": "Lancio nuove etichette (vini, conserve, pasta artigianale)" },
+    { "icon": "gift", "text": "Promo settimana e offerte stagionali (festività, fiere)" },
+    { "icon": "star", "text": "Inviti a iniziative al banco e degustazioni" }
+  ],
+  "useCases": [
+    {
+      "title": "Lancio nuovo prodotto",
+      "description": "Quando entrano in bottega le conserve dalla cantina locale o un nuovo vino del territorio, mandi un avviso ai clienti più affezionati con scheda e prezzo.",
+      "roi": "Sold-out della prima cassa entro 3 giorni"
+    },
+    {
+      "title": "Offerta della settimana",
+      "description": "Lanci la promo del weekend (cesta di salumi, kit pasta + sugo) ai clienti del paese con sconto dedicato.",
+      "roi": "+30% scontrini il sabato pomeriggio"
+    },
+    {
+      "title": "Pacchetti per festività",
+      "description": "Pre-Natale, Pasqua o Ferragosto componi un cesto regalo prenotabile via WhatsApp e ne mandi le foto ai clienti abituali.",
+      "roi": "+45% prenotazioni cesto rispetto al solo passaparola"
+    }
+  ],
+  "templatesPreview": [
+    { "slug": "alimentari_new_product", "title": "Lancio prodotto", "preview": "Ciao Anna, da Alimentari del Borgo è arrivato il nuovo Sangiovese di Romagna 2024 della cantina Bianchi: 14,90€/bottiglia. Disponibilità limitata: wamply.it/p/sangio" },
+    { "slug": "alimentari_week_promo", "title": "Promo settimana", "preview": "Ciao Maria, sabato e domenica da Alimentari del Borgo cesta salumi e formaggi a 19,90€ invece di 28€. Solo per i clienti del paese: wamply.it/p/cesta" },
+    { "slug": "alimentari_holiday_basket", "title": "Cesto natalizio", "preview": "Ciao Giovanni, è il momento di prenotare i cesti di Natale da Alimentari del Borgo: 4 formati da 25€ a 80€. Ordina entro il 10 dicembre: wamply.it/p/natale" }
+  ],
+  "recommendedPlan": "starter",
+  "testimonial": null,
+  "isPlaceholder": true
+}

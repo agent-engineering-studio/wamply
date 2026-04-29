@@ -94,6 +94,21 @@ SEGMENTS: list[tuple[str, int, str]] = [
         "classic luxury car partial view, large windows, premium showroom feel, "
         "minimalist, " + COMMON_STYLE,
     ),
+    (
+        "alimentari", 1100,
+        "Italian village grocery shop interior, wooden shelves with bottles of "
+        "wine and olive oil, jars of preserves and conserves, hanging cured "
+        "salumi, baskets with fresh bread loaves and pasta, marble counter, "
+        "warm light through window, premium artisan general store feel, "
+        + COMMON_STYLE,
+    ),
+    (
+        "caseifici", 1200,
+        "Italian small dairy / caseificio interior, glass display with white "
+        "fresh mozzarella balls in clear water, large parmesan cheese wheels "
+        "stacked on wooden shelves, marble counter, copper kettle in the "
+        "background, warm light, premium artisan dairy feel, " + COMMON_STYLE,
+    ),
 ]
 
 

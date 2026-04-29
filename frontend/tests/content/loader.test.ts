@@ -30,9 +30,11 @@ describe("content loader", () => {
 
   it("loadAllSegments returns one entry per registered segment", () => {
     const all = loadAllSegments();
-    expect(all.length).toBe(11);
+    expect(all.length).toBe(13);
     const slugs = all.map((s) => s.segmento);
     expect(slugs).toContain("parrucchieri");
     expect(slugs).toContain("autosaloni");
+    expect(slugs).toContain("alimentari");
+    expect(slugs).toContain("caseifici");
   });
 });
