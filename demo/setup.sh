@@ -185,12 +185,21 @@ fi
 
 # ── 5. Build e avvio ──────────────────────────────────────────────────────────
 if ! $SKIP_SETUP; then
+  log_step "Aggiornamento immagini upstream"
+  cd "$ROOT_DIR"
+  # Always pull latest base images so the demo stays current with security
+  # patches and Postgres/Redis/Kong/etc. updates. --ignore-buildable skips
+  # local services (backend/agent/frontend) that aren't in any registry.
+  if docker compose pull --ignore-buildable 2>/dev/null; then
+    log_ok "Immagini upstream aggiornate"
+  else
+    log_warn "Impossibile aggiornare alcune immagini (offline?) — proseguo con quelle locali"
+  fi
+
   log_step "Build e avvio servizi"
 
-  cd "$ROOT_DIR"
-
   if $IMAGES_EXIST; then
-    log_ok "Avvio con immagini esistenti (nessun pull/build)"
+    log_ok "Avvio con immagini locali esistenti"
     make up
   else
     echo -e "  ${YELLOW}Il build iniziale può richiedere 5-10 minuti (dipende dalla connessione).${NC}"

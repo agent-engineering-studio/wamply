@@ -36,7 +36,7 @@ function Invoke-Ask {
 }
 
 function Test-DockerRunning {
-  $result = & docker info 2>&1
+  & docker info 2>&1 | Out-Null
   return $LASTEXITCODE -eq 0
 }
 
@@ -164,11 +164,23 @@ if ($containersRunning) {
 
 # ── 4. Build e avvio ──────────────────────────────────────────────────────────
 if (-not $skipSetup) {
-  Write-Step "Build e avvio servizi"
   Set-Location $RootDir
 
+  Write-Step "Aggiornamento immagini upstream"
+  # Always pull latest base images so the demo stays current with security
+  # patches and Postgres/Redis/Kong/etc. updates. --ignore-buildable skips
+  # local services (backend/agent/frontend) that aren't in any registry.
+  docker compose pull --ignore-buildable 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Ok "Immagini upstream aggiornate"
+  } else {
+    Write-Warn "Impossibile aggiornare alcune immagini (offline?) — proseguo con quelle locali"
+  }
+
+  Write-Step "Build e avvio servizi"
+
   if ($imagesExist) {
-    Write-Ok "Avvio con immagini esistenti (nessun pull/build)"
+    Write-Ok "Avvio con immagini locali esistenti"
     docker compose up -d
   } else {
     Write-Host "  Il build iniziale puo' richiedere 5-10 minuti." -ForegroundColor Yellow

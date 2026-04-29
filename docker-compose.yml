@@ -131,6 +131,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+      # Cold boot must apply 30+ migrations from /docker-entrypoint-initdb.d
+      # before Postgres accepts connections. 50s (interval×retries) wasn't
+      # enough on slower machines, causing dependents to fail with
+      # "dependency supabase-db failed to start". start_period gives a
+      # grace window where unhealthy probes don't count toward retries.
+      start_period: 90s
     networks:
       - wcm-network
 

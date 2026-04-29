@@ -25,6 +25,12 @@ up:
 up-full:
 	docker compose --profile full up -d
 
+# Pulls latest base images (postgres, redis, kong, gotrue, etc).
+# --ignore-buildable skips local-built services (backend/agent/frontend) that
+# don't exist in any registry, so the command never errors on those.
+pull:
+	docker compose pull --ignore-buildable
+
 up-debug:
 	docker compose --profile debug up -d
 
